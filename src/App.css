@@ -62,3 +62,25 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 
 .spaghetti { display: block; width: 100%; height: auto; }
 .note { font-size: 12px; color: #666; margin-top: 8px; }
+
+.compute-meta { font-size: 11px; color: #999; margin-bottom: 8px; }
+
+.axis-row { display: flex; align-items: center; gap: 8px; font-size: 12px; flex-wrap: wrap; padding: 4px 0; }
+.axis-toggle { width: 28px; height: 24px; border: 1px solid #ccc; background: #f6f6f6; border-radius: 4px; cursor: pointer; }
+.axis-toggle:disabled { opacity: 0.4; cursor: not-allowed; }
+.axis-sweeping .axis-toggle { background: #e0eaff; border-color: #6b8cce; }
+.axis-name { min-width: 110px; color: #444; }
+.axis-range { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.axis-num { width: 56px; padding: 3px 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+.axis-count { color: #888; font-size: 11px; }
+
+.heatmap-wrap { margin-top: 12px; }
+.heatmap-meta { font-size: 12px; color: #555; margin-bottom: 8px; }
+.heatmap { display: block; }
+.drill { margin-top: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; position: relative; }
+.drill .close { position: absolute; top: 8px; right: 8px; border: 1px solid #ccc; background: #fff; border-radius: 3px; cursor: pointer; padding: 2px 8px; font-size: 11px; }
+.drill h4 { margin: 0 0 8px; font-size: 13px; font-weight: 500; }
+
+.multiples-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-top: 8px; }
+.multiple { border: 1px solid #eee; border-radius: 4px; padding: 6px; }
+.multiple-title { font-size: 11px; color: #555; margin-bottom: 4px; }
