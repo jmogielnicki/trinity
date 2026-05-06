@@ -15,6 +15,7 @@ import { useCompareStore } from './store/compareStore';
 import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
+import { createPool } from './worker/pool';
 import './App.css';
 
 type View = 'spaghetti' | 'calendar';
@@ -22,14 +23,33 @@ type View = 'spaghetti' | 'calendar';
 export function App() {
   const scenario = useScenarioStore();
   const sweep = useSweepStore();
-  const { data, result, grid, computeMs, setData, recompute } =
-    useResultsStore();
+  const {
+    data,
+    result,
+    grid,
+    computeMs,
+    pool,
+    computing,
+    setData,
+    setPool,
+    recompute,
+  } = useResultsStore();
   const snapshot = useCompareStore((s) => s.snapshot);
   const [view, setView] = useState<View>('spaghetti');
 
   useEffect(() => {
-    loadHistorical().then(setData);
-  }, [setData]);
+    let cancelled = false;
+    (async () => {
+      const d = await loadHistorical();
+      if (cancelled) return;
+      setData(d);
+      const p = createPool();
+      await setPool(p);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setData, setPool]);
 
   // Hydrate from URL hash on first load.
   useEffect(() => {
@@ -46,11 +66,14 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!data) return;
-    const id = setTimeout(() => recompute(scenario, sweep), 150);
+    if (!data || !pool) return;
+    const id = setTimeout(() => {
+      void recompute(scenario, sweep);
+    }, 150);
     return () => clearTimeout(id);
   }, [
     data,
+    pool,
     scenario.initialBalance,
     scenario.horizonYears,
     scenario.allocation,
@@ -92,7 +115,8 @@ export function App() {
           {!data && <div className="loading">Loading historical data…</div>}
           {data && (
             <div className="compute-meta">
-              Compute: {computeMs.toFixed(0)} ms
+              Compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
+              {pool && <span className="pool-meta"> ({pool.size} workers)</span>}
               {result && !showSweepViews && (
                 <span className="view-toggle">
                   view:
