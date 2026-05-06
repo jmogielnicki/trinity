@@ -6,3 +6,4 @@ dist
 coverage
 .cache
 scripts/.cache
+tsconfig.tsbuildinfo
