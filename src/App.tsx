@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { AllocationInput } from './components/controls/AllocationInput';
+import { GlidePath } from './components/controls/GlidePath';
 import { PortfolioInput } from './components/controls/PortfolioInput';
-import { WithdrawalInput } from './components/controls/WithdrawalInput';
+import { WithdrawalCurve } from './components/controls/WithdrawalCurve';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { loadHistorical } from './data/load';
@@ -25,8 +25,8 @@ export function App() {
     data,
     scenario.initialBalance,
     scenario.horizonYears,
-    scenario.weights,
-    scenario.withdrawalRate,
+    scenario.allocation,
+    scenario.withdrawal,
     recompute,
     scenario,
   ]);
@@ -43,8 +43,16 @@ export function App() {
       <div className="layout">
         <aside className="controls">
           <PortfolioInput />
-          <AllocationInput />
-          <WithdrawalInput />
+          <GlidePath
+            horizonYears={scenario.horizonYears}
+            allocation={scenario.allocation}
+            onChange={scenario.setAllocation}
+          />
+          <WithdrawalCurve
+            horizonYears={scenario.horizonYears}
+            withdrawal={scenario.withdrawal}
+            onChange={scenario.setWithdrawal}
+          />
         </aside>
         <main className="results">
           {!data && <div className="loading">Loading historical data…</div>}
@@ -53,9 +61,9 @@ export function App() {
               <StatPanel result={result} />
               <SpaghettiChart result={result} />
               <p className="note">
-                Each line = one historical start year played forward {scenario.horizonYears} years.
-                Red lines failed; gray lines are in-progress (data ran out).
-                All amounts in real dollars.
+                Each line = one historical start year played forward{' '}
+                {scenario.horizonYears} years. Red = depleted, gray = data ran
+                out, blue = survived. All amounts in real dollars.
               </p>
             </>
           )}

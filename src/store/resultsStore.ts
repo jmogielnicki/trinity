@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 import { runScenario } from '../engine/sweep';
 import type { HistoricalSeries, ScenarioResult } from '../engine/types';
-import {
-  deriveAllocation,
-  deriveWithdrawal,
-  type ScenarioState,
-} from './scenarioStore';
+import type { ScenarioState } from './scenarioStore';
 
 export type ResultsState = {
   data: HistoricalSeries | null;
@@ -27,8 +23,8 @@ export const useResultsStore = create<ResultsState>((set, get) => ({
       {
         initialBalance: scenario.initialBalance,
         horizonYears: scenario.horizonYears,
-        allocation: deriveAllocation(scenario.weights),
-        withdrawal: deriveWithdrawal(scenario.withdrawalRate),
+        allocation: scenario.allocation,
+        withdrawal: scenario.withdrawal,
       },
       data,
     );
