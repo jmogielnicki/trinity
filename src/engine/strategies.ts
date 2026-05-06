@@ -14,7 +14,14 @@ export type WithdrawalStrategy =
       trigger: number;
     }
   | { type: 'ruleBased'; base: number; rules: Rule[] }
-  | { type: 'custom'; fn: (state: YearState, initial: number) => number };
+  | { type: 'custom'; fn: (state: YearState, initial: number) => number }
+  /**
+   * Source-string variant of `custom`. Body is the function body of
+   * `(state, initial) => number`, returning withdrawal in real $. Survives
+   * structured-clone (workers, URL serialization) where `custom` doesn't.
+   * Compiled lazily; the call site is responsible for sandboxing if any.
+   */
+  | { type: 'customSrc'; src: string };
 
 export type AllocationStrategy =
   | { type: 'static'; weights: Weights }
@@ -28,7 +35,36 @@ export type AllocationStrategy =
   | { type: 'ageInBonds'; currentAge: number }
   | { type: 'risingEquity'; start: Weights; end: Weights; years: number }
   | { type: 'ruleBased'; base: Weights; rules: Rule[] }
-  | { type: 'custom'; fn: (state: YearState) => Weights };
+  | { type: 'custom'; fn: (state: YearState) => Weights }
+  | { type: 'customSrc'; src: string };
+
+const wdSrcCache = new Map<string, (state: YearState, initial: number) => number>();
+const allocSrcCache = new Map<string, (state: YearState) => Weights>();
+
+function compileWithdrawalSrc(
+  src: string,
+): (state: YearState, initial: number) => number {
+  let fn = wdSrcCache.get(src);
+  if (!fn) {
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    fn = new Function('state', 'initial', src) as (
+      state: YearState,
+      initial: number,
+    ) => number;
+    wdSrcCache.set(src, fn);
+  }
+  return fn;
+}
+
+function compileAllocSrc(src: string): (state: YearState) => Weights {
+  let fn = allocSrcCache.get(src);
+  if (!fn) {
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    fn = new Function('state', src) as (state: YearState) => Weights;
+    allocSrcCache.set(src, fn);
+  }
+  return fn;
+}
 
 export function computeWithdrawal(
   strat: WithdrawalStrategy,
@@ -83,6 +119,8 @@ export function computeWithdrawal(
     }
     case 'custom':
       return strat.fn(state, initial);
+    case 'customSrc':
+      return compileWithdrawalSrc(strat.src)(state, initial);
   }
 }
 
@@ -159,5 +197,7 @@ export function computeWeights(
     }
     case 'custom':
       return normalize(strat.fn(state));
+    case 'customSrc':
+      return normalize(compileAllocSrc(strat.src)(state));
   }
 }

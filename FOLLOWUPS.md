@@ -15,5 +15,6 @@ Things deliberately deferred. Each one has a phase or trigger that should bring 
 
 ## UI
 
-- **Default chart only.** Phase 2 ships a read-only spaghetti chart against a static scenario. Draggable controllers (WithdrawalCurve, GlidePath) come in Phase 3.
-- **No URL state.** Scenarios aren't shareable yet. Plan in CLAUDE.md §9 puts this in Phase 5.
+- **Allocation rule builder + script editor.** Phase 6 ships the rule builder + script editor only for `WithdrawalStrategy`. Allocation has the underlying `customSrc` + `ruleBased` types but no UI yet — needs an analogue of `WithdrawalEditor` for glide paths.
+- **`customSrc` runs unsandboxed JS.** Compiled via `new Function`, no CSP, no proxies. Acceptable for a personal tool; if this ever ships to untrusted users, revisit (worker with locked-down globals + parse-AST allowlist is the typical move).
+- **Hash-loaded `customSrc` is auto-applied.** A malicious URL could ship a payload. Add a confirm prompt before evaluating any `customSrc` strategy that came from the hash.
