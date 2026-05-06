@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { GlidePath } from './components/controls/GlidePath';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { ScenarioActions } from './components/controls/ScenarioActions';
+import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { SweepSelector } from './components/controls/SweepSelector';
-import { WithdrawalCurve } from './components/controls/WithdrawalCurve';
+import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { Heatmap } from './components/results/Heatmap';
 import { SmallMultiples } from './components/results/SmallMultiples';
@@ -103,13 +104,14 @@ export function App() {
             allocation={scenario.allocation}
             onChange={scenario.setAllocation}
           />
-          <WithdrawalCurve
+          <WithdrawalEditor
             horizonYears={scenario.horizonYears}
             withdrawal={scenario.withdrawal}
             onChange={scenario.setWithdrawal}
           />
           <SweepSelector />
           <ScenarioActions />
+          <ScenarioLibrary />
         </aside>
         <main className="results">
           {!data && <div className="loading">Loading historical data…</div>}
