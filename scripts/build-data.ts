@@ -67,27 +67,22 @@ function parseShiller(csv: string): MonthRow[] {
 }
 
 /**
- * Modified duration of an n-year par bond at yield y (annual coupons).
- *   D_mac = ((1+y)/y) * (1 - (1+y)^-n)
- *   D_mod = D_mac / (1+y)
- */
-function modDurationParBond(y: number, n: number): number {
-  if (y === 0) return n / 2; // limiting case
-  const macaulay = ((1 + y) / y) * (1 - Math.pow(1 + y, -n));
-  return macaulay / (1 + y);
-}
-
-/**
- * Annual nominal total return on a 10y constant-maturity par bond.
- *   coupon income  = y_start
- *   price change   ≈ -D_mod(y_start, 10) * (y_end - y_start)
- * This is the standard textbook (Bogle, Damodaran) approximation. Good enough
- * for a single-year horizon; the duration approximation breaks down for huge
- * yield moves but is fine across the historical record.
+ * Annual nominal total return on a 10y constant-maturity par bond, exact for
+ * annual coupons. At year start we buy a 10y par bond (price 1, coupon
+ * y_start). One year later it's a 9y bond paying y_start coupons; we mark it
+ * to market at y_end, take this year's coupon, and hold:
+ *   P_end = y_start * (1 - (1+y_end)^-9) / y_end + (1+y_end)^-9
+ *   total_return = P_end + y_start - 1
+ * Linearized duration is a textbook approximation but materially overstates
+ * losses for the 1979-82 yield surge — the closed form matches Bengen.
  */
 function bondAnnualReturn(yStart: number, yEnd: number): number {
-  const dMod = modDurationParBond(yStart, 10);
-  return yStart - dMod * (yEnd - yStart);
+  const n = 9; // remaining maturity at year end
+  const pvCoupons =
+    yEnd === 0 ? yStart * n : (yStart * (1 - Math.pow(1 + yEnd, -n))) / yEnd;
+  const pvPrincipal = Math.pow(1 + yEnd, -n);
+  const pEnd = pvCoupons + pvPrincipal;
+  return pEnd + yStart - 1;
 }
 
 function buildAnnual(rows: MonthRow[]) {
