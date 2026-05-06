@@ -33,19 +33,10 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .control-group label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #444; }
 .control-group input[type="number"] { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; }
 
-.alloc-bar {
-  display: flex;
-  height: 28px;
-  border-radius: 4px;
-  overflow: hidden;
-  font-size: 11px;
-  color: #fff;
-  margin-bottom: 8px;
-}
-.seg { display: flex; align-items: center; justify-content: center; padding: 0 4px; white-space: nowrap; overflow: hidden; }
-.seg-stock { background: #2c5282; }
-.seg-bond { background: #6b8e6b; }
-.seg-cash { background: #b08e3a; }
+.curve-editor { display: block; touch-action: none; user-select: none; }
+.control-label { font-size: 12px; color: #444; }
+.legend { display: flex; gap: 12px; font-size: 11px; color: #555; }
+.legend .sw { display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
 
 .results {
   background: #fff;
