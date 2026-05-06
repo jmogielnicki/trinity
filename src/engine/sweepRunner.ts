@@ -1,4 +1,4 @@
-import { runScenario } from './sweep';
+import { runScenario, type Scenario } from './sweep';
 import type { AllocationStrategy, WithdrawalStrategy } from './strategies';
 import type { HistoricalSeries, ScenarioResult } from './types';
 import {
@@ -25,11 +25,13 @@ export type SweepGrid = {
   cells: GridCell[];
 };
 
-/**
- * Apply a swept axis value to the base scenario. Sweeping `withdrawalRate`
- * overrides the user's curve with a flat fixedPercent. Sweeping `stockPct`
- * overrides the glide path with a flat static allocation (bonds = 1 - stock).
- */
+export type SweepPlan = {
+  axes: Axis[];
+  values: Record<Axis, number[]>;
+  scenarios: Scenario[];
+  axisValuesPerCell: Array<Record<Axis, number | undefined>>;
+};
+
 function applyAxis(
   base: BaseScenario,
   axis: Axis,
@@ -51,11 +53,20 @@ function applyAxis(
   }
 }
 
-export function runSweep(
+const EMPTY_AXIS_VALUES: Record<Axis, number | undefined> = {
+  withdrawalRate: undefined,
+  stockPct: undefined,
+  horizon: undefined,
+};
+
+/**
+ * Build the list of scenarios a sweep needs to run, without actually running
+ * them. Lets a worker pool parallelize the execution.
+ */
+export function planSweep(
   base: BaseScenario,
   axesConfig: Record<Axis, AxisMode>,
-  data: HistoricalSeries,
-): SweepGrid {
+): SweepPlan {
   const sweeping = (Object.keys(axesConfig) as Axis[]).filter(
     (a) => axesConfig[a].mode === 'sweep',
   );
@@ -69,55 +80,59 @@ export function runSweep(
     return {
       axes: [],
       values,
-      cells: [
-        {
-          axisValues: {
-            withdrawalRate: undefined,
-            stockPct: undefined,
-            horizon: undefined,
-          },
-          result: runScenario(base, data),
-        },
-      ],
+      scenarios: [base],
+      axisValuesPerCell: [{ ...EMPTY_AXIS_VALUES }],
     };
   }
 
-  const cells: GridCell[] = [];
+  const scenarios: Scenario[] = [];
+  const axisValuesPerCell: Array<Record<Axis, number | undefined>> = [];
+
   if (sweeping.length === 1) {
     const a = sweeping[0];
     for (const v of values[a]) {
-      const s = applyAxis(base, a, v);
-      cells.push({
-        axisValues: {
-          withdrawalRate: a === 'withdrawalRate' ? v : undefined,
-          stockPct: a === 'stockPct' ? v : undefined,
-          horizon: a === 'horizon' ? v : undefined,
-        },
-        result: runScenario(s, data),
-      });
+      scenarios.push(applyAxis(base, a, v));
+      axisValuesPerCell.push({ ...EMPTY_AXIS_VALUES, [a]: v });
     }
   } else {
     const [a1, a2] = sweeping;
     for (const v1 of values[a1]) {
       for (const v2 of values[a2]) {
-        const s = applyAxis(applyAxis(base, a1, v1), a2, v2);
-        cells.push({
-          axisValues: {
-            withdrawalRate:
-              a1 === 'withdrawalRate'
-                ? v1
-                : a2 === 'withdrawalRate'
-                  ? v2
-                  : undefined,
-            stockPct:
-              a1 === 'stockPct' ? v1 : a2 === 'stockPct' ? v2 : undefined,
-            horizon: a1 === 'horizon' ? v1 : a2 === 'horizon' ? v2 : undefined,
-          },
-          result: runScenario(s, data),
+        scenarios.push(applyAxis(applyAxis(base, a1, v1), a2, v2));
+        axisValuesPerCell.push({
+          ...EMPTY_AXIS_VALUES,
+          [a1]: v1,
+          [a2]: v2,
         });
       }
     }
   }
 
-  return { axes: sweeping, values, cells };
+  return { axes: sweeping, values, scenarios, axisValuesPerCell };
+}
+
+/** Glue plan + results back together into a SweepGrid for the UI. */
+export function assembleGrid(
+  plan: SweepPlan,
+  results: ScenarioResult[],
+): SweepGrid {
+  return {
+    axes: plan.axes,
+    values: plan.values,
+    cells: plan.scenarios.map((_, i) => ({
+      axisValues: plan.axisValuesPerCell[i],
+      result: results[i],
+    })),
+  };
+}
+
+/** Convenience for tests / non-worker callers. */
+export function runSweep(
+  base: BaseScenario,
+  axesConfig: Record<Axis, AxisMode>,
+  data: HistoricalSeries,
+): SweepGrid {
+  const plan = planSweep(base, axesConfig);
+  const results = plan.scenarios.map((s) => runScenario(s, data));
+  return assembleGrid(plan, results);
 }
