@@ -1,27 +1,49 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { GlidePath } from './components/controls/GlidePath';
 import { PortfolioInput } from './components/controls/PortfolioInput';
+import { ScenarioActions } from './components/controls/ScenarioActions';
 import { SweepSelector } from './components/controls/SweepSelector';
 import { WithdrawalCurve } from './components/controls/WithdrawalCurve';
+import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { Heatmap } from './components/results/Heatmap';
 import { SmallMultiples } from './components/results/SmallMultiples';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { loadHistorical } from './data/load';
+import { tryDeserialize } from './data/urlState';
+import { useCompareStore } from './store/compareStore';
 import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import './App.css';
+
+type View = 'spaghetti' | 'calendar';
 
 export function App() {
   const scenario = useScenarioStore();
   const sweep = useSweepStore();
   const { data, result, grid, computeMs, setData, recompute } =
     useResultsStore();
+  const snapshot = useCompareStore((s) => s.snapshot);
+  const [view, setView] = useState<View>('spaghetti');
 
   useEffect(() => {
     loadHistorical().then(setData);
   }, [setData]);
+
+  // Hydrate from URL hash on first load.
+  useEffect(() => {
+    const parsed = tryDeserialize(location.hash);
+    if (!parsed) return;
+    scenario.setBalance(parsed.initialBalance);
+    scenario.setHorizon(parsed.horizonYears);
+    scenario.setAllocation(parsed.allocation);
+    scenario.setWithdrawal(parsed.withdrawal);
+    (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
+      sweep.setAxis(a, parsed.axes[a]),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -38,6 +60,8 @@ export function App() {
     scenario,
     sweep,
   ]);
+
+  const showSweepViews = !!grid && grid.axes.length > 0;
 
   return (
     <div className="app">
@@ -62,18 +86,46 @@ export function App() {
             onChange={scenario.setWithdrawal}
           />
           <SweepSelector />
+          <ScenarioActions />
         </aside>
         <main className="results">
           {!data && <div className="loading">Loading historical data…</div>}
           {data && (
             <div className="compute-meta">
               Compute: {computeMs.toFixed(0)} ms
+              {result && !showSweepViews && (
+                <span className="view-toggle">
+                  view:
+                  <button
+                    className={view === 'spaghetti' ? 'active' : ''}
+                    onClick={() => setView('spaghetti')}
+                  >
+                    spaghetti
+                  </button>
+                  <button
+                    className={view === 'calendar' ? 'active' : ''}
+                    onClick={() => setView('calendar')}
+                  >
+                    calendar
+                  </button>
+                </span>
+              )}
             </div>
           )}
-          {data && result && (
+          {data && result && !showSweepViews && (
             <>
               <StatPanel result={result} />
-              <SpaghettiChart result={result} />
+              {view === 'spaghetti' ? (
+                <SpaghettiChart
+                  result={result}
+                  overlay={snapshot?.result ?? null}
+                />
+              ) : (
+                <CalendarHeatmap
+                  result={result}
+                  initialBalance={scenario.initialBalance}
+                />
+              )}
             </>
           )}
           {data && grid && grid.axes.length === 1 && (
