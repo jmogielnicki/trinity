@@ -41,6 +41,10 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
         />
         % — applied when no rule matches.
       </div>
+      <div className="rule-hint">
+        Rules evaluate top-down each year; the <strong>last matching rule wins</strong>
+        and overrides the rate.
+      </div>
       {rules.map((r, i) => (
         <RuleRow
           key={i}

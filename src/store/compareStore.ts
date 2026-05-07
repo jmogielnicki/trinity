@@ -18,5 +18,7 @@ export const useCompareStore = create<CompareState>((set) => ({
   setSnapshot: (snapshot) => set({ snapshot }),
 }));
 
-export const SNAPSHOT_COLOR = '#c44';
-export const CURRENT_COLOR = '#357';
+import { OUTCOME } from '../components/colors';
+
+export const SNAPSHOT_COLOR = OUTCOME.snapshot;
+export const CURRENT_COLOR = OUTCOME.survived;
