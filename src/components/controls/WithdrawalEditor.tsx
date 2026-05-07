@@ -14,6 +14,9 @@ type Props = {
 function modeOf(w: WithdrawalStrategy): Mode {
   if (w.type === 'ruleBased') return 'rules';
   if (w.type === 'customSrc' || w.type === 'custom') return 'script';
+  // 'curve' covers fixedPercent, piecewiseLinear (what the editor emits),
+  // and the legacy 'piecewise' (kept as a separate engine type so old
+  // saved scenarios still resolve).
   return 'curve';
 }
 

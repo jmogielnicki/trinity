@@ -6,6 +6,16 @@ export type WithdrawalStrategy =
   | { type: 'fixedDollar'; amount: number }
   | { type: 'percentOfBalance'; rate: number }
   | { type: 'piecewise'; pieces: { until: number; rate: number }[] }
+  /**
+   * Linear-interpolation curve: rate at year t is interpolated between the
+   * surrounding control points; outside the range it clamps to the nearest
+   * end. This is the strategy WithdrawalCurve emits — what users see when
+   * they drag handles is exactly what the engine takes.
+   */
+  | {
+      type: 'piecewiseLinear';
+      points: { t: number; rate: number }[];
+    }
   | {
       type: 'guardrails';
       base: number;
@@ -86,6 +96,24 @@ export function computeWithdrawal(
       }
       const last = strat.pieces[strat.pieces.length - 1];
       return last.rate * initial;
+    }
+    case 'piecewiseLinear': {
+      const pts = strat.points;
+      if (pts.length === 0) return 0;
+      const t = state.t;
+      if (t <= pts[0].t) return pts[0].rate * initial;
+      if (t >= pts[pts.length - 1].t)
+        return pts[pts.length - 1].rate * initial;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        if (t >= a.t && t <= b.t) {
+          const span = b.t - a.t;
+          const frac = span === 0 ? 0 : (t - a.t) / span;
+          return (a.rate + (b.rate - a.rate) * frac) * initial;
+        }
+      }
+      return pts[pts.length - 1].rate * initial;
     }
     case 'guardrails': {
       // Guyton-Klinger style: start at base*initial in real $, then adjust if

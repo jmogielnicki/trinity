@@ -23,16 +23,25 @@ const SNAP_TOL = 0.0025;
 
 type Handle = { tFrac: number; rate: number };
 
-function strategyToHandles(w: WithdrawalStrategy): Handle[] {
+function strategyToHandles(
+  w: WithdrawalStrategy,
+  horizonYears: number,
+): Handle[] {
   const baseRate =
     w.type === 'fixedPercent'
       ? w.rate
-      : w.type === 'piecewise'
-        ? w.pieces[0]?.rate ?? 0.04
-        : 0.04;
-  if (w.type === 'piecewise' && w.pieces.length === N_HANDLES) {
-    return w.pieces.map((p, i) => ({
-      tFrac: i / (N_HANDLES - 1),
+      : w.type === 'piecewiseLinear'
+        ? (w.points[0]?.rate ?? 0.04)
+        : w.type === 'piecewise'
+          ? (w.pieces[0]?.rate ?? 0.04)
+          : 0.04;
+  if (
+    w.type === 'piecewiseLinear' &&
+    w.points.length === N_HANDLES &&
+    horizonYears > 0
+  ) {
+    return w.points.map((p, i) => ({
+      tFrac: horizonYears <= 1 ? i / (N_HANDLES - 1) : p.t / (horizonYears - 1),
       rate: p.rate,
     }));
   }
@@ -48,12 +57,15 @@ function handlesToStrategy(
 ): WithdrawalStrategy {
   const allEqual = handles.every((h) => h.rate === handles[0].rate);
   if (allEqual) return { type: 'fixedPercent', rate: handles[0].rate };
-  // Piecewise: each handle controls the rate from its tFrac up to the next.
-  const pieces = handles.map((h, i) => {
-    const nextFrac = i + 1 < handles.length ? handles[i + 1].tFrac : 1.0001;
-    return { until: Math.ceil(nextFrac * horizonYears), rate: h.rate };
-  });
-  return { type: 'piecewise', pieces };
+  // Linear interpolation between handles. Year index for each handle uses
+  // a 0..(horizon-1) span, so dragging a handle at tFrac=0 controls year 0
+  // and tFrac=1 controls the final year — what the user sees on the chart.
+  const lastT = Math.max(0, horizonYears - 1);
+  const points = handles.map((h) => ({
+    t: h.tFrac * lastT,
+    rate: h.rate,
+  }));
+  return { type: 'piecewiseLinear', points };
 }
 
 function snap(rate: number): number {
@@ -71,15 +83,15 @@ export function WithdrawalCurve({
   height = 160,
 }: Props) {
   const [handles, setHandles] = useState<Handle[]>(() =>
-    strategyToHandles(withdrawal),
+    strategyToHandles(withdrawal, horizonYears),
   );
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // Re-sync if external changes arrive (e.g. horizon change).
+  // Re-sync if external changes arrive (e.g. horizon change or external strategy load).
   useEffect(() => {
-    setHandles(strategyToHandles(withdrawal));
+    setHandles(strategyToHandles(withdrawal, horizonYears));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [withdrawal.type]);
+  }, [withdrawal.type, horizonYears]);
 
   const margin = { top: 12, right: 12, bottom: 24, left: 36 };
   const innerW = width - margin.left - margin.right;
