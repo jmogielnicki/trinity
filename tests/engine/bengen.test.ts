@@ -10,7 +10,9 @@ import { loadHistoricalFromDisk } from './loadData';
  * carries more duration risk; the 1965-69 retiree cohort takes enough damage
  * from the 1979-82 yield surge to fail. This is consistent with later
  * literature (e.g., Pfau) that re-runs Bengen with long Treasuries and finds
- * SWR drops a notch for that exact cohort. So we expect ≥ 92% here, not 100%.
+ * SWR drops a notch for that exact cohort. With Shiller's published Total
+ * Return indices through 2025, success rate is ~94%; we test ≥ 93% to allow
+ * for small data revisions.
  */
 describe('Bengen 4% rule', () => {
   const data = loadHistoricalFromDisk();
@@ -30,7 +32,7 @@ describe('Bengen 4% rule', () => {
     expect(result.inProgressCount).toBe(0);
   });
 
-  it('has ≥ 92% historical success (10y Treasuries)', () => {
-    expect(result.successRate).toBeGreaterThanOrEqual(0.92);
+  it('has ≥ 93% historical success (10y Treasuries)', () => {
+    expect(result.successRate).toBeGreaterThanOrEqual(0.93);
   });
 });

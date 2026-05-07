@@ -1,197 +1,171 @@
 /**
- * Build historical.json from Shiller's monthly S&P 500 / CPI / 10y Treasury data.
+ * Build historical.json from Robert Shiller's monthly ie_data CSV.
  *
- * Source: https://github.com/datasets/s-and-p-500 (mirror of Robert Shiller's ie_data.xls)
- * Columns: Date, SP500, Dividend, Earnings, Consumer Price Index, Long Interest Rate, ...
+ * Source file: public/data/ie_data.csv (Shiller's online dataset, exported
+ * from ie_data.xls). Format:
+ *   Date, S&P Comp. P, Dividend D, Earnings E, Price Index CPI, Date Fraction,
+ *   Long Interest Rate GS10, Real Price, Real Dividend, Total Return Price,
+ *   Real Earnings, TR Scaled Earnings, CAPE, TR CAPE, Excess CAPE Yield,
+ *   Total Bond Returns (monthly factor), Total Bond Returns (cumulative index),
+ *   ... (annualized returns, ignored)
  *
- * We compute, for every full calendar year:
- *   stock_return: total real return, monthly Shiller formula compounded
- *     R_m = (P_m + D_m/12) / P_{m-1}, deflated by CPI_{m-1}/CPI_m
- *   bond_return: 10y constant-maturity Treasury total return — coupon income plus
- *     price change from yield movement on a par bond, then deflated by CPI.
- *   cash_return: left null (need FRED TB3MS, fetch separately).
- *
- * Cache the raw CSV under scripts/.cache/ so re-runs are offline.
+ * We compute annual real total returns by ratioing the published cumulative
+ * total-return indices between successive Decembers and deflating by CPI.
+ * Cleaner than reconstructing returns from price + dividend, and cleaner than
+ * the par-bond duration approximation used in the prior version.
  */
 
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
-const CACHE_DIR = join(ROOT, 'scripts', '.cache');
+const SOURCE_PATH = join(ROOT, 'public', 'data', 'ie_data.csv');
 const OUT_PATH = join(ROOT, 'public', 'data', 'historical.json');
-
-const SHILLER_URL =
-  'https://raw.githubusercontent.com/datasets/s-and-p-500/master/data/data.csv';
 
 type MonthRow = {
   year: number;
   month: number;
-  price: number;
-  dividend: number; // annualized $ rate
   cpi: number;
-  yield10: number; // long interest rate, percent
+  trp: number; // cumulative stock total return price
+  bondTr: number; // cumulative bond total return index
 };
 
-async function fetchCached(url: string, cachePath: string): Promise<string> {
-  if (existsSync(cachePath)) {
-    return readFileSync(cachePath, 'utf-8');
+/**
+ * Minimal CSV row splitter that respects double-quoted fields. Handles the
+ * embedded thousand separators in Shiller's "Total Return Price" column.
+ */
+function splitCsvRow(line: string): string[] {
+  const out: string[] = [];
+  let cur = '';
+  let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuote) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuote = false;
+        }
+      } else {
+        cur += ch;
+      }
+    } else if (ch === ',') {
+      out.push(cur);
+      cur = '';
+    } else if (ch === '"') {
+      inQuote = true;
+    } else {
+      cur += ch;
+    }
   }
-  console.log(`Fetching ${url}`);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Fetch failed ${res.status}: ${url}`);
-  const body = await res.text();
-  mkdirSync(dirname(cachePath), { recursive: true });
-  writeFileSync(cachePath, body);
-  return body;
+  out.push(cur);
+  return out;
+}
+
+function parseNum(s: string | undefined): number | null {
+  if (s == null) return null;
+  const trimmed = s.replace(/,/g, '').trim();
+  if (!trimmed || /^na$/i.test(trimmed)) return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseDate(s: string): { year: number; month: number } | null {
+  // "1871.01" .. "2026.05". Use string split so .10/.11/.12 don't collide
+  // with float quirks.
+  const [y, m] = s.split('.');
+  if (!y || !m) return null;
+  const year = +y;
+  const month = +m;
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return null;
+  return { year, month };
 }
 
 function parseShiller(csv: string): MonthRow[] {
-  const lines = csv.trim().split('\n');
+  const lines = csv.replace(/\r/g, '').split('\n').filter(Boolean);
   const rows: MonthRow[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',');
-    const [y, m] = cols[0].split('-').map(Number);
-    const price = +cols[1];
-    const dividend = +cols[2];
-    const cpi = +cols[4];
-    const yield10 = +cols[5];
-    // Recent rows may be sparse (price-only, others zero). We treat 0 as missing
-    // for fields where 0 is not a plausible value.
-    if (!price || !cpi || !dividend || !yield10) continue;
-    rows.push({ year: y, month: m, price, dividend, cpi, yield10: yield10 / 100 });
+    const cols = splitCsvRow(lines[i]);
+    const date = parseDate(cols[0]);
+    if (!date) continue;
+    const cpi = parseNum(cols[4]);
+    const trp = parseNum(cols[9]);
+    const bondTr = parseNum(cols[16]);
+    if (cpi == null || trp == null || bondTr == null) continue;
+    rows.push({ year: date.year, month: date.month, cpi, trp, bondTr });
   }
   return rows;
 }
 
-/**
- * Annual nominal total return on a 10y constant-maturity par bond, exact for
- * annual coupons. At year start we buy a 10y par bond (price 1, coupon
- * y_start). One year later it's a 9y bond paying y_start coupons; we mark it
- * to market at y_end, take this year's coupon, and hold:
- *   P_end = y_start * (1 - (1+y_end)^-9) / y_end + (1+y_end)^-9
- *   total_return = P_end + y_start - 1
- * Linearized duration is a textbook approximation but materially overstates
- * losses for the 1979-82 yield surge — the closed form matches Bengen.
- */
-function bondAnnualReturn(yStart: number, yEnd: number): number {
-  const n = 9; // remaining maturity at year end
-  const pvCoupons =
-    yEnd === 0 ? yStart * n : (yStart * (1 - Math.pow(1 + yEnd, -n))) / yEnd;
-  const pvPrincipal = Math.pow(1 + yEnd, -n);
-  const pEnd = pvCoupons + pvPrincipal;
-  return pEnd + yStart - 1;
-}
-
 function buildAnnual(rows: MonthRow[]) {
-  // Group by year. We need months 1..12 to consider a year complete.
-  const byYear = new Map<number, MonthRow[]>();
-  for (const r of rows) {
-    if (!byYear.has(r.year)) byYear.set(r.year, []);
-    byYear.get(r.year)!.push(r);
-  }
-  const years = [...byYear.keys()].sort((a, b) => a - b);
+  // Index Decembers; we ratio successive Decembers for annual total returns.
+  const decByYear = new Map<number, MonthRow>();
+  for (const r of rows) if (r.month === 12) decByYear.set(r.year, r);
+  const years = [...decByYear.keys()].sort((a, b) => a - b);
 
-  // Stock monthly nominal: R_m = (P_m + D_m/12) / P_{m-1}
-  // We need the previous month for the first month of each year, so iterate
-  // through the full row sequence and build a parallel monthly_real array.
-  const sorted = [...rows].sort(
-    (a, b) => a.year * 12 + a.month - (b.year * 12 + b.month),
-  );
-  const monthlyReal = new Map<string, number>(); // key "yyyy-mm"
-  const monthlyNominal = new Map<string, number>();
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const cur = sorted[i];
-    const nominal = (cur.price + cur.dividend / 12) / prev.price;
-    const real = nominal * (prev.cpi / cur.cpi);
-    const key = `${cur.year}-${cur.month}`;
-    monthlyNominal.set(key, nominal);
-    monthlyReal.set(key, real);
-  }
+  const round = (x: number, p = 6) => {
+    const f = Math.pow(10, p);
+    return Math.round(x * f) / f;
+  };
 
-  const out: Array<{
-    year: number;
-    stock_return_nominal: number;
-    stock_return_real: number;
-    bond_return_nominal: number;
-    bond_return_real: number;
-    cash_return_nominal: number | null;
-    cash_return_real: number | null;
-    cpi: number;
-    inflation: number;
-  }> = [];
+  const out = [];
+  for (let i = 1; i < years.length; i++) {
+    const y = years[i];
+    const cur = decByYear.get(y)!;
+    const prev = decByYear.get(years[i - 1])!;
+    if (years[i - 1] !== y - 1) continue; // skip if there's a gap
 
-  for (const y of years) {
-    const months = byYear.get(y)!;
-    if (months.length !== 12) continue; // incomplete year
-    const prevYearLast = byYear.get(y - 1);
-    if (!prevYearLast) continue; // need t-1 for return calc
-
-    // Compound 12 monthly returns
-    let stockNom = 1;
-    let stockReal = 1;
-    let ok = true;
-    for (let m = 1; m <= 12; m++) {
-      const k = `${y}-${m}`;
-      const n = monthlyNominal.get(k);
-      const r = monthlyReal.get(k);
-      if (n === undefined || r === undefined) {
-        ok = false;
-        break;
-      }
-      stockNom *= n;
-      stockReal *= r;
-    }
-    if (!ok) continue;
-
-    // Bond return: use January yield as start, next January yield as end
-    const janCur = months.find((r) => r.month === 1);
-    const janNext = byYear.get(y + 1)?.find((r) => r.month === 1);
-    if (!janCur || !janNext) continue;
-    const bondNom = bondAnnualReturn(janCur.yield10, janNext.yield10);
-
-    // Inflation: December CPI / previous December CPI
-    const decCur = months.find((r) => r.month === 12)!;
-    const decPrev = prevYearLast.find((r) => r.month === 12);
-    if (!decPrev) continue;
-    const inflation = decCur.cpi / decPrev.cpi - 1;
-    const bondReal = (1 + bondNom) / (1 + inflation) - 1;
+    // Shiller publishes both "Total Return Price" (stocks) and "Total Bond
+    // Returns" as REAL cumulative indices. Sanity check: TRP grows ~32,000×
+    // from 1871 to 2024 ≈ 7.0% annualized, which only makes sense as real
+    // (nominal would be ~700,000×). Same logic for bonds (39× ≈ 2.4%/yr
+    // real). So we ratio successive Decembers to get real total returns
+    // directly, then reconstruct nominal via the period CPI change.
+    const stockReal = cur.trp / prev.trp - 1;
+    const bondReal = cur.bondTr / prev.bondTr - 1;
+    const inflation = cur.cpi / prev.cpi - 1;
+    const stockNom = (1 + stockReal) * (1 + inflation) - 1;
+    const bondNom = (1 + bondReal) * (1 + inflation) - 1;
 
     out.push({
       year: y,
-      stock_return_nominal: round(stockNom - 1),
-      stock_return_real: round(stockReal - 1),
+      stock_return_nominal: round(stockNom),
+      stock_return_real: round(stockReal),
       bond_return_nominal: round(bondNom),
       bond_return_real: round(bondReal),
       cash_return_nominal: null,
       cash_return_real: null,
-      cpi: round(decCur.cpi, 4),
+      cpi: round(cur.cpi, 4),
       inflation: round(inflation),
     });
   }
   return out;
 }
 
-function round(x: number, places = 6): number {
-  const f = Math.pow(10, places);
-  return Math.round(x * f) / f;
-}
-
-async function main() {
-  const csv = await fetchCached(SHILLER_URL, join(CACHE_DIR, 'shiller.csv'));
+function main() {
+  if (!existsSync(SOURCE_PATH)) {
+    console.error(
+      `Missing ${SOURCE_PATH}. Drop Shiller's ie_data CSV at this path and re-run.`,
+    );
+    process.exit(1);
+  }
+  const csv = readFileSync(SOURCE_PATH, 'utf-8');
   const monthly = parseShiller(csv);
   const annual = buildAnnual(monthly);
   const meta = {
     start: annual[0].year,
     end: annual[annual.length - 1].year,
     frequency: 'annual',
-    sources: { shiller: SHILLER_URL },
+    sources: { shiller: 'public/data/ie_data.csv' },
     notes:
-      'cash_return_* is null pending FRED TB3MS integration. ' +
-      'Bond returns use a 10y par-bond duration approximation on Shiller GS10 yields.',
+      'Stock and bond annual returns are ratios of Shiller\'s published ' +
+      'cumulative total-return indices (Total Return Price / Total Bond ' +
+      'Returns) between successive Decembers, deflated by CPI. ' +
+      'cash_return_* is null pending FRED TB3MS integration.',
   };
   mkdirSync(dirname(OUT_PATH), { recursive: true });
   writeFileSync(OUT_PATH, JSON.stringify({ meta, years: annual }, null, 2));
@@ -200,7 +174,4 @@ async function main() {
   );
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+main();
