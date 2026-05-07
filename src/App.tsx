@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { AllocationEditor } from './components/controls/AllocationEditor';
+import { useEffect, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { ScenarioActions } from './components/controls/ScenarioActions';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
@@ -42,6 +41,25 @@ export function App() {
   } = useResultsStore();
   const snapshot = useCompareStore((s) => s.snapshot);
   const [view, setView] = useState<View>('spaghetti');
+  const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+
+  const toggleYear = (year: number, e: React.MouseEvent) => {
+    setSelectedYears((prev) => {
+      const next = new Set(prev);
+      if (e.shiftKey && prev.size > 0) {
+        // Range select from the most recently toggled year (min if descending)
+        const anchor = Math.max(...prev);
+        const lo = Math.min(anchor, year);
+        const hi = Math.max(anchor, year);
+        for (let y = lo; y <= hi; y++) next.add(y);
+        return next;
+      }
+      if (next.has(year)) next.delete(year);
+      else next.add(year);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedYears(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -167,10 +185,16 @@ export function App() {
                     <SpaghettiChart
                       result={result}
                       overlay={snapshot?.result ?? null}
+                      selectedYears={selectedYears}
                     />
                     <SuccessBar result={result} />
                   </div>
-                  <OutcomeStrip result={result} />
+                  <OutcomeStrip
+                    result={result}
+                    selectedYears={selectedYears}
+                    onToggle={toggleYear}
+                    onClear={clearSelection}
+                  />
                 </>
               )}
               {view === 'calendar' && (
