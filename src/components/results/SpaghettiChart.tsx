@@ -17,6 +17,9 @@ type Props = {
   overlay?: ScenarioResult | null;
   width?: number;
   height?: number;
+  /** When non-empty, only sims whose startYear is in this set render at full
+   * intensity; the rest fade out so highlighted runs pop. */
+  selectedYears?: Set<number>;
 };
 
 export function SpaghettiChart({
@@ -24,11 +27,13 @@ export function SpaghettiChart({
   overlay = null,
   width = 800,
   height = 460,
+  selectedYears,
 }: Props) {
   const [hover, setHover] = useState<Hover | null>(null);
   const margin = { top: 16, right: 16, bottom: 36, left: 64 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
+  const hasSelection = !!selectedYears && selectedYears.size > 0;
 
   const horizon = useMemo(() => {
     const a = result.sims.reduce((m, s) => Math.max(m, s.trajectory.length), 0);
@@ -87,8 +92,10 @@ export function SpaghettiChart({
             lineGen={lineGen}
             color={CURRENT_COLOR}
             highlighted={
-              hover?.source === 'current' && hover.sim.startYear === s.startYear
+              (hover?.source === 'current' && hover.sim.startYear === s.startYear) ||
+              (hasSelection && selectedYears!.has(s.startYear))
             }
+            dimmed={hasSelection && !selectedYears!.has(s.startYear)}
             onHover={(e) =>
               setHover({
                 sim: s,
@@ -107,9 +114,10 @@ export function SpaghettiChart({
             lineGen={lineGen}
             color={SNAPSHOT_COLOR}
             highlighted={
-              hover?.source === 'snapshot' &&
-              hover.sim.startYear === s.startYear
+              (hover?.source === 'snapshot' && hover.sim.startYear === s.startYear) ||
+              (hasSelection && selectedYears!.has(s.startYear))
             }
+            dimmed={hasSelection && !selectedYears!.has(s.startYear)}
             onHover={(e) =>
               setHover({
                 sim: s,
@@ -182,6 +190,7 @@ function SimLine({
   lineGen,
   color,
   highlighted,
+  dimmed,
   onHover,
   onLeave,
 }: {
@@ -189,6 +198,7 @@ function SimLine({
   lineGen: ReturnType<typeof line<{ t: number; balance: number }>>;
   color: string;
   highlighted: boolean;
+  dimmed: boolean;
   onHover: (e: React.MouseEvent<SVGPathElement>) => void;
   onLeave: () => void;
 }) {
@@ -196,7 +206,7 @@ function SimLine({
   const failed = !sim.success && !sim.inProgress;
   const stroke = failed ? '#d33' : sim.inProgress ? '#888' : color;
   const baseOpacity = failed ? 0.55 : sim.inProgress ? 0.35 : 0.2;
-  const opacity = highlighted ? 1 : baseOpacity;
+  const opacity = highlighted ? 1 : dimmed ? 0.04 : baseOpacity;
   const strokeWidth = highlighted ? 2 : 1;
   const handlers = {
     onMouseEnter: onHover,
