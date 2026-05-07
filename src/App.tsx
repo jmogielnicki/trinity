@@ -11,6 +11,7 @@ import { Heatmap } from './components/results/Heatmap';
 import { SmallMultiples } from './components/results/SmallMultiples';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
+import { SuccessBar } from './components/results/SuccessBar';
 import { WhereAmI } from './components/results/WhereAmI';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, tryDeserialize } from './data/urlState';
@@ -159,10 +160,13 @@ export function App() {
             <>
               <StatPanel result={result} />
               {view === 'spaghetti' && (
-                <SpaghettiChart
-                  result={result}
-                  overlay={snapshot?.result ?? null}
-                />
+                <div className="spaghetti-row">
+                  <SpaghettiChart
+                    result={result}
+                    overlay={snapshot?.result ?? null}
+                  />
+                  <SuccessBar result={result} />
+                </div>
               )}
               {view === 'calendar' && (
                 <CalendarHeatmap

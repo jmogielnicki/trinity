@@ -150,6 +150,25 @@ export function WithdrawalCurve({
           strokeWidth={2}
         />
         {handles.map((h, i) => (
+          <g key={`label-${i}`} pointerEvents="none">
+            <text
+              x={x(h.tFrac) + margin.left}
+              y={y(h.rate) + margin.top - 10}
+              textAnchor="middle"
+              fontSize={10}
+              fontWeight={500}
+              fill="#357"
+              style={{
+                paintOrder: 'stroke',
+                stroke: '#fff',
+                strokeWidth: 3,
+              }}
+            >
+              {(h.rate * 100).toFixed(2)}%
+            </text>
+          </g>
+        ))}
+        {handles.map((h, i) => (
           <circle
             key={i}
             className="handle"
