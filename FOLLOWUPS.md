@@ -4,7 +4,7 @@ Things deliberately deferred. Each one has a phase or trigger that should bring 
 
 ## Data
 
-- **Cash returns are `null`** for every year. Need FRED `TB3MS` (3-month T-bill, 1934+) to populate `cash_return_*`. Until then, any allocation with a cash sleeve has the cash weight silently dropped and the remaining weights renormalized in `simulate.ts`. Revisit when egress to FRED is available or someone drops a TB3MS CSV into the repo.
+- **Cash returns are `null` pre-1934.** From 1934 on we use FRED `TB3MS` (3-month T-bill, monthly factors compounded). For 1872–1933 we'd need NBER macrohistory call-money or commercial-paper rates — different beasts (overnight broker funding / corp credit) so they need their own series, not a drop-in proxy. Until added, simulations starting before 1934 with a cash sleeve silently drop the cash weight and renormalize stocks/bonds in `simulate.ts`.
 
 ## Engine
 

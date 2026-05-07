@@ -21,7 +21,8 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
-const SOURCE_PATH = join(ROOT, 'public', 'data', 'ie_data.csv');
+const SHILLER_PATH = join(ROOT, 'public', 'data', 'ie_data.csv');
+const TBILL_PATH = join(ROOT, 'public', 'data', 'TB3MS.csv');
 const OUT_PATH = join(ROOT, 'public', 'data', 'historical.json');
 
 type MonthRow = {
@@ -101,7 +102,46 @@ function parseShiller(csv: string): MonthRow[] {
   return rows;
 }
 
-function buildAnnual(rows: MonthRow[]) {
+/**
+ * Parse FRED TB3MS.csv: observation_date,TB3MS where TB3MS is the monthly
+ * average secondary-market 3-month T-bill rate, percent annualized. Returns
+ * a Map keyed "YYYY-MM" → rate as a decimal (e.g. 0.0072 for 0.72%).
+ */
+function parseTbill(csv: string): Map<string, number> {
+  const out = new Map<string, number>();
+  const lines = csv.replace(/\r/g, '').split('\n').filter(Boolean);
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    const [y, m] = cols[0].split('-');
+    const rate = parseNum(cols[1]);
+    if (!y || !m || rate == null) continue;
+    out.set(`${+y}-${+m}`, rate / 100);
+  }
+  return out;
+}
+
+/**
+ * Compound monthly T-bill factors across calendar year y. Returns null if
+ * any month is missing — that means we don't have a full year (pre-1934 or
+ * the still-in-progress year).
+ */
+function annualTbillNominal(
+  year: number,
+  monthlyRates: Map<string, number>,
+): number | null {
+  let factor = 1;
+  for (let m = 1; m <= 12; m++) {
+    const r = monthlyRates.get(`${year}-${m}`);
+    if (r == null) return null;
+    factor *= 1 + r / 12;
+  }
+  return factor - 1;
+}
+
+function buildAnnual(
+  rows: MonthRow[],
+  tbill: Map<string, number>,
+) {
   // Index Decembers; we ratio successive Decembers for annual total returns.
   const decByYear = new Map<number, MonthRow>();
   for (const r of rows) if (r.month === 12) decByYear.set(r.year, r);
@@ -131,14 +171,18 @@ function buildAnnual(rows: MonthRow[]) {
     const stockNom = (1 + stockReal) * (1 + inflation) - 1;
     const bondNom = (1 + bondReal) * (1 + inflation) - 1;
 
+    const cashNom = annualTbillNominal(y, tbill);
+    const cashReal =
+      cashNom == null ? null : (1 + cashNom) / (1 + inflation) - 1;
+
     out.push({
       year: y,
       stock_return_nominal: round(stockNom),
       stock_return_real: round(stockReal),
       bond_return_nominal: round(bondNom),
       bond_return_real: round(bondReal),
-      cash_return_nominal: null,
-      cash_return_real: null,
+      cash_return_nominal: cashNom == null ? null : round(cashNom),
+      cash_return_real: cashReal == null ? null : round(cashReal),
       cpi: round(cur.cpi, 4),
       inflation: round(inflation),
     });
@@ -147,30 +191,43 @@ function buildAnnual(rows: MonthRow[]) {
 }
 
 function main() {
-  if (!existsSync(SOURCE_PATH)) {
+  if (!existsSync(SHILLER_PATH)) {
     console.error(
-      `Missing ${SOURCE_PATH}. Drop Shiller's ie_data CSV at this path and re-run.`,
+      `Missing ${SHILLER_PATH}. Drop Shiller's ie_data CSV at this path and re-run.`,
     );
     process.exit(1);
   }
-  const csv = readFileSync(SOURCE_PATH, 'utf-8');
+  const csv = readFileSync(SHILLER_PATH, 'utf-8');
   const monthly = parseShiller(csv);
-  const annual = buildAnnual(monthly);
+  const tbill = existsSync(TBILL_PATH)
+    ? parseTbill(readFileSync(TBILL_PATH, 'utf-8'))
+    : new Map<string, number>();
+  const annual = buildAnnual(monthly, tbill);
+  const yearsWithCash = annual.filter((r) => r.cash_return_real != null);
   const meta = {
     start: annual[0].year,
     end: annual[annual.length - 1].year,
+    cash_start: yearsWithCash.length ? yearsWithCash[0].year : null,
+    cash_end: yearsWithCash.length
+      ? yearsWithCash[yearsWithCash.length - 1].year
+      : null,
     frequency: 'annual',
-    sources: { shiller: 'public/data/ie_data.csv' },
+    sources: {
+      shiller: 'public/data/ie_data.csv',
+      tbill: tbill.size ? 'public/data/TB3MS.csv' : null,
+    },
     notes:
-      'Stock and bond annual returns are ratios of Shiller\'s published ' +
+      "Stock and bond annual real returns are ratios of Shiller's published " +
       'cumulative total-return indices (Total Return Price / Total Bond ' +
-      'Returns) between successive Decembers, deflated by CPI. ' +
-      'cash_return_* is null pending FRED TB3MS integration.',
+      'Returns) between successive Decembers; nominal is reconstructed via ' +
+      'CPI. Cash returns are FRED TB3MS monthly factors compounded across ' +
+      'each calendar year; pre-1934 years stay null.',
   };
   mkdirSync(dirname(OUT_PATH), { recursive: true });
   writeFileSync(OUT_PATH, JSON.stringify({ meta, years: annual }, null, 2));
   console.log(
-    `Wrote ${annual.length} years (${meta.start}–${meta.end}) to ${OUT_PATH}`,
+    `Wrote ${annual.length} years (${meta.start}–${meta.end}) to ${OUT_PATH}; ` +
+      `cash for ${yearsWithCash.length} years (${meta.cash_start ?? '—'}–${meta.cash_end ?? '—'})`,
   );
 }
 
