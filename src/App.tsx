@@ -10,7 +10,7 @@ import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { Heatmap } from './components/results/Heatmap';
 import { SmallMultiples } from './components/results/SmallMultiples';
 import { Legend } from './components/results/Legend';
-import { OutcomeTimeline } from './components/results/OutcomeTimeline';
+import { OutcomeStrip } from './components/results/OutcomeStrip';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { SuccessBar } from './components/results/SuccessBar';
@@ -24,7 +24,7 @@ import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
 import './App.css';
 
-type View = 'spaghetti' | 'calendar' | 'whereami' | 'outcomes';
+type View = 'spaghetti' | 'calendar' | 'whereami';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -154,12 +154,6 @@ export function App() {
                   >
                     where am i
                   </button>
-                  <button
-                    className={view === 'outcomes' ? 'active' : ''}
-                    onClick={() => setView('outcomes')}
-                  >
-                    outcomes
-                  </button>
                 </span>
               )}
             </div>
@@ -168,13 +162,16 @@ export function App() {
             <>
               <StatPanel result={result} />
               {view === 'spaghetti' && (
-                <div className="spaghetti-row">
-                  <SpaghettiChart
-                    result={result}
-                    overlay={snapshot?.result ?? null}
-                  />
-                  <SuccessBar result={result} />
-                </div>
+                <>
+                  <div className="spaghetti-row">
+                    <SpaghettiChart
+                      result={result}
+                      overlay={snapshot?.result ?? null}
+                    />
+                    <SuccessBar result={result} />
+                  </div>
+                  <OutcomeStrip result={result} />
+                </>
               )}
               {view === 'calendar' && (
                 <CalendarHeatmap
@@ -190,8 +187,7 @@ export function App() {
                   dataEnd={data.end}
                 />
               )}
-              {view === 'outcomes' && <OutcomeTimeline result={result} />}
-              {(view === 'spaghetti' || view === 'outcomes') && <Legend />}
+              {view === 'spaghetti' && <Legend />}
             </>
           )}
           {data && grid && grid.axes.length === 1 && (
