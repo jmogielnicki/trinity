@@ -154,6 +154,28 @@ export function GlidePath({
 
   const pct = (n: number) => `${Math.round(n * 100)}%`;
 
+  // Mid-points of each band at each endpoint, for inline labels. Skip if the
+  // band is too thin to be readable.
+  const labelAt = (yTop: number, yBottom: number, label: string, x: number) => {
+    const h = yBottom - yTop;
+    if (h < 14) return null;
+    return (
+      <text
+        x={x}
+        y={margin.top + (yTop + yBottom) / 2}
+        dy="0.32em"
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight={500}
+        fill="#fff"
+        pointerEvents="none"
+        style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.25)', strokeWidth: 2 }}
+      >
+        {label}
+      </text>
+    );
+  };
+
   return (
     <div className="control-group">
       <div className="control-label">
@@ -164,6 +186,14 @@ export function GlidePath({
         <path d={stockBand} fill={COLORS.stock} fillOpacity={0.85} />
         <path d={bondBand} fill={COLORS.bond} fillOpacity={0.85} />
         <path d={cashBand} fill={COLORS.cash} fillOpacity={0.85} />
+        {/* Inline labels at year 0 (left) */}
+        {labelAt(startY.bondTop, innerH, pct(ep.start.stock), margin.left + x(0.18))}
+        {labelAt(startY.cashTop, startY.bondTop, pct(ep.start.bond), margin.left + x(0.18))}
+        {labelAt(0, startY.cashTop, pct(ep.start.cash), margin.left + x(0.18))}
+        {/* Inline labels at year horizon (right) */}
+        {labelAt(endY.bondTop, innerH, pct(ep.end.stock), margin.left + x(0.82))}
+        {labelAt(endY.cashTop, endY.bondTop, pct(ep.end.bond), margin.left + x(0.82))}
+        {labelAt(0, endY.cashTop, pct(ep.end.cash), margin.left + x(0.82))}
         {(Object.keys(handlePos) as HandleKey[]).map((k) => (
           <circle
             key={k}
@@ -179,7 +209,7 @@ export function GlidePath({
           />
         ))}
         <text x={margin.left} y={height - 6} fontSize={10} fill="#888">
-          year 0: {pct(ep.start.stock)}/{pct(ep.start.bond)}/{pct(ep.start.cash)}
+          year 0
         </text>
         <text
           x={width - margin.right}
@@ -188,8 +218,7 @@ export function GlidePath({
           fontSize={10}
           fill="#888"
         >
-          year {horizonYears}: {pct(ep.end.stock)}/{pct(ep.end.bond)}/
-          {pct(ep.end.cash)}
+          year {horizonYears}
         </text>
       </svg>
       <div className="legend">
