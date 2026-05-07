@@ -43,19 +43,18 @@ export function App() {
   const [view, setView] = useState<View>('spaghetti');
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
 
-  const toggleYear = (year: number, e: React.MouseEvent) => {
+  const toggleYear = (year: number) => {
     setSelectedYears((prev) => {
       const next = new Set(prev);
-      if (e.shiftKey && prev.size > 0) {
-        // Range select from the most recently toggled year (min if descending)
-        const anchor = Math.max(...prev);
-        const lo = Math.min(anchor, year);
-        const hi = Math.max(anchor, year);
-        for (let y = lo; y <= hi; y++) next.add(y);
-        return next;
-      }
       if (next.has(year)) next.delete(year);
       else next.add(year);
+      return next;
+    });
+  };
+  const marqueeYears = (years: number[]) => {
+    setSelectedYears((prev) => {
+      const next = new Set(prev);
+      for (const y of years) next.add(y);
       return next;
     });
   };
@@ -187,6 +186,7 @@ export function App() {
                       overlay={snapshot?.result ?? null}
                       selectedYears={selectedYears}
                       onToggle={toggleYear}
+                      onMarquee={marqueeYears}
                     />
                     <SuccessBar result={result} />
                   </div>
@@ -194,6 +194,7 @@ export function App() {
                     result={result}
                     selectedYears={selectedYears}
                     onToggle={toggleYear}
+                    onMarquee={marqueeYears}
                     onClear={clearSelection}
                   />
                 </>

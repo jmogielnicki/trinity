@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import type { ScenarioResult } from '../../engine/types';
 import { OUTCOME } from '../colors';
 
@@ -6,6 +7,7 @@ type Props = {
   width?: number;
   selectedYears?: Set<number>;
   onToggle?: (year: number, e: React.MouseEvent) => void;
+  onMarquee?: (years: number[], e: { shiftKey: boolean }) => void;
   onClear?: () => void;
 };
 
@@ -20,9 +22,14 @@ export function OutcomeStrip({
   width = 800,
   selectedYears,
   onToggle,
+  onMarquee,
   onClear,
 }: Props) {
   const sims = [...result.sims].sort((a, b) => a.startYear - b.startYear);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [drag, setDrag] = useState<null | { x0: number; x1: number }>(null);
+  const dragRef = useRef<typeof drag>(null);
+  dragRef.current = drag;
   if (sims.length === 0) return null;
 
   const margin = { left: 64, right: 16, top: 6, bottom: 22 };
@@ -34,6 +41,53 @@ export function OutcomeStrip({
   const lastYear = sims[sims.length - 1].startYear;
   const span = Math.max(1, lastYear - firstYear);
   const colW = innerW / (span + 1);
+
+  // Pixel x → start year (rounded).
+  const pxToYear = (px: number) =>
+    Math.round((px / innerW) * (span + 1) + firstYear);
+
+  // Marquee: shift+mousedown starts horizontal drag; release commits the
+  // years whose start-year column intersects the x range.
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e: MouseEvent) => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const r = svg.getBoundingClientRect();
+      const px = e.clientX - r.left - margin.left;
+      setDrag((d) => (d ? { ...d, x1: px } : d));
+    };
+    const onUp = (e: MouseEvent) => {
+      const d = dragRef.current;
+      setDrag(null);
+      if (!d || !onMarquee) return;
+      const lo = Math.min(d.x0, d.x1);
+      const hi = Math.max(d.x0, d.x1);
+      if (hi - lo < 3) return;
+      const yLo = pxToYear(lo);
+      const yHi = pxToYear(hi);
+      const out: number[] = [];
+      for (const s of sims) {
+        if (s.startYear >= yLo && s.startYear <= yHi) out.push(s.startYear);
+      }
+      onMarquee(out, { shiftKey: e.shiftKey });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drag, onMarquee, sims]);
+
+  const onSvgMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!onMarquee || !e.shiftKey) return;
+    const r = (svgRef.current as SVGSVGElement).getBoundingClientRect();
+    const px = e.clientX - r.left - margin.left;
+    setDrag({ x0: px, x1: px });
+    e.preventDefault();
+  };
 
   const ticks: number[] = [];
   const firstTick = Math.ceil(firstYear / 10) * 10;
@@ -49,7 +103,14 @@ export function OutcomeStrip({
 
   return (
     <div className="outcome-strip-wrap">
-      <svg width={width} height={height} className="outcome-strip">
+      <svg
+        ref={svgRef}
+        width={width}
+        height={height}
+        className="outcome-strip"
+        onMouseDown={onSvgMouseDown}
+        style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
+      >
         <g transform={`translate(${margin.left},${margin.top})`}>
           <text x={-8} y={stripH / 2} dy="0.32em" textAnchor="end" fontSize={11} fill="#444">
             start year
@@ -102,6 +163,20 @@ export function OutcomeStrip({
               </text>
             </g>
           ))}
+          {drag && (
+            <rect
+              x={Math.min(drag.x0, drag.x1)}
+              y={-1}
+              width={Math.abs(drag.x1 - drag.x0)}
+              height={stripH + 2}
+              fill="#357"
+              fillOpacity={0.12}
+              stroke="#357"
+              strokeWidth={1}
+              strokeDasharray="3,3"
+              pointerEvents="none"
+            />
+          )}
         </g>
       </svg>
       {hasSelection && onClear && (

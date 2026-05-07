@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { scaleLinear } from 'd3-scale';
 import { line } from 'd3-shape';
 import type { ScenarioResult, SimulationResult } from '../../engine/types';
@@ -22,6 +22,8 @@ type Props = {
   selectedYears?: Set<number>;
   /** Click on a line toggles its start year in the selection. */
   onToggle?: (year: number, e: React.MouseEvent) => void;
+  /** Marquee handler: receives the years whose trajectories enter the rect. */
+  onMarquee?: (years: number[], e: { shiftKey: boolean }) => void;
 };
 
 export function SpaghettiChart({
@@ -31,8 +33,15 @@ export function SpaghettiChart({
   height = 460,
   selectedYears,
   onToggle,
+  onMarquee,
 }: Props) {
   const [hover, setHover] = useState<Hover | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [drag, setDrag] = useState<
+    null | { x0: number; y0: number; x1: number; y1: number }
+  >(null);
+  const dragRef = useRef<typeof drag>(null);
+  dragRef.current = drag;
   const margin = { top: 16, right: 16, bottom: 36, left: 64 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
@@ -69,8 +78,77 @@ export function SpaghettiChart({
   const yTicks = y.ticks(5);
   const xTicks = x.ticks(Math.min(8, horizon));
 
+  // Marquee selection. shift+mousedown anywhere over the plot starts a drag;
+  // mousemove updates the rect; mouseup commits the union of years whose
+  // trajectories pass through the rect. Coords are in inner-group space
+  // (offset minus margins) to match where the lines are rendered.
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e: MouseEvent) => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const rect = svg.getBoundingClientRect();
+      const px = e.clientX - rect.left - margin.left;
+      const py = e.clientY - rect.top - margin.top;
+      setDrag((d) => (d ? { ...d, x1: px, y1: py } : d));
+    };
+    const onUp = (e: MouseEvent) => {
+      const d = dragRef.current;
+      setDrag(null);
+      if (!d || !onMarquee) return;
+      const xLo = Math.min(d.x0, d.x1);
+      const xHi = Math.max(d.x0, d.x1);
+      const yLo = Math.min(d.y0, d.y1);
+      const yHi = Math.max(d.y0, d.y1);
+      // Ignore tiny drags so a stray shift+click doesn't trigger marquee.
+      if (xHi - xLo < 3 && yHi - yLo < 3) return;
+      const tLo = x.invert(xLo);
+      const tHi = x.invert(xHi);
+      // y is inverted (top = high balance), so swap when going through invert.
+      const balLo = y.invert(yHi);
+      const balHi = y.invert(yLo);
+      const within = new Set<number>();
+      const scan = (sims: SimulationResult[]) => {
+        for (const s of sims) {
+          for (const r of s.trajectory) {
+            if (r.t >= tLo && r.t <= tHi && r.balance >= balLo && r.balance <= balHi) {
+              within.add(s.startYear);
+              break;
+            }
+          }
+        }
+      };
+      scan(result.sims);
+      if (overlay) scan(overlay.sims);
+      onMarquee([...within], { shiftKey: e.shiftKey });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drag, onMarquee, x, y, result.sims, overlay]);
+
+  const onSvgMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!onMarquee || !e.shiftKey) return;
+    const rect = (svgRef.current as SVGSVGElement).getBoundingClientRect();
+    const px = e.clientX - rect.left - margin.left;
+    const py = e.clientY - rect.top - margin.top;
+    setDrag({ x0: px, y0: py, x1: px, y1: py });
+    e.preventDefault();
+  };
+
   return (
-    <svg width={width} height={height} className="spaghetti">
+    <svg
+      ref={svgRef}
+      width={width}
+      height={height}
+      className="spaghetti"
+      onMouseDown={onSvgMouseDown}
+      style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
+    >
       <g transform={`translate(${margin.left},${margin.top})`}>
         {yTicks.map((v) => (
           <g key={v} transform={`translate(0,${y(v)})`}>
@@ -151,6 +229,20 @@ export function SpaghettiChart({
         >
           years into retirement
         </text>
+        {drag && (
+          <rect
+            x={Math.min(drag.x0, drag.x1)}
+            y={Math.min(drag.y0, drag.y1)}
+            width={Math.abs(drag.x1 - drag.x0)}
+            height={Math.abs(drag.y1 - drag.y0)}
+            fill="#357"
+            fillOpacity={0.08}
+            stroke="#357"
+            strokeWidth={1}
+            strokeDasharray="3,3"
+            pointerEvents="none"
+          />
+        )}
       </g>
       {hover && <Tooltip hover={hover} />}
     </svg>
