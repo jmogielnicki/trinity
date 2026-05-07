@@ -120,15 +120,41 @@ function SimLine({
   color: string;
 }) {
   const points = sim.trajectory.map((r) => ({ t: r.t, balance: r.balance }));
-  const d = lineGen(points) ?? '';
   const failed = !sim.success && !sim.inProgress;
-  const inProgress = sim.inProgress;
+  const stroke = failed ? '#d33' : sim.inProgress ? '#888' : color;
+  const opacity = failed ? 0.55 : sim.inProgress ? 0.35 : 0.2;
+
+  // Bootstrap sims: render the actual-data prefix solid, the sampled tail
+  // dashed/translucent so users can tell observed from sampled at a glance.
+  if (sim.bootstrapped && sim.prefixYears < points.length) {
+    const prefix = points.slice(0, sim.prefixYears);
+    const tail = points.slice(sim.prefixYears - 1); // overlap by 1 to connect visually
+    return (
+      <g>
+        <path
+          d={lineGen(prefix) ?? ''}
+          fill="none"
+          stroke={stroke}
+          strokeOpacity={opacity}
+          strokeWidth={1}
+        />
+        <path
+          d={lineGen(tail) ?? ''}
+          fill="none"
+          stroke={stroke}
+          strokeOpacity={opacity * 0.5}
+          strokeWidth={1}
+          strokeDasharray="2,3"
+        />
+      </g>
+    );
+  }
   return (
     <path
-      d={d}
+      d={lineGen(points) ?? ''}
       fill="none"
-      stroke={failed ? '#d33' : inProgress ? '#888' : color}
-      strokeOpacity={failed ? 0.55 : inProgress ? 0.35 : 0.2}
+      stroke={stroke}
+      strokeOpacity={opacity}
       strokeWidth={1}
     />
   );

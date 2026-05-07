@@ -23,6 +23,7 @@ export function ScenarioActions() {
       allocation: scenario.allocation,
       withdrawal: scenario.withdrawal,
       axes: sweep.axes,
+      tailMethod: scenario.tailMethod,
     });
     const url = `${location.origin}${location.pathname}#${hash}`;
     history.replaceState(null, '', `#${hash}`);

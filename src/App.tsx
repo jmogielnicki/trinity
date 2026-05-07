@@ -4,12 +4,14 @@ import { PortfolioInput } from './components/controls/PortfolioInput';
 import { ScenarioActions } from './components/controls/ScenarioActions';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { SweepSelector } from './components/controls/SweepSelector';
+import { TailMethodInput } from './components/controls/TailMethodInput';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { Heatmap } from './components/results/Heatmap';
 import { SmallMultiples } from './components/results/SmallMultiples';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
+import { WhereAmI } from './components/results/WhereAmI';
 import { loadHistorical } from './data/load';
 import { tryDeserialize } from './data/urlState';
 import { useCompareStore } from './store/compareStore';
@@ -19,7 +21,7 @@ import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
 import './App.css';
 
-type View = 'spaghetti' | 'calendar';
+type View = 'spaghetti' | 'calendar' | 'whereami';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -60,6 +62,7 @@ export function App() {
     scenario.setHorizon(parsed.horizonYears);
     scenario.setAllocation(parsed.allocation);
     scenario.setWithdrawal(parsed.withdrawal);
+    if (parsed.tailMethod) scenario.setTailMethod(parsed.tailMethod);
     (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
       sweep.setAxis(a, parsed.axes[a]),
     );
@@ -109,6 +112,7 @@ export function App() {
             withdrawal={scenario.withdrawal}
             onChange={scenario.setWithdrawal}
           />
+          <TailMethodInput />
           <SweepSelector />
           <ScenarioActions />
           <ScenarioLibrary />
@@ -134,6 +138,12 @@ export function App() {
                   >
                     calendar
                   </button>
+                  <button
+                    className={view === 'whereami' ? 'active' : ''}
+                    onClick={() => setView('whereami')}
+                  >
+                    where am i
+                  </button>
                 </span>
               )}
             </div>
@@ -141,15 +151,24 @@ export function App() {
           {data && result && !showSweepViews && (
             <>
               <StatPanel result={result} />
-              {view === 'spaghetti' ? (
+              {view === 'spaghetti' && (
                 <SpaghettiChart
                   result={result}
                   overlay={snapshot?.result ?? null}
                 />
-              ) : (
+              )}
+              {view === 'calendar' && (
                 <CalendarHeatmap
                   result={result}
                   initialBalance={scenario.initialBalance}
+                />
+              )}
+              {view === 'whereami' && (
+                <WhereAmI
+                  result={result}
+                  horizonYears={scenario.horizonYears}
+                  initialBalance={scenario.initialBalance}
+                  dataEnd={data.end}
                 />
               )}
             </>

@@ -9,6 +9,19 @@ export function quantile(sorted: number[], q: number): number {
   return sorted[lo] * (hi - pos) + sorted[hi] * (pos - lo);
 }
 
+/**
+ * Build percentile bands from a subset of sims. Use this with a filter (e.g.
+ * completed-only, or excluding bootstrap tails) so the band represents the
+ * cohort you actually want to compare against.
+ */
+export function computePercentilesFiltered(
+  sims: SimulationResult[],
+  horizonYears: number,
+  predicate: (s: SimulationResult) => boolean,
+): PercentileBand[] {
+  return computePercentiles(sims.filter(predicate), horizonYears);
+}
+
 export function computePercentiles(
   sims: SimulationResult[],
   horizonYears: number,
