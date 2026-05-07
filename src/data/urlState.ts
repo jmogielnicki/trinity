@@ -38,6 +38,33 @@ export function tryDeserialize(hash: string): SerializedState | null {
   }
 }
 
+/**
+ * URL-loaded customSrc strategies are evaluated as JS in the user's browser
+ * with full page privileges (we use new Function, no sandbox). A malicious
+ * shared link could ship a payload, so we ask before applying. Returns
+ * a state with any unapproved customSrc replaced by safe defaults.
+ */
+export function gateCustomSrc(
+  state: SerializedState,
+  confirmFn: (src: string, where: 'allocation' | 'withdrawal') => boolean,
+): SerializedState {
+  const out: SerializedState = { ...state };
+  if (out.allocation.type === 'customSrc') {
+    if (!confirmFn(out.allocation.src, 'allocation')) {
+      out.allocation = {
+        type: 'static',
+        weights: { stock: 0.6, bond: 0.4, cash: 0 },
+      };
+    }
+  }
+  if (out.withdrawal.type === 'customSrc') {
+    if (!confirmFn(out.withdrawal.src, 'withdrawal')) {
+      out.withdrawal = { type: 'fixedPercent', rate: 0.04 };
+    }
+  }
+  return out;
+}
+
 export function isValidWeights(w: unknown): w is Weights {
   return (
     typeof w === 'object' &&

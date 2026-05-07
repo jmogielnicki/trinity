@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GlidePath } from './components/controls/GlidePath';
+import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { ScenarioActions } from './components/controls/ScenarioActions';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
@@ -13,7 +13,7 @@ import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { WhereAmI } from './components/results/WhereAmI';
 import { loadHistorical } from './data/load';
-import { tryDeserialize } from './data/urlState';
+import { gateCustomSrc, tryDeserialize } from './data/urlState';
 import { useCompareStore } from './store/compareStore';
 import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
@@ -56,8 +56,15 @@ export function App() {
 
   // Hydrate from URL hash on first load.
   useEffect(() => {
-    const parsed = tryDeserialize(location.hash);
-    if (!parsed) return;
+    const parsedRaw = tryDeserialize(location.hash);
+    if (!parsedRaw) return;
+    const parsed = gateCustomSrc(parsedRaw, (src, where) => {
+      const preview = src.length > 200 ? src.slice(0, 200) + '…' : src;
+      return window.confirm(
+        `This shared link includes a custom JavaScript ${where} strategy ` +
+          `that will run in your browser:\n\n${preview}\n\nLoad it?`,
+      );
+    });
     scenario.setBalance(parsed.initialBalance);
     scenario.setHorizon(parsed.horizonYears);
     scenario.setAllocation(parsed.allocation);
@@ -102,7 +109,7 @@ export function App() {
       <div className="layout">
         <aside className="controls">
           <PortfolioInput />
-          <GlidePath
+          <AllocationEditor
             horizonYears={scenario.horizonYears}
             allocation={scenario.allocation}
             onChange={scenario.setAllocation}

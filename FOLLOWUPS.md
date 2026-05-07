@@ -13,6 +13,4 @@ Things deliberately deferred. Each one has a phase or trigger that should bring 
 
 ## UI
 
-- **Allocation rule builder + script editor.** Phase 6 ships the rule builder + script editor only for `WithdrawalStrategy`. Allocation has the underlying `customSrc` + `ruleBased` types but no UI yet — needs an analogue of `WithdrawalEditor` for glide paths.
-- **`customSrc` runs unsandboxed JS.** Compiled via `new Function`, no CSP, no proxies. Acceptable for a personal tool; if this ever ships to untrusted users, revisit (worker with locked-down globals + parse-AST allowlist is the typical move).
-- **Hash-loaded `customSrc` is auto-applied.** A malicious URL could ship a payload. Add a confirm prompt before evaluating any `customSrc` strategy that came from the hash.
+- **`customSrc` runs unsandboxed JS.** Compiled via `new Function`, no CSP, no proxies. Acceptable for a personal tool; if this ever ships to untrusted users, revisit (worker with locked-down globals + parse-AST allowlist is the typical move). URL hydration prompts before evaluating now, but the in-app script editors still execute on apply without further checks.
