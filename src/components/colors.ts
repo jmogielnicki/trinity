@@ -6,9 +6,9 @@
  */
 
 export const ASSET = {
-  stock: '#d97706', // amber-600
-  bond: '#059669',  // emerald-600
-  cash: '#b08e3a',  // gold
+  stock: '#059669', // emerald-600
+  bond: '#b08e3a',  // gold
+  cash: '#7c3aed',  // violet-600
 };
 
 export const OUTCOME = {
