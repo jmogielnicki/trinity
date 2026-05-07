@@ -1,8 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { scaleLinear } from 'd3-scale';
 import { line } from 'd3-shape';
 import type { ScenarioResult, SimulationResult } from '../../engine/types';
 import { CURRENT_COLOR, SNAPSHOT_COLOR } from '../../store/compareStore';
+
+type Hover = {
+  sim: SimulationResult;
+  source: 'current' | 'snapshot';
+  px: number;
+  py: number;
+};
 
 type Props = {
   result: ScenarioResult;
@@ -18,6 +25,7 @@ export function SpaghettiChart({
   width = 800,
   height = 460,
 }: Props) {
+  const [hover, setHover] = useState<Hover | null>(null);
   const margin = { top: 16, right: 16, bottom: 36, left: 64 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
@@ -78,6 +86,18 @@ export function SpaghettiChart({
             sim={s}
             lineGen={lineGen}
             color={CURRENT_COLOR}
+            highlighted={
+              hover?.source === 'current' && hover.sim.startYear === s.startYear
+            }
+            onHover={(e) =>
+              setHover({
+                sim: s,
+                source: 'current',
+                px: e.nativeEvent.offsetX,
+                py: e.nativeEvent.offsetY,
+              })
+            }
+            onLeave={() => setHover(null)}
           />
         ))}
         {overlay?.sims.map((s) => (
@@ -86,6 +106,19 @@ export function SpaghettiChart({
             sim={s}
             lineGen={lineGen}
             color={SNAPSHOT_COLOR}
+            highlighted={
+              hover?.source === 'snapshot' &&
+              hover.sim.startYear === s.startYear
+            }
+            onHover={(e) =>
+              setHover({
+                sim: s,
+                source: 'snapshot',
+                px: e.nativeEvent.offsetX,
+                py: e.nativeEvent.offsetY,
+              })
+            }
+            onLeave={() => setHover(null)}
           />
         ))}
         <text
@@ -106,7 +139,41 @@ export function SpaghettiChart({
           years into retirement
         </text>
       </g>
+      {hover && <Tooltip hover={hover} />}
     </svg>
+  );
+}
+
+function Tooltip({ hover }: { hover: Hover }) {
+  const { sim, px, py } = hover;
+  const last = sim.trajectory[sim.trajectory.length - 1];
+  const status = !sim.success && !sim.inProgress ? 'depleted' : sim.inProgress ? 'in-progress' : 'survived';
+  const fmt = (n: number) =>
+    n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}k` : `$${Math.round(n)}`;
+  const lines = [
+    `start ${sim.startYear} — ${status}`,
+    sim.depletedAt != null
+      ? `depleted at year ${sim.depletedAt}`
+      : `final ${fmt(last?.balance ?? 0)} (year ${last?.t ?? 0})`,
+  ];
+  return (
+    <g transform={`translate(${px + 12},${py + 12})`} pointerEvents="none">
+      <rect
+        x={0}
+        y={-26}
+        width={200}
+        height={36}
+        fill="#fff"
+        stroke="#bbb"
+        strokeWidth={0.5}
+        rx={3}
+      />
+      {lines.map((l, i) => (
+        <text key={i} x={6} y={-12 + i * 14} fontSize={11} fill="#222">
+          {l}
+        </text>
+      ))}
+    </g>
   );
 }
 
@@ -114,36 +181,50 @@ function SimLine({
   sim,
   lineGen,
   color,
+  highlighted,
+  onHover,
+  onLeave,
 }: {
   sim: SimulationResult;
   lineGen: ReturnType<typeof line<{ t: number; balance: number }>>;
   color: string;
+  highlighted: boolean;
+  onHover: (e: React.MouseEvent<SVGPathElement>) => void;
+  onLeave: () => void;
 }) {
   const points = sim.trajectory.map((r) => ({ t: r.t, balance: r.balance }));
   const failed = !sim.success && !sim.inProgress;
   const stroke = failed ? '#d33' : sim.inProgress ? '#888' : color;
-  const opacity = failed ? 0.55 : sim.inProgress ? 0.35 : 0.2;
+  const baseOpacity = failed ? 0.55 : sim.inProgress ? 0.35 : 0.2;
+  const opacity = highlighted ? 1 : baseOpacity;
+  const strokeWidth = highlighted ? 2 : 1;
+  const handlers = {
+    onMouseEnter: onHover,
+    onMouseMove: onHover,
+    onMouseLeave: onLeave,
+    style: { cursor: 'crosshair' as const },
+  };
 
   // Bootstrap sims: render the actual-data prefix solid, the sampled tail
   // dashed/translucent so users can tell observed from sampled at a glance.
   if (sim.bootstrapped && sim.prefixYears < points.length) {
     const prefix = points.slice(0, sim.prefixYears);
-    const tail = points.slice(sim.prefixYears - 1); // overlap by 1 to connect visually
+    const tail = points.slice(sim.prefixYears - 1);
     return (
-      <g>
+      <g {...handlers}>
         <path
           d={lineGen(prefix) ?? ''}
           fill="none"
           stroke={stroke}
           strokeOpacity={opacity}
-          strokeWidth={1}
+          strokeWidth={strokeWidth}
         />
         <path
           d={lineGen(tail) ?? ''}
           fill="none"
           stroke={stroke}
           strokeOpacity={opacity * 0.5}
-          strokeWidth={1}
+          strokeWidth={strokeWidth}
           strokeDasharray="2,3"
         />
       </g>
@@ -155,7 +236,8 @@ function SimLine({
       fill="none"
       stroke={stroke}
       strokeOpacity={opacity}
-      strokeWidth={1}
+      strokeWidth={strokeWidth}
+      {...handlers}
     />
   );
 }
