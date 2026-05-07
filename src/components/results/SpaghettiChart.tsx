@@ -20,6 +20,8 @@ type Props = {
   /** When non-empty, only sims whose startYear is in this set render at full
    * intensity; the rest fade out so highlighted runs pop. */
   selectedYears?: Set<number>;
+  /** Click on a line toggles its start year in the selection. */
+  onToggle?: (year: number, e: React.MouseEvent) => void;
 };
 
 export function SpaghettiChart({
@@ -28,6 +30,7 @@ export function SpaghettiChart({
   width = 800,
   height = 460,
   selectedYears,
+  onToggle,
 }: Props) {
   const [hover, setHover] = useState<Hover | null>(null);
   const margin = { top: 16, right: 16, bottom: 36, left: 64 };
@@ -105,6 +108,7 @@ export function SpaghettiChart({
               })
             }
             onLeave={() => setHover(null)}
+            onClick={onToggle ? (e) => onToggle(s.startYear, e) : undefined}
           />
         ))}
         {overlay?.sims.map((s) => (
@@ -127,6 +131,7 @@ export function SpaghettiChart({
               })
             }
             onLeave={() => setHover(null)}
+            onClick={onToggle ? (e) => onToggle(s.startYear, e) : undefined}
           />
         ))}
         <text
@@ -193,6 +198,7 @@ function SimLine({
   dimmed,
   onHover,
   onLeave,
+  onClick,
 }: {
   sim: SimulationResult;
   lineGen: ReturnType<typeof line<{ t: number; balance: number }>>;
@@ -201,6 +207,7 @@ function SimLine({
   dimmed: boolean;
   onHover: (e: React.MouseEvent<SVGPathElement>) => void;
   onLeave: () => void;
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   const points = sim.trajectory.map((r) => ({ t: r.t, balance: r.balance }));
   const failed = !sim.success && !sim.inProgress;
@@ -212,7 +219,8 @@ function SimLine({
     onMouseEnter: onHover,
     onMouseMove: onHover,
     onMouseLeave: onLeave,
-    style: { cursor: 'crosshair' as const },
+    onClick,
+    style: { cursor: onClick ? ('pointer' as const) : ('crosshair' as const) },
   };
 
   // Bootstrap sims: render the actual-data prefix solid, the sampled tail
