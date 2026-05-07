@@ -135,3 +135,13 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .success-bar-seg.seg-survived { background: #357; }
 .success-bar-seg.seg-failed { background: #d33; }
 .success-bar-seg.seg-inprogress { background: #aaa; }
+
+.success-tip { position: fixed; background: #fff; border: 1px solid #bbb; border-radius: 3px; padding: 4px 8px; font-size: 11px; pointer-events: none; z-index: 10; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+.legend-row { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 14px; font-size: 11px; color: #444; }
+.legend-row li { display: flex; align-items: center; gap: 4px; }
+.legend-row .sw { display: inline-block; width: 12px; height: 12px; border-radius: 2px; }
+.legend-label { font-weight: 500; }
+.legend-note { color: #888; }
+
+.rule-hint { font-size: 11px; color: #777; padding: 2px 0 4px; }

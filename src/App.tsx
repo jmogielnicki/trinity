@@ -9,6 +9,8 @@ import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { Heatmap } from './components/results/Heatmap';
 import { SmallMultiples } from './components/results/SmallMultiples';
+import { Legend } from './components/results/Legend';
+import { OutcomeTimeline } from './components/results/OutcomeTimeline';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { SuccessBar } from './components/results/SuccessBar';
@@ -22,7 +24,7 @@ import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
 import './App.css';
 
-type View = 'spaghetti' | 'calendar' | 'whereami';
+type View = 'spaghetti' | 'calendar' | 'whereami' | 'outcomes';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -152,6 +154,12 @@ export function App() {
                   >
                     where am i
                   </button>
+                  <button
+                    className={view === 'outcomes' ? 'active' : ''}
+                    onClick={() => setView('outcomes')}
+                  >
+                    outcomes
+                  </button>
                 </span>
               )}
             </div>
@@ -182,6 +190,8 @@ export function App() {
                   dataEnd={data.end}
                 />
               )}
+              {view === 'outcomes' && <OutcomeTimeline result={result} />}
+              {(view === 'spaghetti' || view === 'outcomes') && <Legend />}
             </>
           )}
           {data && grid && grid.axes.length === 1 && (

@@ -37,6 +37,10 @@ export function AllocationRuleBuilder({ base, rules, onChange }: Props) {
       <div className="control-label">
         Base allocation (used when no rule matches; renormalized to 100%):
       </div>
+      <div className="rule-hint">
+        All matching rules <strong>compound</strong> their delta onto the base each year
+        (e.g. two rules that each shift -10% stocks → -20% stocks).
+      </div>
       <div className="rule-line">
         <span>stocks</span>
         <input

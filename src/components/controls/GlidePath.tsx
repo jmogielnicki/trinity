@@ -13,7 +13,9 @@ type Props = {
   height?: number;
 };
 
-const COLORS = { stock: '#2c5282', bond: '#6b8e6b', cash: '#b08e3a' };
+import { ASSET } from '../colors';
+
+const COLORS = ASSET;
 
 type Endpoints = { start: Weights; end: Weights };
 
