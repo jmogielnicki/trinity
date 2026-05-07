@@ -186,6 +186,7 @@ export function App() {
                       result={result}
                       overlay={snapshot?.result ?? null}
                       selectedYears={selectedYears}
+                      onToggle={toggleYear}
                     />
                     <SuccessBar result={result} />
                   </div>
