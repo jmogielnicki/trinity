@@ -1,4 +1,4 @@
-import { runScenario, type Scenario } from './sweep';
+import { runScenario, type Scenario, type TailMethod } from './sweep';
 import type { AllocationStrategy, WithdrawalStrategy } from './strategies';
 import type { HistoricalSeries, ScenarioResult } from './types';
 import {
@@ -12,6 +12,7 @@ export type BaseScenario = {
   horizonYears: number;
   allocation: AllocationStrategy;
   withdrawal: WithdrawalStrategy;
+  tailMethod?: TailMethod;
 };
 
 export type GridCell = {

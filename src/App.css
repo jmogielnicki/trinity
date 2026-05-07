@@ -119,3 +119,8 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .lib-list li { display: flex; align-items: center; }
 .lib-load { flex: 1; text-align: left; background: #f6f6f6; border: 1px solid #eee; border-radius: 3px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
 .lib-load:hover { background: #eef; }
+
+.bootstrap-cfg { display: flex; gap: 12px; align-items: center; font-size: 11px; color: #555; }
+.bootstrap-cfg label { display: flex; align-items: center; gap: 4px; }
+.where-card { padding: 8px; }
+.where-empty { font-size: 13px; color: #888; padding: 16px; text-align: center; }
