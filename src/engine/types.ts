@@ -1,5 +1,9 @@
 export type Weights = { stock: number; bond: number; cash: number };
 
+export type Sleeves = { stock: number; bond: number; cash: number };
+
+export type Sleeve = keyof Sleeves;
+
 export type AnnualReturns = {
   year: number;
   stock_return_nominal: number;
@@ -25,6 +29,8 @@ export type YearStateRecord = {
   balance: number;
   withdrawal: number;
   weights: Weights;
+  /** Post-return per-sleeve balances (real $). */
+  sleeves: Sleeves;
   return?: number;
   depleted?: boolean;
 };

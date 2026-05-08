@@ -11,6 +11,7 @@ import type {
   ScenarioResult,
   SimulationResult,
 } from './types';
+import type { WithdrawalSource } from './withdrawalSource';
 
 export type TailMethod =
   | { type: 'truncate' }
@@ -21,6 +22,7 @@ export type Scenario = {
   horizonYears: number;
   allocation: AllocationStrategy;
   withdrawal: WithdrawalStrategy;
+  withdrawalSource?: WithdrawalSource;
   tailMethod?: TailMethod;
   seed?: number;
   /**
@@ -72,6 +74,7 @@ export function runScenario(
           horizonYears: scenario.horizonYears,
           allocation: scenario.allocation,
           withdrawal: scenario.withdrawal,
+          withdrawalSource: scenario.withdrawalSource,
           returns: observed,
         }),
       );
@@ -86,6 +89,7 @@ export function runScenario(
           horizonYears: scenario.horizonYears,
           allocation: scenario.allocation,
           withdrawal: scenario.withdrawal,
+          withdrawalSource: scenario.withdrawalSource,
           returns: observed,
           prefixYears: observed.length,
         }),
@@ -108,6 +112,7 @@ export function runScenario(
             horizonYears: scenario.horizonYears,
             allocation: scenario.allocation,
             withdrawal: scenario.withdrawal,
+            withdrawalSource: scenario.withdrawalSource,
             returns: full,
             bootstrapped: true,
             prefixYears: observed.length,

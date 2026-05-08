@@ -1,6 +1,7 @@
 import type { AllocationStrategy, WithdrawalStrategy } from '../engine/strategies';
 import type { TailMethod } from '../engine/sweep';
 import type { Weights } from '../engine/types';
+import type { WithdrawalSource } from '../engine/withdrawalSource';
 import type { Axis, AxisMode } from '../store/sweepStore';
 
 /**
@@ -15,6 +16,7 @@ export type SerializedState = {
   withdrawal: WithdrawalStrategy;
   axes: Record<Axis, AxisMode>;
   tailMethod?: TailMethod;
+  withdrawalSource?: WithdrawalSource;
 };
 
 const HASH_KEY = 's=';

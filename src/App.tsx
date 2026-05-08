@@ -5,6 +5,7 @@ import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { SweepSelector } from './components/controls/SweepSelector';
 import { TailMethodInput } from './components/controls/TailMethodInput';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
+import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInput';
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { Heatmap } from './components/results/Heatmap';
 import { SmallMultiples } from './components/results/SmallMultiples';
@@ -90,6 +91,8 @@ export function App() {
     scenario.setAllocation(parsed.allocation);
     scenario.setWithdrawal(parsed.withdrawal);
     if (parsed.tailMethod) scenario.setTailMethod(parsed.tailMethod);
+    if (parsed.withdrawalSource)
+      scenario.setWithdrawalSource(parsed.withdrawalSource);
     (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
       sweep.setAxis(a, parsed.axes[a]),
     );
@@ -109,6 +112,8 @@ export function App() {
     scenario.horizonYears,
     scenario.allocation,
     scenario.withdrawal,
+    scenario.withdrawalSource,
+    scenario.tailMethod,
     sweep.axes,
     recompute,
     scenario,
@@ -139,6 +144,7 @@ export function App() {
             withdrawal={scenario.withdrawal}
             onChange={scenario.setWithdrawal}
           />
+          <WithdrawalSourceInput />
           <TailMethodInput />
           <SweepSelector />
           <ScenarioActions />
