@@ -52,6 +52,7 @@ export const useResultsStore = create<ResultsState>((set, get) => {
         horizonYears: scenario.horizonYears,
         allocation: scenario.allocation,
         withdrawal: scenario.withdrawal,
+        withdrawalSource: scenario.withdrawalSource,
         tailMethod: scenario.tailMethod,
       };
       const plan = planSweep(base, sweep.axes);

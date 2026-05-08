@@ -16,6 +16,8 @@ export function ScenarioLibrary() {
       allocation: scenario.allocation,
       withdrawal: scenario.withdrawal,
       axes: sweep.axes,
+      tailMethod: scenario.tailMethod,
+      withdrawalSource: scenario.withdrawalSource,
     });
     setName('');
   };
@@ -25,6 +27,9 @@ export function ScenarioLibrary() {
     scenario.setHorizon(s.state.horizonYears);
     scenario.setAllocation(s.state.allocation);
     scenario.setWithdrawal(s.state.withdrawal);
+    if (s.state.tailMethod) scenario.setTailMethod(s.state.tailMethod);
+    if (s.state.withdrawalSource)
+      scenario.setWithdrawalSource(s.state.withdrawalSource);
     (Object.keys(s.state.axes) as Array<keyof typeof s.state.axes>).forEach(
       (a) => sweep.setAxis(a, s.state.axes[a]),
     );

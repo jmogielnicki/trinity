@@ -24,6 +24,7 @@ export function ScenarioActions() {
       withdrawal: scenario.withdrawal,
       axes: sweep.axes,
       tailMethod: scenario.tailMethod,
+      withdrawalSource: scenario.withdrawalSource,
     });
     const url = `${location.origin}${location.pathname}#${hash}`;
     history.replaceState(null, '', `#${hash}`);

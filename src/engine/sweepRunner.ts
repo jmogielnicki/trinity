@@ -1,6 +1,7 @@
 import { runScenario, type Scenario, type TailMethod } from './sweep';
 import type { AllocationStrategy, WithdrawalStrategy } from './strategies';
 import type { HistoricalSeries, ScenarioResult } from './types';
+import type { WithdrawalSource } from './withdrawalSource';
 import {
   axisValues,
   type Axis,
@@ -12,6 +13,7 @@ export type BaseScenario = {
   horizonYears: number;
   allocation: AllocationStrategy;
   withdrawal: WithdrawalStrategy;
+  withdrawalSource?: WithdrawalSource;
   tailMethod?: TailMethod;
 };
 
