@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
+import { PresetPicker } from './components/controls/PresetPicker';
 import { ScenarioActions } from './components/controls/ScenarioActions';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { SweepSelector } from './components/controls/SweepSelector';
@@ -133,6 +134,7 @@ export function App() {
       </header>
       <div className="layout">
         <aside className="controls">
+          <PresetPicker />
           <PortfolioInput />
           <AllocationEditor
             horizonYears={scenario.horizonYears}
