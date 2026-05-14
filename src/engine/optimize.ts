@@ -84,10 +84,12 @@ type FloorUpsideSpec = {
  * "marginal spend" coefficient — for each $1 the balance is above initial,
  * withdraw an extra `marginalSpend` cents.
  *
- * Floors span 3–5%; marginal-spend rates span 5–20¢ per excess dollar.
+ * Floors span 3–5%; marginal-spend rates span 0.5–3¢ per excess dollar
+ * (so an extra $1M of portfolio over initial buys $5k–$30k of extra
+ * annual spending — within realistic lifestyle-bump range).
  */
 const FLOOR_UPSIDE_FLOORS = [0.03, 0.035, 0.04, 0.045, 0.05];
-const FLOOR_UPSIDE_MARGINAL = [0.05, 0.1, 0.15, 0.2];
+const FLOOR_UPSIDE_MARGINAL = [0.005, 0.01, 0.02, 0.03];
 
 const FLOOR_UPSIDE_SPECS: FloorUpsideSpec[] = FLOOR_UPSIDE_FLOORS.flatMap(
   (floor) => FLOOR_UPSIDE_MARGINAL.map((marginalSpend) => ({ floor, marginalSpend })),
@@ -169,8 +171,8 @@ export function generateCandidates(): Candidate[] {
         floor: s.floor,
         marginalSpend: s.marginalSpend,
       } as WithdrawalStrategy,
-      label: `floor ${pct(s.floor)} + ${(s.marginalSpend * 100).toFixed(0)}¢/$ upside`,
-      short: `${pct(s.floor)} floor +${(s.marginalSpend * 100).toFixed(0)}¢/$`,
+      label: `floor ${pct(s.floor)} + $${Math.round(s.marginalSpend * 1000)}k/$1M upside`,
+      short: `${pct(s.floor)} floor +$${Math.round(s.marginalSpend * 1000)}k/$1M`,
       numeric: { floor: s.floor, marginalSpend: s.marginalSpend },
     })),
   ];

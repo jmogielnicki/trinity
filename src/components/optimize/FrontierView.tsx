@@ -7,7 +7,7 @@ import { interpolatePlasma } from 'd3-scale-chromatic';
  */
 function colorScale(t: number): string {
   const clamped = Math.max(0, Math.min(1, t));
-  return interpolatePlasma(0.1 + clamped * 0.8);
+  return interpolatePlasma(0.1 + clamped * 0.7);
 }
 import { useOptimizeStore } from '../../store/optimizeStore';
 import { useResultsStore } from '../../store/resultsStore';
@@ -54,7 +54,7 @@ const COLOR_BY_LABELS: Record<ColorBy, string> = {
   stockPct: 'Stock %',
   withdrawalRate: 'Withdrawal rate (fixed)',
   floor: 'Floor % (floor+upside)',
-  marginalSpend: 'Marginal spend (¢/$)',
+  marginalSpend: 'Marginal spend ($k per $1M over)',
   successRate: 'Success rate',
   avgYearsNearDepletion: 'Years near depletion',
 };
@@ -88,7 +88,7 @@ function formatColorValue(c: ColorBy, v: number): string {
     case 'successRate':
       return `${(v * 100).toFixed(0)}%`;
     case 'marginalSpend':
-      return `${(v * 100).toFixed(0)}¢`;
+      return `$${Math.round(v * 1000)}k`;
     case 'avgYearsNearDepletion':
       return v.toFixed(1);
     case 'frontier':

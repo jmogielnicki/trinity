@@ -48,7 +48,7 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
       onChange({
         type: 'floorAndUpside',
         floor: 0.04,
-        marginalSpend: 0.1,
+        marginalSpend: 0.02,
       });
   };
 
@@ -133,8 +133,8 @@ function FloorUpsideEditor({
     <div className="floor-upside-editor">
       <div className="floor-upside-hint">
         Withdraw at least <strong>floor %</strong> of initial each year. For
-        every $1 the portfolio is above its starting value, spend an extra{' '}
-        <strong>marginal cents</strong>.
+        every $1M the portfolio is above its starting value, spend an extra{' '}
+        <strong>marginal $</strong>.
       </div>
       <div className="floor-upside-grid">
         <label>
@@ -154,17 +154,17 @@ function FloorUpsideEditor({
           />
         </label>
         <label>
-          Marginal spend (¢ per $ above initial)
+          Marginal spend ($k per $1M above initial)
           <input
             type="number"
             min={0}
-            max={100}
+            max={500}
             step={1}
-            value={(marginalSpend * 100).toFixed(2).replace(/\.?0+$/, '')}
+            value={(marginalSpend * 1000).toFixed(2).replace(/\.?0+$/, '')}
             onChange={(e) =>
               onChange(
                 floor,
-                Math.max(0, parseFloat(e.target.value) / 100 || 0),
+                Math.max(0, parseFloat(e.target.value) / 1000 || 0),
               )
             }
           />
