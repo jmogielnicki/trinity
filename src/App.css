@@ -280,3 +280,10 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .frontier-legend .dot-filtered { background: #ddd; }
 .frontier-apply { font-size: 11px; padding: 3px 8px; border: 1px solid #bbb; background: #fff; border-radius: 3px; cursor: pointer; color: #1f77b4; }
 .frontier-apply:hover { background: #eef4ff; border-color: #1f77b4; }
+
+/* Floor + upside editor */
+.floor-upside-editor { display: flex; flex-direction: column; gap: 10px; }
+.floor-upside-hint { font-size: 11px; color: #666; line-height: 1.4; }
+.floor-upside-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.floor-upside-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #444; }
+.floor-upside-grid input { padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }

@@ -60,7 +60,33 @@ export type OptimizeConfig = {
 const WITHDRAWAL_RATES_FIXED = [
   0.03, 0.0325, 0.035, 0.0375, 0.04, 0.0425, 0.045, 0.0475, 0.05, 0.055, 0.06,
 ];
-const WITHDRAWAL_RATES_POB = [0.035, 0.04, 0.045, 0.05, 0.055, 0.06];
+type FloorUpsideSpec = {
+  floor: number;
+  gainStep: number;
+  bumpPerStep: number;
+};
+
+/**
+ * Floor + upside variants: a sticky real-$ floor that scales up with the
+ * portfolio. Spans a few floors and a couple upside aggressiveness levels.
+ */
+const FLOOR_UPSIDE_SPECS: FloorUpsideSpec[] = [
+  // floor 3.5%
+  { floor: 0.035, gainStep: 0.1, bumpPerStep: 0.2 },
+  { floor: 0.035, gainStep: 0.1, bumpPerStep: 0.5 },
+  { floor: 0.035, gainStep: 0.2, bumpPerStep: 0.3 },
+  // floor 4.0%
+  { floor: 0.04, gainStep: 0.1, bumpPerStep: 0.2 },
+  { floor: 0.04, gainStep: 0.1, bumpPerStep: 0.5 },
+  { floor: 0.04, gainStep: 0.2, bumpPerStep: 0.3 },
+  // floor 4.5%
+  { floor: 0.045, gainStep: 0.1, bumpPerStep: 0.2 },
+  { floor: 0.045, gainStep: 0.1, bumpPerStep: 0.5 },
+  { floor: 0.045, gainStep: 0.2, bumpPerStep: 0.3 },
+  // floor 5.0% (aggressive baseline)
+  { floor: 0.05, gainStep: 0.1, bumpPerStep: 0.2 },
+  { floor: 0.05, gainStep: 0.2, bumpPerStep: 0.3 },
+];
 const STATIC_STOCK_PCTS = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
 
 type GlidePathSpec = {
@@ -125,10 +151,15 @@ export function generateCandidates(): Candidate[] {
       label: `fixed ${pct(r)}`,
       short: `${pct(r)} fixed`,
     })),
-    ...WITHDRAWAL_RATES_POB.map((r) => ({
-      wd: { type: 'percentOfBalance', rate: r } as WithdrawalStrategy,
-      label: `% of balance ${pct(r)}`,
-      short: `${pct(r)} of bal`,
+    ...FLOOR_UPSIDE_SPECS.map((s) => ({
+      wd: {
+        type: 'floorAndUpside',
+        floor: s.floor,
+        gainStep: s.gainStep,
+        bumpPerStep: s.bumpPerStep,
+      } as WithdrawalStrategy,
+      label: `floor ${pct(s.floor)} +${pct(s.bumpPerStep)}/${pct(s.gainStep)} gain`,
+      short: `${pct(s.floor)} floor +${pct(s.bumpPerStep)}/${pct(s.gainStep)}↑`,
     })),
   ];
 

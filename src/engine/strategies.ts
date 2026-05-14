@@ -5,6 +5,23 @@ export type WithdrawalStrategy =
   | { type: 'fixedPercent'; rate: number }
   | { type: 'fixedDollar'; amount: number }
   | { type: 'percentOfBalance'; rate: number }
+  /**
+   * Floor + upside: never withdraw less than `floor × initial` (real $), but
+   * scale up proportionally when the portfolio is above initial. For every
+   * `gainStep` of balance above initial, withdrawal grows by `bumpPerStep`.
+   *
+   *   wd = floor × initial × max(1, 1 + bumpPerStep × (balance/initial − 1) / gainStep)
+   *
+   * Models how real retirees behave: a sticky lifestyle floor that ratchets
+   * up if the portfolio runs ahead, without the wild downside of pure
+   * percent-of-balance withdrawals.
+   */
+  | {
+      type: 'floorAndUpside';
+      floor: number;
+      gainStep: number;
+      bumpPerStep: number;
+    }
   | { type: 'piecewise'; pieces: { until: number; rate: number }[] }
   /**
    * Linear-interpolation curve: rate at year t is interpolated between the
@@ -90,6 +107,15 @@ export function computeWithdrawal(
       return strat.amount;
     case 'percentOfBalance':
       return strat.rate * state.balance;
+    case 'floorAndUpside': {
+      const ratio = state.balance / initial;
+      const excess = Math.max(0, ratio - 1);
+      const multiplier =
+        strat.gainStep > 0
+          ? Math.max(1, 1 + strat.bumpPerStep * (excess / strat.gainStep))
+          : 1;
+      return strat.floor * initial * multiplier;
+    }
     case 'piecewise': {
       for (const p of strat.pieces) {
         if (state.t < p.until) return p.rate * initial;
