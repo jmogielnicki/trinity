@@ -98,6 +98,30 @@ export const PRESETS: Preset[] = [
     },
   },
   {
+    id: 'cash-bucket-refill',
+    name: 'Cash bucket with refill — 50/35/15',
+    description: '50/35/15 stocks/bonds/cash. Spend cash first; when cash drops below 8% and stocks are at or above their initial value, sell stocks back into cash up to 15%.',
+    state: {
+      initialBalance: STARTING,
+      horizonYears: HORIZON,
+      allocation: flatStatic(0.5, 0.35, 0.15),
+      withdrawal: { type: 'fixedPercent', rate: 0.04 },
+      withdrawalSource: {
+        type: 'bucket',
+        order: ['cash', 'bond', 'stock'],
+        refill: {
+          targetSleeve: 'cash',
+          floor: 0.08,
+          ceiling: 0.15,
+          sourceSleeve: 'stock',
+          sourceMinRatio: 1.0,
+        },
+      },
+      tailMethod: { type: 'truncate' },
+      axes: PINNED_AXES,
+    },
+  },
+  {
     id: 'glide-down',
     name: 'Glide path 80→40 stocks — 4%',
     description: 'Start aggressive (80/20), end conservative (40/60) over the horizon. Classic age-based de-risking.',
