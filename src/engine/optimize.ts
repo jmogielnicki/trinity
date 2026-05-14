@@ -71,6 +71,10 @@ type FloorUpsideSpec = {
  * portfolio. Spans a few floors and a couple upside aggressiveness levels.
  */
 const FLOOR_UPSIDE_SPECS: FloorUpsideSpec[] = [
+  // floor 3.0% (austere baseline, big upside potential)
+  { floor: 0.03, gainStep: 0.1, bumpPerStep: 0.3 },
+  { floor: 0.03, gainStep: 0.1, bumpPerStep: 0.5 },
+  { floor: 0.03, gainStep: 0.2, bumpPerStep: 0.5 },
   // floor 3.5%
   { floor: 0.035, gainStep: 0.1, bumpPerStep: 0.2 },
   { floor: 0.035, gainStep: 0.1, bumpPerStep: 0.5 },
