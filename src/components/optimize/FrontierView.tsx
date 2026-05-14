@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { interpolateViridis } from 'd3-scale-chromatic';
+import { interpolatePlasma } from 'd3-scale-chromatic';
+
+/**
+ * Plasma clamped to its darker portion (skips the bright pale-yellow end so
+ * high-value points stay visible against the white background).
+ */
+function colorScale(t: number): string {
+  const clamped = Math.max(0, Math.min(1, t));
+  return interpolatePlasma(0.1 + clamped * 0.8);
+}
 import { useOptimizeStore } from '../../store/optimizeStore';
 import { useResultsStore } from '../../store/resultsStore';
 import { useScenarioStore } from '../../store/scenarioStore';
@@ -375,7 +384,7 @@ function ScatterPlot({
     }
     const v = colorValue(r, colorBy);
     if (typeof v !== 'number' || !Number.isFinite(v)) return '#ccc';
-    return interpolateViridis((v - cMin) / cRange);
+    return colorScale((v - cMin) / cRange);
   };
 
   // Mouse → SVG coords via getCTM.
@@ -882,7 +891,7 @@ function ColorBar({
             y={0}
             width={W / stops + 0.5}
             height={H}
-            fill={interpolateViridis(i / (stops - 1))}
+            fill={colorScale(i / (stops - 1))}
           />
         ))}
       </svg>
