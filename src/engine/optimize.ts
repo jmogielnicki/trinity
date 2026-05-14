@@ -14,10 +14,23 @@ export type CandidateMetrics = {
   p5Final: number;
   /** 95th-percentile final balance (upside). */
   p95Final: number;
+  /**
+   * Average annual withdrawal across completed sims, in real $. For
+   * "live the high life" comparisons — higher is better.
+   */
+  avgAnnualWithdrawal: number;
+  /**
+   * Avg # of years per completed sim where balance dipped below
+   * NEAR_DEPLETION_FRACTION of the initial balance. Lower is better;
+   * tells you how much time you spent sweating during bad sequences.
+   */
+  avgYearsNearDepletion: number;
   /** Worst completed start year (the earliest failure), if any. */
   worstStartYear?: number;
   completedCount: number;
 };
+
+export const NEAR_DEPLETION_FRACTION = 0.25;
 
 export type Candidate = {
   id: string;
@@ -167,11 +180,43 @@ function finalBalances(result: ScenarioResult): WeightedSample[] {
   return out;
 }
 
-export function metricsFromResult(result: ScenarioResult): CandidateMetrics {
+export function metricsFromResult(
+  result: ScenarioResult,
+  initialBalance: number,
+): CandidateMetrics {
   const finals = finalBalances(result);
   const p5 = finals.length ? weightedQuantile(finals, 0.05) : NaN;
   const p50 = finals.length ? weightedQuantile(finals, 0.5) : NaN;
   const p95 = finals.length ? weightedQuantile(finals, 0.95) : NaN;
+
+  // Per-sim averages: only count completed sims (in-progress sims have
+  // truncated trajectories that would skew the averages). Bootstrap samples
+  // carry weight 1/samplesPerPrefix so a cohort counts once, not N times.
+  const depletionThreshold = NEAR_DEPLETION_FRACTION * initialBalance;
+  let withdrawalWeighted = 0;
+  let yearsNearWeighted = 0;
+  let weightSum = 0;
+  for (const s of result.sims) {
+    if (s.inProgress) continue;
+    const weight = s.weight ?? 1;
+    weightSum += weight;
+    let wdTotal = 0;
+    let yearsNear = 0;
+    let yearsCounted = 0;
+    for (const rec of s.trajectory) {
+      wdTotal += rec.withdrawal;
+      yearsCounted++;
+      if (rec.balance < depletionThreshold) yearsNear++;
+    }
+    withdrawalWeighted +=
+      weight * (yearsCounted > 0 ? wdTotal / yearsCounted : 0);
+    yearsNearWeighted += weight * yearsNear;
+  }
+  const avgAnnualWithdrawal =
+    weightSum > 0 ? withdrawalWeighted / weightSum : NaN;
+  const avgYearsNearDepletion =
+    weightSum > 0 ? yearsNearWeighted / weightSum : NaN;
+
   return {
     // Use the bootstrap-projected rate when present (already cohort-weighted);
     // otherwise the observed historical rate.
@@ -179,28 +224,44 @@ export function metricsFromResult(result: ScenarioResult): CandidateMetrics {
     p5Final: p5,
     p50Final: p50,
     p95Final: p95,
+    avgAnnualWithdrawal,
+    avgYearsNearDepletion,
     worstStartYear: result.worstStartYear,
     completedCount: result.completedCount,
   };
 }
 
 /**
- * Pareto front over (successRate, p50Final, p95Final). A candidate is on the
- * front if no other candidate beats it on all three (with at least one strict).
- * Ties on all three are kept (both are non-dominated).
+ * Pareto front over four maximize-objectives:
+ *   successRate, avgAnnualWithdrawal, p50Final, p95Final.
+ *
+ * Including avgAnnualWithdrawal alongside the final-balance metrics lets
+ * "live high, leave little" strategies (e.g. high-rate percent-of-balance)
+ * surface on the frontier instead of being dominated by hoard-everything
+ * strategies that leave huge final balances.
+ *
+ * A candidate is on the front if no other candidate beats it on all four
+ * (with at least one strict). Ties are kept (both are non-dominated).
  */
 export function paretoFront(results: CandidateResult[]): CandidateResult[] {
   const objectives = (r: CandidateResult) =>
-    [r.metrics.successRate, r.metrics.p50Final, r.metrics.p95Final] as const;
+    [
+      r.metrics.successRate,
+      r.metrics.avgAnnualWithdrawal,
+      r.metrics.p50Final,
+      r.metrics.p95Final,
+    ] as const;
   const front: CandidateResult[] = [];
   for (const r of results) {
-    const [a1, a2, a3] = objectives(r);
-    if (!Number.isFinite(a1)) continue;
+    const a = objectives(r);
+    if (!Number.isFinite(a[0])) continue;
     let dominated = false;
     for (const other of results) {
       if (other === r) continue;
-      const [b1, b2, b3] = objectives(other);
-      if (b1 >= a1 && b2 >= a2 && b3 >= a3 && (b1 > a1 || b2 > a2 || b3 > a3)) {
+      const b = objectives(other);
+      const allGE = b[0] >= a[0] && b[1] >= a[1] && b[2] >= a[2] && b[3] >= a[3];
+      const anyGT = b[0] > a[0] || b[1] > a[1] || b[2] > a[2] || b[3] > a[3];
+      if (allGE && anyGT) {
         dominated = true;
         break;
       }
