@@ -158,3 +158,46 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .waterfall-order li span { flex: 1; padding: 3px 6px; background: #f6f6f6; border-radius: 3px; }
 
 .bucket-refill { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid #eee; border-radius: 4px; background: #fafafa; }
+
+/* Frontier / optimize view */
+.top-mode-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #e5e5e5; }
+.top-mode-tabs button { background: transparent; border: none; padding: 8px 14px; font-size: 13px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.top-mode-tabs button.active { color: #222; border-bottom-color: #1f77b4; font-weight: 500; }
+
+.frontier-view { display: flex; flex-direction: column; gap: 14px; font-size: 13px; }
+.frontier-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.frontier-header > div:first-child { color: #555; font-size: 12px; max-width: 720px; line-height: 1.4; }
+.frontier-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.frontier-actions button { padding: 6px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.frontier-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.frontier-actions button:hover:not(:disabled) { background: #f6f6f6; }
+.frontier-meta { font-size: 11px; color: #888; }
+.frontier-stale { color: #c44; }
+.frontier-axes { display: flex; gap: 16px; font-size: 12px; color: #444; }
+.frontier-axes label { display: flex; gap: 6px; align-items: center; }
+.frontier-axes select { padding: 3px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+
+.frontier-scatter-wrap { border: 1px solid #eee; border-radius: 4px; padding: 8px; background: #fafafa; }
+.frontier-scatter { background: #fff; border-radius: 3px; display: block; }
+.frontier-legend { display: flex; gap: 16px; font-size: 11px; color: #555; margin-top: 6px; padding: 0 6px; }
+.frontier-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
+.frontier-legend .dot-frontier { background: #d62728; }
+.frontier-legend .dot-other { background: #aaa; opacity: 0.5; }
+.frontier-legend .dot-selected { background: #1f77b4; border: 1px solid #000; }
+
+.frontier-empty { font-size: 12px; color: #888; padding: 12px; text-align: center; border: 1px dashed #ddd; border-radius: 4px; }
+
+.frontier-table-wrap { overflow-x: auto; }
+.frontier-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.frontier-table th, .frontier-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; white-space: nowrap; }
+.frontier-table th { color: #666; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; background: #f6f6f6; }
+.frontier-table td:nth-child(n+5):nth-child(-n+8) { text-align: right; font-variant-numeric: tabular-nums; }
+.series-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; }
+.frontier-remove { background: transparent; border: none; color: #c44; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 4px; }
+.frontier-remove:hover { color: #900; }
+
+.frontier-bars-wrap { border: 1px solid #eee; border-radius: 4px; padding: 10px; background: #fafafa; }
+.frontier-bars-title { font-size: 11px; color: #555; margin-bottom: 6px; }
+
+.frontier-list-wrap summary { cursor: pointer; font-size: 12px; color: #555; padding: 4px 0; }
+.frontier-list-wrap[open] summary { margin-bottom: 6px; }
