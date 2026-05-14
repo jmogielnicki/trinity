@@ -187,7 +187,6 @@ export function FrontierView({ onApplied }: Props) {
           </div>
           <ScatterPlot
             results={filteredResults}
-            allResults={results}
             frontierIds={frontierIds}
             selectedIds={selectedSet}
             onToggle={toggleSelected}
@@ -219,7 +218,6 @@ export function FrontierView({ onApplied }: Props) {
 
 function ScatterPlot({
   results,
-  allResults,
   frontierIds,
   selectedIds,
   onToggle,
@@ -228,7 +226,6 @@ function ScatterPlot({
   yAxis,
 }: {
   results: CandidateResult[];
-  allResults: CandidateResult[];
   frontierIds: Set<string>;
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
@@ -253,9 +250,8 @@ function ScatterPlot({
   const padT = 12;
   const padB = 40;
 
-  // Scale on the ALL set so axis ranges stay stable across filter changes.
-  const xVals = allResults.map((r) => r.metrics[xAxis]).filter(Number.isFinite);
-  const yVals = allResults.map((r) => r.metrics[yAxis]).filter(Number.isFinite);
+  const xVals = results.map((r) => r.metrics[xAxis]).filter(Number.isFinite);
+  const yVals = results.map((r) => r.metrics[yAxis]).filter(Number.isFinite);
   if (xVals.length === 0 || yVals.length === 0) return null;
 
   const xMinRaw = Math.min(...xVals);
@@ -353,8 +349,6 @@ function ScatterPlot({
     setMarquee(null);
   };
 
-  const visibleIds = new Set(results.map((r) => r.candidate.id));
-
   return (
     <div className="frontier-scatter-wrap">
       <svg
@@ -413,24 +407,6 @@ function ScatterPlot({
         >
           {AXIS_LABELS[yAxis]}
         </text>
-
-        {/* Filtered-out points (faint, non-interactive) */}
-        {allResults.map((r) => {
-          if (visibleIds.has(r.candidate.id)) return null;
-          const x = xScale(r.metrics[xAxis]);
-          const y = yScale(r.metrics[yAxis]);
-          if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-          return (
-            <circle
-              key={`f-${r.candidate.id}`}
-              cx={x}
-              cy={y}
-              r={2}
-              fill="#ddd"
-              pointerEvents="none"
-            />
-          );
-        })}
 
         {/* Visible non-frontier */}
         {results.map((r) => {
@@ -555,7 +531,6 @@ function ScatterPlot({
         <span><span className="dot dot-frontier" /> Pareto-optimal</span>
         <span><span className="dot dot-other" /> dominated</span>
         <span><span className="dot dot-selected" /> selected</span>
-        <span><span className="dot dot-filtered" /> filtered out</span>
         <span className="frontier-tip">
           drag = marquee select · click = toggle · click empty = clear
         </span>
