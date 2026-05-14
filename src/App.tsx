@@ -17,6 +17,7 @@ import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { SuccessBar } from './components/results/SuccessBar';
 import { WhereAmI } from './components/results/WhereAmI';
+import { FrontierView } from './components/optimize/FrontierView';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, tryDeserialize } from './data/urlState';
 import { useCompareStore } from './store/compareStore';
@@ -27,6 +28,7 @@ import { createPool } from './worker/pool';
 import './App.css';
 
 type View = 'spaghetti' | 'calendar' | 'whereami' | 'sleeves';
+type TopMode = 'single' | 'optimize';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -44,6 +46,7 @@ export function App() {
   } = useResultsStore();
   const snapshot = useCompareStore((s) => s.snapshot);
   const [view, setView] = useState<View>('spaghetti');
+  const [topMode, setTopMode] = useState<TopMode>('single');
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
 
   const toggleYear = (year: number) => {
@@ -154,6 +157,22 @@ export function App() {
           <ScenarioLibrary />
         </aside>
         <main className="results">
+          <div className="top-mode-tabs">
+            <button
+              className={topMode === 'single' ? 'active' : ''}
+              onClick={() => setTopMode('single')}
+            >
+              Single scenario
+            </button>
+            <button
+              className={topMode === 'optimize' ? 'active' : ''}
+              onClick={() => setTopMode('optimize')}
+            >
+              Optimize / frontier
+            </button>
+          </div>
+          {topMode === 'optimize' && <FrontierView />}
+          {topMode === 'single' && <>
           {!data && <div className="loading">Loading historical data…</div>}
           {data && (
             <div className="compute-meta">
@@ -238,6 +257,7 @@ export function App() {
             <SmallMultiples grid={grid} />
           )}
           {data && grid && grid.axes.length === 2 && <Heatmap grid={grid} />}
+          </>}
         </main>
       </div>
     </div>
