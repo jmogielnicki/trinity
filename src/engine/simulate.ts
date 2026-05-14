@@ -13,6 +13,7 @@ import type {
 } from './types';
 import {
   adjustWeightsForData,
+  applyRefill,
   applyReturns,
   applyWithdrawal,
   DEFAULT_WITHDRAWAL_SOURCE,
@@ -86,6 +87,7 @@ export function simulate(input: SimulateInput): SimulationResult {
       : w0Raw;
     sleeves = splitInitial(initialBalance, w0);
   }
+  const initialSleeves: Sleeves = { ...sleeves };
 
   for (let t = 0; t < effectiveHorizon; t++) {
     const r = returns[t];
@@ -149,6 +151,12 @@ export function simulate(input: SimulateInput): SimulationResult {
       withdrawalSource.rebalance
     ) {
       sleeves = rebalanceTo(sleeves, weights);
+    }
+
+    // Bucket refill rule: runs after returns, moves between sleeves only when
+    // the trigger and source conditions fire.
+    if (withdrawalSource.type === 'bucket') {
+      sleeves = applyRefill(sleeves, withdrawalSource.refill, initialSleeves);
     }
 
     const portRet = effectiveReturn(beforeReturns, sleeves, 0);

@@ -24,6 +24,115 @@ function flatReturns(
   }));
 }
 
+describe('bucket withdrawal source (waterfall + refill)', () => {
+  it('refills cash from stocks when below floor and stocks above the gate', () => {
+    // 50/40/10 of $1M. Withdraw $40k/yr from cash first. Stocks +20% / yr,
+    // bonds 0%, cash 0%. After year 0:
+    //   pre-returns: cash 60k, bond 400k, stock 500k
+    //   post-returns: cash 60k, bond 400k, stock 600k, total 1.06M
+    //   cash/total = 60k/1.06M ≈ 5.7% < floor 8%
+    //   stock 600k ≥ 1.0× initial stock 500k → refill fires
+    //   refill restores cash to ceiling 15% of 1.06M = 159k
+    //   move 99k from stock → cash
+    const returns = flatReturns(2000, 5, { s: 0.2, b: 0, c: 0 });
+    const result = simulate({
+      startYear: 2000,
+      initialBalance: 1_000_000,
+      horizonYears: 5,
+      allocation: {
+        type: 'static',
+        weights: { stock: 0.5, bond: 0.4, cash: 0.1 },
+      },
+      withdrawal: { type: 'fixedDollar', amount: 40_000 },
+      withdrawalSource: {
+        type: 'bucket',
+        order: ['cash', 'bond', 'stock'],
+        refill: {
+          targetSleeve: 'cash',
+          floor: 0.08,
+          ceiling: 0.15,
+          sourceSleeve: 'stock',
+          sourceMinRatio: 1.0,
+        },
+      },
+      returns,
+    });
+
+    const y0 = result.trajectory[0].sleeves;
+    const total = y0.stock + y0.bond + y0.cash;
+    // Cash refilled to ceiling
+    expect(y0.cash / total).toBeCloseTo(0.15, 4);
+    // Stocks reduced from 600k post-return by the transfer
+    expect(y0.stock).toBeLessThan(600_000);
+    expect(y0.bond).toBeCloseTo(400_000, 5);
+  });
+
+  it('suppresses refill when source sleeve is below the gate', () => {
+    // Same setup, but stocks -10% in year 0. Stocks 500k → 450k after returns,
+    // below the 1.0× initial gate. Cash sits at 60k post-withdrawal (no growth),
+    // bond at 400k. Cash fraction = 60k/910k ≈ 6.6% < floor — but the gate
+    // blocks the refill.
+    const returns = flatReturns(2000, 1, { s: -0.1, b: 0, c: 0 });
+    const result = simulate({
+      startYear: 2000,
+      initialBalance: 1_000_000,
+      horizonYears: 1,
+      allocation: {
+        type: 'static',
+        weights: { stock: 0.5, bond: 0.4, cash: 0.1 },
+      },
+      withdrawal: { type: 'fixedDollar', amount: 40_000 },
+      withdrawalSource: {
+        type: 'bucket',
+        order: ['cash', 'bond', 'stock'],
+        refill: {
+          targetSleeve: 'cash',
+          floor: 0.08,
+          ceiling: 0.15,
+          sourceSleeve: 'stock',
+          sourceMinRatio: 1.0,
+        },
+      },
+      returns,
+    });
+
+    const y0 = result.trajectory[0].sleeves;
+    // No transfer happened — sleeves are just post-withdrawal + post-return.
+    expect(y0.cash).toBeCloseTo(60_000, 5);
+    expect(y0.stock).toBeCloseTo(450_000, 5);
+    expect(y0.bond).toBeCloseTo(400_000, 5);
+  });
+
+  it('refill rule with no gate fires regardless of source level', () => {
+    // Same -10% stocks scenario, but no sourceMinRatio. Refill should fire.
+    const returns = flatReturns(2000, 1, { s: -0.1, b: 0, c: 0 });
+    const result = simulate({
+      startYear: 2000,
+      initialBalance: 1_000_000,
+      horizonYears: 1,
+      allocation: {
+        type: 'static',
+        weights: { stock: 0.5, bond: 0.4, cash: 0.1 },
+      },
+      withdrawal: { type: 'fixedDollar', amount: 40_000 },
+      withdrawalSource: {
+        type: 'bucket',
+        order: ['cash', 'bond', 'stock'],
+        refill: {
+          targetSleeve: 'cash',
+          floor: 0.08,
+          ceiling: 0.15,
+          sourceSleeve: 'stock',
+        },
+      },
+      returns,
+    });
+    const y0 = result.trajectory[0].sleeves;
+    const total = y0.stock + y0.bond + y0.cash;
+    expect(y0.cash / total).toBeCloseTo(0.15, 4);
+  });
+});
+
 describe('waterfall withdrawal source', () => {
   it('drains cash before bonds before stocks', () => {
     // 10y of zero returns to keep arithmetic clean. With 50/40/10 of $1M,

@@ -9,10 +9,28 @@ import type { AnnualReturns, Sleeves, Sleeve, Weights } from './types';
  * "waterfall" lets a cash sleeve actually act like a buffer — drain it first
  * during downturns, only touch stocks/bonds when cash is empty. No automatic
  * rebalance: sleeves drift over time the way they would in real life.
+ *
+ * "bucket" is waterfall + a yearly refill rule: when the target sleeve falls
+ * below `floor` (as a fraction of total), top it up from the source sleeve
+ * back to `ceiling`, but only if the source is at or above
+ * `sourceMinRatio × its initial value`. The classic "spend cash, only sell
+ * stocks when they're up" play.
  */
+export type RefillRule = {
+  targetSleeve: Sleeve;
+  /** Refill triggers when targetSleeve / total < floor (0..1). */
+  floor: number;
+  /** Refill restores targetSleeve / total back up to ceiling (0..1). */
+  ceiling: number;
+  sourceSleeve: Sleeve;
+  /** Optional gating: only refill when sourceSleeve ≥ this × initial source value. */
+  sourceMinRatio?: number;
+};
+
 export type WithdrawalSource =
   | { type: 'proportional'; rebalance: boolean }
-  | { type: 'waterfall'; order: Sleeve[] };
+  | { type: 'waterfall'; order: Sleeve[] }
+  | { type: 'bucket'; order: Sleeve[]; refill: RefillRule };
 
 export const DEFAULT_WITHDRAWAL_SOURCE: WithdrawalSource = {
   type: 'proportional',
@@ -56,17 +74,52 @@ export function applyWithdrawal(
     };
   }
 
-  // waterfall: drain in the configured order until the withdrawal is met or
-  // every sleeve is empty.
+  // waterfall and bucket both drain in the configured order during the
+  // withdrawal step; bucket adds a refill step after returns (see applyRefill).
+  const order = source.order;
   let remaining = amount;
   const next: Sleeves = { ...sleeves };
-  for (const k of source.order) {
+  for (const k of order) {
     if (remaining <= 0) break;
     const take = Math.min(next[k], remaining);
     next[k] -= take;
     remaining -= take;
   }
   return next;
+}
+
+/**
+ * Apply a bucket refill rule after returns. Only moves money between sleeves;
+ * the total stays constant. No-op if the trigger conditions don't fire.
+ */
+export function applyRefill(
+  sleeves: Sleeves,
+  rule: RefillRule,
+  initialSleeves: Sleeves,
+): Sleeves {
+  const total = totalSleeves(sleeves);
+  if (total <= 0) return sleeves;
+  const targetFrac = sleeves[rule.targetSleeve] / total;
+  if (targetFrac >= rule.floor) return sleeves;
+
+  if (rule.sourceMinRatio != null) {
+    const initSrc = initialSleeves[rule.sourceSleeve];
+    if (initSrc > 0 && sleeves[rule.sourceSleeve] < rule.sourceMinRatio * initSrc) {
+      return sleeves;
+    }
+  }
+
+  const targetWant = rule.ceiling * total;
+  const targetHave = sleeves[rule.targetSleeve];
+  const deficit = targetWant - targetHave;
+  if (deficit <= 0) return sleeves;
+  const move = Math.min(deficit, sleeves[rule.sourceSleeve]);
+  if (move <= 0) return sleeves;
+  return {
+    ...sleeves,
+    [rule.targetSleeve]: sleeves[rule.targetSleeve] + move,
+    [rule.sourceSleeve]: sleeves[rule.sourceSleeve] - move,
+  };
 }
 
 export function applyReturns(sleeves: Sleeves, r: AnnualReturns): Sleeves {
