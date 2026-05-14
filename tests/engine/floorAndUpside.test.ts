@@ -7,11 +7,11 @@ function state(balance: number, t = 0): YearState {
 }
 
 describe('floorAndUpside withdrawal', () => {
+  // 4% floor + 12¢ per $ above initial.
   const strat = {
     type: 'floorAndUpside' as const,
     floor: 0.04,
-    gainStep: 0.1,
-    bumpPerStep: 0.3,
+    marginalSpend: 0.12,
   };
   const initial = 1_000_000;
 
@@ -20,12 +20,10 @@ describe('floorAndUpside withdrawal', () => {
     expect(computeWithdrawal(strat, state(1_000_000), initial, 0)).toBeCloseTo(40_000, 5);
   });
 
-  it('bumps proportionally as balance rises above initial', () => {
-    // +10% balance → +30% withdrawal
+  it('adds marginalSpend cents for every excess dollar', () => {
+    // +100k balance → +12k withdrawal → 52k
     expect(computeWithdrawal(strat, state(1_100_000), initial, 0)).toBeCloseTo(52_000, 5);
-    // +20% balance → +60% withdrawal
-    expect(computeWithdrawal(strat, state(1_200_000), initial, 0)).toBeCloseTo(64_000, 5);
-    // +100% balance → +300% withdrawal
+    // +1M balance → +120k withdrawal → 160k
     expect(computeWithdrawal(strat, state(2_000_000), initial, 0)).toBeCloseTo(160_000, 5);
   });
 

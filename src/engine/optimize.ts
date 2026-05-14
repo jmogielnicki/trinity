@@ -62,35 +62,23 @@ const WITHDRAWAL_RATES_FIXED = [
 ];
 type FloorUpsideSpec = {
   floor: number;
-  gainStep: number;
-  bumpPerStep: number;
+  /** Extra real $ withdrawn per real $ of portfolio above initial. */
+  marginalSpend: number;
 };
 
 /**
- * Floor + upside variants: a sticky real-$ floor that scales up with the
- * portfolio. Spans a few floors and a couple upside aggressiveness levels.
+ * Floor + upside variants: a sticky real-$ floor plus a single
+ * "marginal spend" coefficient — for each $1 the balance is above initial,
+ * withdraw an extra `marginalSpend` cents.
+ *
+ * Floors span 3–5%; marginal-spend rates span 5–20¢ per excess dollar.
  */
-const FLOOR_UPSIDE_SPECS: FloorUpsideSpec[] = [
-  // floor 3.0% (austere baseline, big upside potential)
-  { floor: 0.03, gainStep: 0.1, bumpPerStep: 0.3 },
-  { floor: 0.03, gainStep: 0.1, bumpPerStep: 0.5 },
-  { floor: 0.03, gainStep: 0.2, bumpPerStep: 0.5 },
-  // floor 3.5%
-  { floor: 0.035, gainStep: 0.1, bumpPerStep: 0.2 },
-  { floor: 0.035, gainStep: 0.1, bumpPerStep: 0.5 },
-  { floor: 0.035, gainStep: 0.2, bumpPerStep: 0.3 },
-  // floor 4.0%
-  { floor: 0.04, gainStep: 0.1, bumpPerStep: 0.2 },
-  { floor: 0.04, gainStep: 0.1, bumpPerStep: 0.5 },
-  { floor: 0.04, gainStep: 0.2, bumpPerStep: 0.3 },
-  // floor 4.5%
-  { floor: 0.045, gainStep: 0.1, bumpPerStep: 0.2 },
-  { floor: 0.045, gainStep: 0.1, bumpPerStep: 0.5 },
-  { floor: 0.045, gainStep: 0.2, bumpPerStep: 0.3 },
-  // floor 5.0% (aggressive baseline)
-  { floor: 0.05, gainStep: 0.1, bumpPerStep: 0.2 },
-  { floor: 0.05, gainStep: 0.2, bumpPerStep: 0.3 },
-];
+const FLOOR_UPSIDE_FLOORS = [0.03, 0.035, 0.04, 0.045, 0.05];
+const FLOOR_UPSIDE_MARGINAL = [0.05, 0.1, 0.15, 0.2];
+
+const FLOOR_UPSIDE_SPECS: FloorUpsideSpec[] = FLOOR_UPSIDE_FLOORS.flatMap(
+  (floor) => FLOOR_UPSIDE_MARGINAL.map((marginalSpend) => ({ floor, marginalSpend })),
+);
 const STATIC_STOCK_PCTS = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
 
 type GlidePathSpec = {
@@ -159,11 +147,10 @@ export function generateCandidates(): Candidate[] {
       wd: {
         type: 'floorAndUpside',
         floor: s.floor,
-        gainStep: s.gainStep,
-        bumpPerStep: s.bumpPerStep,
+        marginalSpend: s.marginalSpend,
       } as WithdrawalStrategy,
-      label: `floor ${pct(s.floor)} +${pct(s.bumpPerStep)}/${pct(s.gainStep)} gain`,
-      short: `${pct(s.floor)} floor +${pct(s.bumpPerStep)}/${pct(s.gainStep)}↑`,
+      label: `floor ${pct(s.floor)} + ${(s.marginalSpend * 100).toFixed(0)}¢/$ upside`,
+      short: `${pct(s.floor)} floor +${(s.marginalSpend * 100).toFixed(0)}¢/$`,
     })),
   ];
 

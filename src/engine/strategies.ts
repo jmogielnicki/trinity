@@ -6,21 +6,22 @@ export type WithdrawalStrategy =
   | { type: 'fixedDollar'; amount: number }
   | { type: 'percentOfBalance'; rate: number }
   /**
-   * Floor + upside: never withdraw less than `floor × initial` (real $), but
-   * scale up proportionally when the portfolio is above initial. For every
-   * `gainStep` of balance above initial, withdrawal grows by `bumpPerStep`.
+   * Floor + upside: never withdraw less than `floor × initial` (real $), and
+   * for every $1 the portfolio is above its starting balance, spend an extra
+   * `marginalSpend` cents.
    *
-   *   wd = floor × initial × max(1, 1 + bumpPerStep × (balance/initial − 1) / gainStep)
+   *   wd = floor × initial + marginalSpend × max(0, balance − initial)
    *
    * Models how real retirees behave: a sticky lifestyle floor that ratchets
    * up if the portfolio runs ahead, without the wild downside of pure
-   * percent-of-balance withdrawals.
+   * percent-of-balance withdrawals. The two-parameter form is the minimal
+   * description — any "for every X% gain, bump withdrawal by Y%" formulation
+   * reduces to a single marginal-spend coefficient.
    */
   | {
       type: 'floorAndUpside';
       floor: number;
-      gainStep: number;
-      bumpPerStep: number;
+      marginalSpend: number;
     }
   | { type: 'piecewise'; pieces: { until: number; rate: number }[] }
   /**
@@ -108,13 +109,8 @@ export function computeWithdrawal(
     case 'percentOfBalance':
       return strat.rate * state.balance;
     case 'floorAndUpside': {
-      const ratio = state.balance / initial;
-      const excess = Math.max(0, ratio - 1);
-      const multiplier =
-        strat.gainStep > 0
-          ? Math.max(1, 1 + strat.bumpPerStep * (excess / strat.gainStep))
-          : 1;
-      return strat.floor * initial * multiplier;
+      const excess = Math.max(0, state.balance - initial);
+      return strat.floor * initial + strat.marginalSpend * excess;
     }
     case 'piecewise': {
       for (const p of strat.pieces) {

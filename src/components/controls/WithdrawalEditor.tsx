@@ -48,8 +48,7 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
       onChange({
         type: 'floorAndUpside',
         floor: 0.04,
-        gainStep: 0.1,
-        bumpPerStep: 0.3,
+        marginalSpend: 0.1,
       });
   };
 
@@ -66,10 +65,9 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
       {mode === 'floor-upside' && withdrawal.type === 'floorAndUpside' && (
         <FloorUpsideEditor
           floor={withdrawal.floor}
-          gainStep={withdrawal.gainStep}
-          bumpPerStep={withdrawal.bumpPerStep}
-          onChange={(floor, gainStep, bumpPerStep) =>
-            onChange({ type: 'floorAndUpside', floor, gainStep, bumpPerStep })
+          marginalSpend={withdrawal.marginalSpend}
+          onChange={(floor, marginalSpend) =>
+            onChange({ type: 'floorAndUpside', floor, marginalSpend })
           }
         />
       )}
@@ -124,21 +122,19 @@ function ModeToggle({
 
 function FloorUpsideEditor({
   floor,
-  gainStep,
-  bumpPerStep,
+  marginalSpend,
   onChange,
 }: {
   floor: number;
-  gainStep: number;
-  bumpPerStep: number;
-  onChange: (floor: number, gainStep: number, bumpPerStep: number) => void;
+  marginalSpend: number;
+  onChange: (floor: number, marginalSpend: number) => void;
 }) {
   return (
     <div className="floor-upside-editor">
       <div className="floor-upside-hint">
         Withdraw at least <strong>floor %</strong> of initial each year. For
-        every <strong>gain step</strong> the balance rises above initial,
-        increase withdrawal by <strong>bump</strong>.
+        every $1 the portfolio is above its starting value, spend an extra{' '}
+        <strong>marginal cents</strong>.
       </div>
       <div className="floor-upside-grid">
         <label>
@@ -152,42 +148,23 @@ function FloorUpsideEditor({
             onChange={(e) =>
               onChange(
                 Math.max(0, parseFloat(e.target.value) / 100 || 0),
-                gainStep,
-                bumpPerStep,
+                marginalSpend,
               )
             }
           />
         </label>
         <label>
-          Bump per gain-step (% wd ↑)
+          Marginal spend (¢ per $ above initial)
           <input
             type="number"
             min={0}
-            max={200}
-            step={1}
-            value={(bumpPerStep * 100).toFixed(2).replace(/\.?0+$/, '')}
-            onChange={(e) =>
-              onChange(
-                floor,
-                gainStep,
-                Math.max(0, parseFloat(e.target.value) / 100 || 0),
-              )
-            }
-          />
-        </label>
-        <label>
-          Gain step (% balance ↑ over initial)
-          <input
-            type="number"
-            min={1}
             max={100}
             step={1}
-            value={(gainStep * 100).toFixed(2).replace(/\.?0+$/, '')}
+            value={(marginalSpend * 100).toFixed(2).replace(/\.?0+$/, '')}
             onChange={(e) =>
               onChange(
                 floor,
-                Math.max(0.001, parseFloat(e.target.value) / 100 || 0.1),
-                bumpPerStep,
+                Math.max(0, parseFloat(e.target.value) / 100 || 0),
               )
             }
           />
