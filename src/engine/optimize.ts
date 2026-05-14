@@ -32,6 +32,17 @@ export type CandidateMetrics = {
 
 export const NEAR_DEPLETION_FRACTION = 0.25;
 
+export type CandidateNumericParams = {
+  /** Representative stock fraction (start of glide path for glidepath, weight for static). */
+  stockPct?: number;
+  /** Constant rate for `fixedPercent` withdrawals. */
+  withdrawalRate?: number;
+  /** Floor for `floorAndUpside`. */
+  floor?: number;
+  /** Marginal-spend coefficient for `floorAndUpside`. */
+  marginalSpend?: number;
+};
+
 export type Candidate = {
   id: string;
   label: string;
@@ -42,6 +53,8 @@ export type Candidate = {
     withdrawal: string;
     allocation: string;
   };
+  /** Numeric parameter values pulled out for axis/color coding. */
+  numericParams: CandidateNumericParams;
 };
 
 export type CandidateResult = {
@@ -101,6 +114,7 @@ function pct(n: number): string {
 function staticAllocation(stockPct: number): {
   alloc: AllocationStrategy;
   label: string;
+  stockPct: number;
 } {
   return {
     alloc: {
@@ -108,12 +122,14 @@ function staticAllocation(stockPct: number): {
       weights: { stock: stockPct, bond: 1 - stockPct, cash: 0 },
     },
     label: `${Math.round(stockPct * 100)}/${Math.round((1 - stockPct) * 100)}/0`,
+    stockPct,
   };
 }
 
 function glideAllocation(g: GlidePathSpec): {
   alloc: AllocationStrategy;
   label: string;
+  stockPct: number;
 } {
   return {
     alloc: {
@@ -123,12 +139,14 @@ function glideAllocation(g: GlidePathSpec): {
       transitionYears: g.transitionYears,
     },
     label: `glide ${Math.round(g.startStock * 100)}→${Math.round(g.endStock * 100)}% stk / ${g.transitionYears}y`,
+    // Representative stock %: avg of endpoints. Used for color/axis coding.
+    stockPct: (g.startStock + g.endStock) / 2,
   };
 }
 
 /** Cartesian product over the built-in search space. */
 export function generateCandidates(): Candidate[] {
-  const allocs: Array<{ alloc: AllocationStrategy; label: string }> = [
+  const allocs = [
     ...STATIC_STOCK_PCTS.map(staticAllocation),
     ...GLIDE_PATHS.map(glideAllocation),
   ];
@@ -137,11 +155,13 @@ export function generateCandidates(): Candidate[] {
     wd: WithdrawalStrategy;
     label: string;
     short: string;
+    numeric: CandidateNumericParams;
   }> = [
     ...WITHDRAWAL_RATES_FIXED.map((r) => ({
       wd: { type: 'fixedPercent', rate: r } as WithdrawalStrategy,
       label: `fixed ${pct(r)}`,
       short: `${pct(r)} fixed`,
+      numeric: { withdrawalRate: r },
     })),
     ...FLOOR_UPSIDE_SPECS.map((s) => ({
       wd: {
@@ -151,6 +171,7 @@ export function generateCandidates(): Candidate[] {
       } as WithdrawalStrategy,
       label: `floor ${pct(s.floor)} + ${(s.marginalSpend * 100).toFixed(0)}¢/$ upside`,
       short: `${pct(s.floor)} floor +${(s.marginalSpend * 100).toFixed(0)}¢/$`,
+      numeric: { floor: s.floor, marginalSpend: s.marginalSpend },
     })),
   ];
 
@@ -163,6 +184,7 @@ export function generateCandidates(): Candidate[] {
         allocation: a.alloc,
         withdrawal: w.wd,
         params: { withdrawal: w.short, allocation: a.label },
+        numericParams: { ...w.numeric, stockPct: a.stockPct },
       });
     }
   }

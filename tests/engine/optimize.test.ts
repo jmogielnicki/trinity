@@ -21,6 +21,7 @@ function mkResult(
       allocation: { type: 'static', weights: { stock: 0.6, bond: 0.4, cash: 0 } },
       withdrawal: { type: 'fixedPercent', rate: 0.04 },
       params: { withdrawal: '4%', allocation: '60/40' },
+      numericParams: { stockPct: 0.6, withdrawalRate: 0.04 },
     },
     metrics: {
       successRate,

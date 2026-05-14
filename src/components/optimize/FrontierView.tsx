@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { interpolateViridis } from 'd3-scale-chromatic';
 import { useOptimizeStore } from '../../store/optimizeStore';
 import { useResultsStore } from '../../store/resultsStore';
 import { useScenarioStore } from '../../store/scenarioStore';
@@ -29,6 +30,62 @@ const AXIS_OPTIONS: Axis[] = [
   'avgAnnualWithdrawal',
   'avgYearsNearDepletion',
 ];
+
+type ColorBy =
+  | 'frontier'
+  | 'stockPct'
+  | 'withdrawalRate'
+  | 'floor'
+  | 'marginalSpend'
+  | 'successRate'
+  | 'avgYearsNearDepletion';
+
+const COLOR_BY_LABELS: Record<ColorBy, string> = {
+  frontier: 'Pareto frontier',
+  stockPct: 'Stock %',
+  withdrawalRate: 'Withdrawal rate (fixed)',
+  floor: 'Floor % (floor+upside)',
+  marginalSpend: 'Marginal spend (¢/$)',
+  successRate: 'Success rate',
+  avgYearsNearDepletion: 'Years near depletion',
+};
+
+function colorValue(r: CandidateResult, c: ColorBy): number | undefined {
+  switch (c) {
+    case 'frontier':
+      return undefined;
+    case 'stockPct':
+      return r.candidate.numericParams.stockPct;
+    case 'withdrawalRate':
+      return r.candidate.numericParams.withdrawalRate;
+    case 'floor':
+      return r.candidate.numericParams.floor;
+    case 'marginalSpend':
+      return r.candidate.numericParams.marginalSpend;
+    case 'successRate':
+      return Number.isFinite(r.metrics.successRate) ? r.metrics.successRate : undefined;
+    case 'avgYearsNearDepletion':
+      return Number.isFinite(r.metrics.avgYearsNearDepletion)
+        ? r.metrics.avgYearsNearDepletion
+        : undefined;
+  }
+}
+
+function formatColorValue(c: ColorBy, v: number): string {
+  switch (c) {
+    case 'stockPct':
+    case 'withdrawalRate':
+    case 'floor':
+    case 'successRate':
+      return `${(v * 100).toFixed(0)}%`;
+    case 'marginalSpend':
+      return `${(v * 100).toFixed(0)}¢`;
+    case 'avgYearsNearDepletion':
+      return v.toFixed(1);
+    case 'frontier':
+      return '';
+  }
+}
 
 const SERIES_COLORS = [
   '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
@@ -61,6 +118,7 @@ export function FrontierView({ onApplied }: Props) {
 
   const [xAxis, setXAxis] = useState<Axis>('successRate');
   const [yAxis, setYAxis] = useState<Axis>('avgAnnualWithdrawal');
+  const [colorBy, setColorBy] = useState<ColorBy>('stockPct');
 
   const runSearch = () => {
     if (!pool || !data) return;
@@ -168,6 +226,19 @@ export function FrontierView({ onApplied }: Props) {
                 ))}
               </select>
             </label>
+            <label className="frontier-axis-pick">
+              color:
+              <select
+                value={colorBy}
+                onChange={(e) => setColorBy(e.target.value as ColorBy)}
+              >
+                {(Object.keys(COLOR_BY_LABELS) as ColorBy[]).map((c) => (
+                  <option key={c} value={c}>
+                    {COLOR_BY_LABELS[c]}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="frontier-filter">
               min success ≥
               <input
@@ -193,6 +264,7 @@ export function FrontierView({ onApplied }: Props) {
             onMarquee={setSelected}
             xAxis={xAxis}
             yAxis={yAxis}
+            colorBy={colorBy}
           />
           <ComparisonTable
             results={results}
@@ -224,6 +296,7 @@ function ScatterPlot({
   onMarquee,
   xAxis,
   yAxis,
+  colorBy,
 }: {
   results: CandidateResult[];
   frontierIds: Set<string>;
@@ -232,6 +305,7 @@ function ScatterPlot({
   onMarquee: (ids: string[]) => void;
   xAxis: Axis;
   yAxis: Axis;
+  colorBy: ColorBy;
 }) {
   const [hover, setHover] = useState<CandidateResult | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -283,6 +357,26 @@ function ScatterPlot({
 
   const xTicks = 5;
   const yTicks = 4;
+
+  // Color-by metric range (over the visible/passing set).
+  const colorVals =
+    colorBy === 'frontier'
+      ? []
+      : results
+          .map((r) => colorValue(r, colorBy))
+          .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const cMin = colorVals.length ? Math.min(...colorVals) : 0;
+  const cMax = colorVals.length ? Math.max(...colorVals) : 1;
+  const cRange = cMax - cMin || 1;
+
+  const colorFor = (r: CandidateResult): string => {
+    if (colorBy === 'frontier') {
+      return frontierIds.has(r.candidate.id) ? '#d62728' : '#888';
+    }
+    const v = colorValue(r, colorBy);
+    if (typeof v !== 'number' || !Number.isFinite(v)) return '#ccc';
+    return interpolateViridis((v - cMin) / cRange);
+  };
 
   // Mouse → SVG coords via getCTM.
   const svgPoint = (clientX: number, clientY: number) => {
@@ -355,6 +449,7 @@ function ScatterPlot({
         ref={svgRef}
         className="frontier-scatter"
         viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
         width="100%"
         height={H}
         onMouseDown={onMouseDown}
@@ -408,51 +503,25 @@ function ScatterPlot({
           {AXIS_LABELS[yAxis]}
         </text>
 
-        {/* Visible non-frontier */}
+        {/* Points: single pass using the selected color metric. Selected
+            points get a black stroke; selection ring is independent of
+            color so it stays visible across the whole viridis range. */}
         {results.map((r) => {
-          if (frontierIds.has(r.candidate.id)) return null;
           const x = xScale(r.metrics[xAxis]);
           const y = yScale(r.metrics[yAxis]);
           if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
           const isSel = selectedIds.has(r.candidate.id);
+          const fill = colorFor(r);
           return (
             <circle
               key={r.candidate.id}
               cx={x}
               cy={y}
-              r={isSel ? 5 : 3}
-              fill={isSel ? '#1f77b4' : '#888'}
-              fillOpacity={isSel ? 1 : 0.5}
-              stroke={isSel ? '#000' : 'none'}
-              strokeWidth={isSel ? 1 : 0}
-              style={{ cursor: 'pointer' }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggle(r.candidate.id);
-              }}
-              onMouseEnter={() => setHover(r)}
-              onMouseLeave={() => setHover(null)}
-            />
-          );
-        })}
-        {/* Frontier points on top */}
-        {results.map((r) => {
-          if (!frontierIds.has(r.candidate.id)) return null;
-          const x = xScale(r.metrics[xAxis]);
-          const y = yScale(r.metrics[yAxis]);
-          if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-          const isSel = selectedIds.has(r.candidate.id);
-          return (
-            <circle
-              key={r.candidate.id}
-              cx={x}
-              cy={y}
-              r={isSel ? 7 : 5}
-              fill="#d62728"
-              fillOpacity={0.9}
+              r={isSel ? 6 : 4}
+              fill={fill}
+              fillOpacity={isSel ? 1 : 0.7}
               stroke={isSel ? '#000' : '#fff'}
-              strokeWidth={isSel ? 2 : 1}
+              strokeWidth={isSel ? 2 : 0.5}
               style={{ cursor: 'pointer' }}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -528,8 +597,14 @@ function ScatterPlot({
         )}
       </svg>
       <div className="frontier-legend">
-        <span><span className="dot dot-frontier" /> Pareto-optimal</span>
-        <span><span className="dot dot-other" /> dominated</span>
+        {colorBy === 'frontier' ? (
+          <>
+            <span><span className="dot dot-frontier" /> Pareto-optimal</span>
+            <span><span className="dot dot-other" /> dominated</span>
+          </>
+        ) : (
+          <ColorBar colorBy={colorBy} cMin={cMin} cMax={cMax} />
+        )}
         <span><span className="dot dot-selected" /> selected</span>
         <span className="frontier-tip">
           drag = marquee select · click = toggle · click empty = clear
@@ -780,6 +855,39 @@ function FrontierList({
         </tbody>
       </table>
     </details>
+  );
+}
+
+function ColorBar({
+  colorBy,
+  cMin,
+  cMax,
+}: {
+  colorBy: ColorBy;
+  cMin: number;
+  cMax: number;
+}) {
+  const W = 120;
+  const H = 10;
+  const stops = 12;
+  return (
+    <span className="frontier-colorbar">
+      <span className="frontier-colorbar-label">{COLOR_BY_LABELS[colorBy]}:</span>
+      <span className="frontier-colorbar-min">{formatColorValue(colorBy, cMin)}</span>
+      <svg width={W} height={H} className="frontier-colorbar-svg">
+        {Array.from({ length: stops }, (_, i) => (
+          <rect
+            key={i}
+            x={(i / stops) * W}
+            y={0}
+            width={W / stops + 0.5}
+            height={H}
+            fill={interpolateViridis(i / (stops - 1))}
+          />
+        ))}
+      </svg>
+      <span className="frontier-colorbar-max">{formatColorValue(colorBy, cMax)}</span>
+    </span>
   );
 }
 

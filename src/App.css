@@ -287,3 +287,9 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .floor-upside-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .floor-upside-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #444; }
 .floor-upside-grid input { padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+
+/* Frontier color legend */
+.frontier-colorbar { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #555; }
+.frontier-colorbar-label { color: #444; }
+.frontier-colorbar-min, .frontier-colorbar-max { font-variant-numeric: tabular-nums; }
+.frontier-colorbar-svg { border: 1px solid #ddd; border-radius: 2px; vertical-align: middle; display: inline-block; }
