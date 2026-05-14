@@ -12,6 +12,7 @@ import { Heatmap } from './components/results/Heatmap';
 import { SmallMultiples } from './components/results/SmallMultiples';
 import { Legend } from './components/results/Legend';
 import { OutcomeStrip } from './components/results/OutcomeStrip';
+import { SleeveChart } from './components/results/SleeveChart';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { SuccessBar } from './components/results/SuccessBar';
@@ -25,7 +26,7 @@ import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
 import './App.css';
 
-type View = 'spaghetti' | 'calendar' | 'whereami';
+type View = 'spaghetti' | 'calendar' | 'whereami' | 'sleeves';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -179,6 +180,12 @@ export function App() {
                   >
                     where am i
                   </button>
+                  <button
+                    className={view === 'sleeves' ? 'active' : ''}
+                    onClick={() => setView('sleeves')}
+                  >
+                    sleeves
+                  </button>
                 </span>
               )}
             </div>
@@ -220,6 +227,9 @@ export function App() {
                   initialBalance={scenario.initialBalance}
                   dataEnd={data.end}
                 />
+              )}
+              {view === 'sleeves' && (
+                <SleeveChart result={result} selectedYears={selectedYears} />
               )}
               {view === 'spaghetti' && <Legend />}
             </>
