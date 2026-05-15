@@ -1,14 +1,22 @@
 import { useEffect, useMemo } from 'react';
-import { useEvolveStore, EVOLVE_TOP_N } from '../../store/evolveStore';
+import { useEvolveStore, latestChampions } from '../../store/evolveStore';
 import { useResultsStore } from '../../store/resultsStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import {
   genomeId,
   genomeLabel,
   genomeToWithdrawal,
+  type GenerationSnapshot,
   type Genome,
   type Individual,
+  type IslandState,
 } from '../../engine/evolve';
+
+const ISLAND_COLORS = ['#1f77b4', '#2ca02c', '#d62728', '#9467bd'];
+
+function islandColor(index: number): string {
+  return ISLAND_COLORS[index % ISLAND_COLORS.length];
+}
 
 export function EvolveView() {
   const scenario = useScenarioStore();
@@ -17,15 +25,15 @@ export function EvolveView() {
   const {
     running,
     history,
-    best,
-    topN,
-    weights,
-    generations,
-    populationSize,
     computeMs,
     lastConfig,
+    weights,
+    minWithdrawalRate,
+    generations,
+    populationSize,
     selectedGenomeId,
     setWeights,
+    setMinWithdrawalRate,
     setGenerations,
     setPopulationSize,
     setSelected,
@@ -52,14 +60,31 @@ export function EvolveView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pool, data]);
 
-  const currentGen = history.length ? history[history.length - 1].generation : 0;
+  const currentGen = history.length
+    ? history[history.length - 1].generation
+    : 0;
   const totalGens = lastConfig?.generations ?? generations;
   const progressPct = totalGens > 0 ? (currentGen / totalGens) * 100 : 0;
 
+  const latest: GenerationSnapshot | null =
+    history.length > 0 ? history[history.length - 1] : null;
+  const champions = useMemo(() => latestChampions(history), [history]);
+
+  // The whole evaluated pool of the latest generation, flattened.
+  const allIndividuals = useMemo(() => {
+    if (!latest) return [] as Individual[];
+    return latest.islands.flatMap((isl) => isl.population);
+  }, [latest]);
+
   const selected = useMemo(() => {
-    if (!selectedGenomeId) return best ?? topN[0] ?? null;
-    return topN.find((i) => genomeId(i.genome) === selectedGenomeId) ?? best;
-  }, [selectedGenomeId, best, topN]);
+    if (selectedGenomeId) {
+      const hit = allIndividuals.find(
+        (i) => genomeId(i.genome) === selectedGenomeId,
+      );
+      if (hit) return hit;
+    }
+    return champions[0]?.individual ?? null;
+  }, [selectedGenomeId, allIndividuals, champions]);
 
   const horizonForViz = lastConfig?.horizonYears ?? scenario.horizonYears;
   const horizonStale =
@@ -69,12 +94,12 @@ export function EvolveView() {
     <div className="frontier-view evolve-view">
       <div className="frontier-header">
         <div>
-          <strong>Evolve strategies</strong> — runs a genetic algorithm to
-          discover allocation+withdrawal pairs that survive history while
-          spending generously and ramping up over time. Each generation scores
-          a population of strategies, breeds the best, and mutates the
-          children. Genome: glide-path (start/end stock %, transition years) +
-          a 4-point withdrawal curve.
+          <strong>Evolve strategies</strong> — a genetic algorithm runs four
+          independent "islands" in parallel, each optimizing for a different
+          definition of best (balanced, safety-first, max spending, ramp-up).
+          Islands never interbreed, so they converge on genuinely distinct
+          strategies. Genome: glide-path + a 4-point withdrawal curve, with all
+          withdrawal rates kept at or above your minimum-SWR floor.
         </div>
         <div className="frontier-actions">
           {running ? (
@@ -89,10 +114,12 @@ export function EvolveView() {
 
       <FitnessControls
         weights={weights}
+        minWithdrawalRate={minWithdrawalRate}
         generations={generations}
         populationSize={populationSize}
         running={running}
         onWeights={setWeights}
+        onMinWithdrawal={setMinWithdrawalRate}
         onGenerations={setGenerations}
         onPopulation={setPopulationSize}
       />
@@ -118,12 +145,18 @@ export function EvolveView() {
         </div>
       )}
 
-      {history.length > 0 && (
+      {history.length > 0 && latest && (
         <>
           <ConvergenceChart history={history} />
+          <ChampionRow
+            champions={champions}
+            horizonYears={horizonForViz}
+            selectedId={selected ? genomeId(selected.genome) : null}
+            onSelect={(id) => setSelected(id)}
+          />
           <div className="evolve-split">
-            <TopNTable
-              topN={topN}
+            <IslandTables
+              islands={latest.islands}
               selectedId={selected ? genomeId(selected.genome) : null}
               onSelect={(id) => setSelected(id)}
             />
@@ -144,27 +177,44 @@ export function EvolveView() {
 
 function FitnessControls({
   weights,
+  minWithdrawalRate,
   generations,
   populationSize,
   running,
   onWeights,
+  onMinWithdrawal,
   onGenerations,
   onPopulation,
 }: {
   weights: ReturnType<typeof useEvolveStore.getState>['weights'];
+  minWithdrawalRate: number;
   generations: number;
   populationSize: number;
   running: boolean;
   onWeights: (w: Partial<typeof weights>) => void;
+  onMinWithdrawal: (r: number) => void;
   onGenerations: (n: number) => void;
   onPopulation: (n: number) => void;
 }) {
   return (
     <div className="evolve-controls">
       <div className="evolve-controls-title">
-        What does "optimal" mean? Adjust then re-run.
+        Constraints &amp; the "Balanced" island weights — adjust then re-run.
+        The Safety-first / Spend-it-down / Ramp-up islands use fixed goal
+        profiles (success floor is shared across all).
       </div>
       <div className="evolve-controls-grid">
+        <Slider
+          label="Min withdrawal (SWR floor)"
+          value={minWithdrawalRate}
+          min={0.02}
+          max={0.05}
+          step={0.0025}
+          format={(v) => `${(v * 100).toFixed(2)}%`}
+          disabled={running}
+          onChange={onMinWithdrawal}
+          help="Lower bound on every withdrawal-curve point. Stops the GA from converging on trivially-low spending."
+        />
         <Slider
           label="Success-rate floor"
           value={weights.successFloor}
@@ -174,7 +224,7 @@ function FitnessControls({
           format={(v) => `${(v * 100).toFixed(0)}%`}
           disabled={running}
           onChange={(v) => onWeights({ successFloor: v })}
-          help="Strategies under this success rate are heavily penalized."
+          help="Strategies under this success rate are heavily penalized (all islands)."
         />
         <Slider
           label="Safety weight"
@@ -185,7 +235,7 @@ function FitnessControls({
           format={(v) => v.toFixed(2)}
           disabled={running}
           onChange={(v) => onWeights({ safety: v })}
-          help="Reward for never getting close to depletion (p5 of min balance)."
+          help="Balanced island: reward for never getting close to depletion."
         />
         <Slider
           label="Spending weight"
@@ -196,7 +246,7 @@ function FitnessControls({
           format={(v) => v.toFixed(2)}
           disabled={running}
           onChange={(v) => onWeights({ spending: v })}
-          help="Reward for total real withdrawals over the horizon."
+          help="Balanced island: reward for total real withdrawals over the horizon."
         />
         <Slider
           label="Ramp-up bonus"
@@ -207,10 +257,10 @@ function FitnessControls({
           format={(v) => v.toFixed(2)}
           disabled={running}
           onChange={(v) => onWeights({ slope: v })}
-          help="Bonus when later years spend more than earlier years."
+          help="Balanced island: bonus when later years spend more than earlier years."
         />
         <Slider
-          label="Population"
+          label="Population / island"
           value={populationSize}
           min={20}
           max={200}
@@ -218,7 +268,7 @@ function FitnessControls({
           format={(v) => `${v}`}
           disabled={running}
           onChange={onPopulation}
-          help="Larger = better answers, slower."
+          help="Larger = better answers, slower. Runs for each of the 4 islands."
         />
         <Slider
           label="Generations"
@@ -275,51 +325,69 @@ function Slider({
 }
 
 // ---------------------------------------------------------------------------
-// Convergence chart
+// Convergence chart — one line per island
 // ---------------------------------------------------------------------------
 
-function ConvergenceChart({
-  history,
-}: {
-  history: ReturnType<typeof useEvolveStore.getState>['history'];
-}) {
+function ConvergenceChart({ history }: { history: GenerationSnapshot[] }) {
   const W = 720;
-  const H = 180;
+  const H = 190;
   const padL = 48;
   const padR = 12;
   const padT = 12;
   const padB = 28;
 
   const xs = history.map((h) => h.generation);
-  const bestVals = history.map((h) => h.bestFitness);
-  const medVals = history.map((h) => h.medianFitness);
   const xMax = Math.max(1, ...xs);
-  const yMax = Math.max(0.01, ...bestVals);
-  const yMin = Math.min(0, ...medVals);
+  const islandCount = history[0]?.islands.length ?? 0;
 
-  const xScale = (v: number) =>
-    padL + (v / xMax) * (W - padL - padR);
+  const allBest = history.flatMap((h) =>
+    h.islands.map((isl) => isl.bestFitness),
+  );
+  const allMed = history.flatMap((h) =>
+    h.islands.map((isl) => isl.medianFitness),
+  );
+  const yMax = Math.max(0.01, ...allBest);
+  const yMin = Math.min(0, ...allMed);
+
+  const xScale = (v: number) => padL + (v / xMax) * (W - padL - padR);
   const yScale = (v: number) =>
     H - padB - ((v - yMin) / (yMax - yMin || 1)) * (H - padT - padB);
 
-  const path = (vals: number[]) =>
-    vals
-      .map((v, i) => `${i === 0 ? 'M' : 'L'}${xScale(xs[i])},${yScale(v)}`)
+  const islandPath = (islandIdx: number) =>
+    history
+      .map((h, i) => {
+        const v = h.islands[islandIdx]?.bestFitness ?? 0;
+        return `${i === 0 ? 'M' : 'L'}${xScale(xs[i])},${yScale(v)}`;
+      })
       .join(' ');
 
   return (
     <div className="frontier-scatter-wrap">
-      <div className="frontier-bars-title">Best / median fitness per generation</div>
+      <div className="frontier-bars-title">
+        Best fitness per generation, per island
+      </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
-        <line x1={padL} x2={W - padR} y1={H - padB} y2={H - padB} stroke="#bbb" />
+        <line
+          x1={padL}
+          x2={W - padR}
+          y1={H - padB}
+          y2={H - padB}
+          stroke="#bbb"
+        />
         <line x1={padL} x2={padL} y1={padT} y2={H - padB} stroke="#bbb" />
         {[0, 0.5, 1].map((f) => {
           const v = yMin + (yMax - yMin) * f;
           const y = yScale(v);
           return (
             <g key={f}>
-              <line x1={padL - 4} x2={W - padR} y1={y} y2={y} stroke="#eee" />
-              <text x={padL - 6} y={y + 3} fontSize="10" textAnchor="end" fill="#666">
+              <line x1={padL} x2={W - padR} y1={y} y2={y} stroke="#eee" />
+              <text
+                x={padL - 6}
+                y={y + 3}
+                fontSize="10"
+                textAnchor="end"
+                fill="#666"
+              >
                 {v.toFixed(2)}
               </text>
             </g>
@@ -334,80 +402,151 @@ function ConvergenceChart({
         >
           generation
         </text>
-        <path d={path(medVals)} fill="none" stroke="#aaa" strokeWidth={1.5} />
-        <path d={path(bestVals)} fill="none" stroke="#1f77b4" strokeWidth={2} />
-        {history.length > 0 && (
-          <circle
-            cx={xScale(xs[xs.length - 1])}
-            cy={yScale(bestVals[bestVals.length - 1])}
-            r={3.5}
-            fill="#1f77b4"
+        {Array.from({ length: islandCount }, (_, idx) => (
+          <path
+            key={idx}
+            d={islandPath(idx)}
+            fill="none"
+            stroke={islandColor(idx)}
+            strokeWidth={2}
           />
-        )}
+        ))}
       </svg>
       <div className="frontier-legend">
-        <span><span className="dot" style={{ background: '#1f77b4' }} /> best</span>
-        <span><span className="dot" style={{ background: '#aaa' }} /> median</span>
+        {history[0]?.islands.map((isl, idx) => (
+          <span key={isl.profile.id}>
+            <span
+              className="dot"
+              style={{ background: islandColor(idx) }}
+            />{' '}
+            {isl.profile.name}
+          </span>
+        ))}
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Top-N table
+// Champions — best of each island
 // ---------------------------------------------------------------------------
 
-function TopNTable({
-  topN,
+function ChampionRow({
+  champions,
+  horizonYears,
   selectedId,
   onSelect,
 }: {
-  topN: Individual[];
+  champions: ReturnType<typeof latestChampions>;
+  horizonYears: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="frontier-table-wrap evolve-topn">
-      <div className="frontier-bars-title">
-        Top {Math.min(EVOLVE_TOP_N, topN.length)} strategies (current generation)
-      </div>
-      <table className="frontier-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Strategy</th>
-            <th>Fitness</th>
-            <th>Success</th>
-            <th>Safety p5</th>
-            <th>Spending</th>
-            <th>Slope</th>
-            <th>P50 final</th>
-          </tr>
-        </thead>
-        <tbody>
-          {topN.map((ind, i) => {
-            const id = genomeId(ind.genome);
-            const m = ind.metrics!;
-            return (
-              <tr
-                key={id}
-                onClick={() => onSelect(id)}
-                className={selectedId === id ? 'evolve-row-selected' : ''}
-                style={{ cursor: 'pointer' }}
-              >
-                <td>{i + 1}</td>
-                <td>{genomeLabel(ind.genome)}</td>
-                <td>{(ind.fitness ?? 0).toFixed(3)}</td>
-                <td>{(m.successRate * 100).toFixed(1)}%</td>
-                <td>{(m.safetyP5 * 100).toFixed(0)}%</td>
-                <td>{m.spendingMedian.toFixed(2)}×</td>
-                <td>{m.slopeMedian.toFixed(2)}×</td>
-                <td>{fmtMoney(m.p50Final)}</td>
+    <div className="evolve-champions">
+      {champions.map((c, idx) => {
+        const id = genomeId(c.individual.genome);
+        const m = c.individual.metrics!;
+        return (
+          <div
+            key={c.islandId}
+            className={
+              'evolve-champion-card' +
+              (selectedId === id ? ' evolve-champion-selected' : '')
+            }
+            style={{ borderTopColor: islandColor(idx) }}
+            onClick={() => onSelect(id)}
+          >
+            <div
+              className="evolve-champion-name"
+              style={{ color: islandColor(idx) }}
+            >
+              {c.islandName}
+            </div>
+            <div className="evolve-champion-label">
+              {genomeLabel(c.individual.genome)}
+            </div>
+            <WithdrawalSpark
+              genome={c.individual.genome}
+              horizonYears={horizonYears}
+              color={islandColor(idx)}
+              compact
+            />
+            <div className="evolve-champion-stats">
+              <span>success {(m.successRate * 100).toFixed(1)}%</span>
+              <span>safety p5 {(m.safetyP5 * 100).toFixed(0)}%</span>
+              <span>spend {m.spendingMedian.toFixed(2)}×</span>
+              <span>ramp {m.slopeMedian.toFixed(2)}×</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Per-island top-strategy tables
+// ---------------------------------------------------------------------------
+
+function IslandTables({
+  islands,
+  selectedId,
+  onSelect,
+}: {
+  islands: IslandState[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const TOP = 5;
+  return (
+    <div className="evolve-island-tables">
+      {islands.map((isl, idx) => (
+        <div key={isl.profile.id} className="frontier-table-wrap">
+          <div
+            className="frontier-bars-title"
+            style={{ color: islandColor(idx) }}
+          >
+            {isl.profile.name} — top {Math.min(TOP, isl.population.length)}{' '}
+            <span className="evolve-island-blurb">({isl.profile.blurb})</span>
+          </div>
+          <table className="frontier-table">
+            <thead>
+              <tr>
+                <th>Strategy</th>
+                <th>Fit</th>
+                <th>Success</th>
+                <th>Safety</th>
+                <th>Spend</th>
+                <th>Ramp</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {isl.population.slice(0, TOP).map((ind) => {
+                const id = genomeId(ind.genome);
+                const m = ind.metrics!;
+                return (
+                  <tr
+                    key={id}
+                    onClick={() => onSelect(id)}
+                    className={
+                      selectedId === id ? 'evolve-row-selected' : ''
+                    }
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td>{genomeLabel(ind.genome)}</td>
+                    <td>{(ind.fitness ?? 0).toFixed(3)}</td>
+                    <td>{(m.successRate * 100).toFixed(1)}%</td>
+                    <td>{(m.safetyP5 * 100).toFixed(0)}%</td>
+                    <td>{m.spendingMedian.toFixed(2)}×</td>
+                    <td>{m.slopeMedian.toFixed(2)}×</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 }
@@ -425,18 +564,23 @@ function StrategyPreview({
 }) {
   if (!individual) return null;
   const g = individual.genome;
+  const m = individual.metrics;
   return (
     <div className="evolve-preview">
       <div className="frontier-bars-title">Selected strategy</div>
       <div className="evolve-preview-label">{genomeLabel(g)}</div>
       <div className="evolve-spark-row">
-        <WithdrawalSpark genome={g} horizonYears={horizonYears} />
+        <WithdrawalSpark
+          genome={g}
+          horizonYears={horizonYears}
+          color="#2ca02c"
+        />
         <GlideSpark genome={g} horizonYears={horizonYears} />
       </div>
       <div className="evolve-preview-stats">
-        spending median {individual.metrics?.spendingMedian.toFixed(2)}× initial ·
-        late/early {individual.metrics?.slopeMedian.toFixed(2)}× ·
-        worst start {individual.metrics?.worstStartYear ?? '—'}
+        success {((m?.successRate ?? 0) * 100).toFixed(1)}% · spending median{' '}
+        {m?.spendingMedian.toFixed(2)}× initial · late/early{' '}
+        {m?.slopeMedian.toFixed(2)}× · worst start {m?.worstStartYear ?? '—'}
       </div>
     </div>
   );
@@ -445,32 +589,44 @@ function StrategyPreview({
 function WithdrawalSpark({
   genome,
   horizonYears,
+  color,
+  compact,
 }: {
   genome: Genome;
   horizonYears: number;
+  color: string;
+  compact?: boolean;
 }) {
   const W = 320;
-  const H = 110;
-  const padL = 36;
+  const H = compact ? 72 : 110;
+  const padL = 32;
   const padR = 8;
-  const padT = 10;
-  const padB = 22;
+  const padT = 8;
+  const padB = compact ? 14 : 22;
   const wd = genomeToWithdrawal(genome, horizonYears);
-  const points =
-    wd.type === 'piecewiseLinear' ? wd.points : [];
+  const points = wd.type === 'piecewiseLinear' ? wd.points : [];
   const yMax = 0.08;
   const xScale = (t: number) =>
     padL + (t / Math.max(1, horizonYears - 1)) * (W - padL - padR);
-  const yScale = (r: number) =>
-    H - padB - (r / yMax) * (H - padT - padB);
+  const yScale = (r: number) => H - padB - (r / yMax) * (H - padT - padB);
   const d = points
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${xScale(p.t)},${yScale(p.rate)}`)
     .join(' ');
   return (
     <div className="evolve-spark">
-      <div className="evolve-spark-title">Withdrawal rate (% of initial)</div>
+      {!compact && (
+        <div className="evolve-spark-title">
+          Withdrawal rate (% of initial)
+        </div>
+      )}
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
-        <line x1={padL} x2={W - padR} y1={H - padB} y2={H - padB} stroke="#bbb" />
+        <line
+          x1={padL}
+          x2={W - padR}
+          y1={H - padB}
+          y2={H - padB}
+          stroke="#bbb"
+        />
         <line x1={padL} x2={padL} y1={padT} y2={H - padB} stroke="#bbb" />
         {[0.02, 0.04, 0.06, 0.08].map((r) => (
           <g key={r}>
@@ -481,18 +637,27 @@ function WithdrawalSpark({
               y2={yScale(r)}
               stroke="#eee"
             />
-            <text x={padL - 4} y={yScale(r) + 3} fontSize="9" textAnchor="end" fill="#888">
-              {(r * 100).toFixed(0)}%
+            <text
+              x={padL - 4}
+              y={yScale(r) + 3}
+              fontSize="9"
+              textAnchor="end"
+              fill="#888"
+            >
+              {(r * 100).toFixed(0)}
             </text>
           </g>
         ))}
-        <path d={d} fill="none" stroke="#2ca02c" strokeWidth={2} />
+        <path d={d} fill="none" stroke={color} strokeWidth={2} />
         {points.map((p, i) => (
-          <circle key={i} cx={xScale(p.t)} cy={yScale(p.rate)} r={3} fill="#2ca02c" />
+          <circle
+            key={i}
+            cx={xScale(p.t)}
+            cy={yScale(p.rate)}
+            r={3}
+            fill={color}
+          />
         ))}
-        <text x={(padL + W - padR) / 2} y={H - 6} fontSize="9" textAnchor="middle" fill="#666">
-          year
-        </text>
       </svg>
     </div>
   );
@@ -507,7 +672,7 @@ function GlideSpark({
 }) {
   const W = 320;
   const H = 110;
-  const padL = 36;
+  const padL = 32;
   const padR = 8;
   const padT = 10;
   const padB = 22;
@@ -524,24 +689,29 @@ function GlideSpark({
     `M${xScale(0)},${yScale(0)} ` +
     years.map((t) => `L${xScale(t)},${yScale(stockAt(t))}`).join(' ') +
     ` L${xScale(horizonYears - 1)},${yScale(0)} Z`;
-  const topPath =
-    `M${xScale(0)},${yScale(1)} ` +
-    years.map((t) => `L${xScale(t)},${yScale(1)}`).join(' ') +
-    ` L${xScale(horizonYears - 1)},${yScale(stockAt(horizonYears - 1))}` +
-    years
-      .slice()
-      .reverse()
-      .map((t) => `L${xScale(t)},${yScale(stockAt(t))}`)
-      .join(' ') +
-    ' Z';
   return (
     <div className="evolve-spark">
-      <div className="evolve-spark-title">Glide path (stock = green, bond = blue)</div>
+      <div className="evolve-spark-title">
+        Glide path (stock = green, bond = blue)
+      </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
-        <line x1={padL} x2={W - padR} y1={H - padB} y2={H - padB} stroke="#bbb" />
+        <rect
+          x={padL}
+          y={padT}
+          width={W - padL - padR}
+          height={H - padT - padB}
+          fill="#9ecae1"
+          opacity={0.55}
+        />
+        <path d={stockPath} fill="#a1d99b" opacity={0.9} />
+        <line
+          x1={padL}
+          x2={W - padR}
+          y1={H - padB}
+          y2={H - padB}
+          stroke="#bbb"
+        />
         <line x1={padL} x2={padL} y1={padT} y2={H - padB} stroke="#bbb" />
-        <path d={topPath} fill="#9ecae1" opacity={0.6} />
-        <path d={stockPath} fill="#a1d99b" opacity={0.85} />
         {[0, 0.5, 1].map((v) => (
           <text
             key={v}
@@ -551,20 +721,19 @@ function GlideSpark({
             textAnchor="end"
             fill="#888"
           >
-            {(v * 100).toFixed(0)}%
+            {(v * 100).toFixed(0)}
           </text>
         ))}
-        <text x={(padL + W - padR) / 2} y={H - 6} fontSize="9" textAnchor="middle" fill="#666">
+        <text
+          x={(padL + W - padR) / 2}
+          y={H - 6}
+          fontSize="9"
+          textAnchor="middle"
+          fill="#666"
+        >
           year
         </text>
       </svg>
     </div>
   );
-}
-
-function fmtMoney(n: number): string {
-  if (!Number.isFinite(n)) return '—';
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}k`;
-  return `$${Math.round(n)}`;
 }

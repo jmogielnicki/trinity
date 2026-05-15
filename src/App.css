@@ -219,9 +219,19 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .evolve-split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
 @media (max-width: 1100px) { .evolve-split { grid-template-columns: 1fr; } }
 
-.evolve-topn .frontier-table tbody tr:hover { background: #f4f8fb; }
-.evolve-row-selected, .evolve-topn .frontier-table tbody tr.evolve-row-selected { background: #e8f1f8; }
-.evolve-topn .frontier-table td:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+.evolve-island-tables { display: flex; flex-direction: column; gap: 14px; }
+.evolve-island-tables .frontier-table tbody tr:hover { background: #f4f8fb; }
+.evolve-row-selected, .evolve-island-tables .frontier-table tbody tr.evolve-row-selected { background: #e8f1f8; }
+.evolve-island-tables .frontier-table td:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; }
+.evolve-island-blurb { color: #999; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+.evolve-champions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.evolve-champion-card { border: 1px solid #e4e4e4; border-top: 3px solid #ccc; border-radius: 4px; padding: 8px 10px; background: #fff; cursor: pointer; display: flex; flex-direction: column; gap: 5px; }
+.evolve-champion-card:hover { background: #fafcfe; }
+.evolve-champion-selected { box-shadow: 0 0 0 2px #1f77b4 inset; }
+.evolve-champion-name { font-size: 12px; font-weight: 600; }
+.evolve-champion-label { font-size: 10px; color: #777; line-height: 1.3; }
+.evolve-champion-stats { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 10px; color: #555; }
 
 .evolve-preview { border: 1px solid #eee; border-radius: 4px; padding: 10px; background: #fafafa; display: flex; flex-direction: column; gap: 6px; }
 .evolve-preview-label { font-size: 12px; color: #333; }
