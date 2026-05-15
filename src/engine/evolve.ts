@@ -21,7 +21,7 @@ export type Genome = {
   startStock: number;     // [0.2, 1.0]
   endStock: number;       // [0.2, 1.0]
   transitionYears: number; // [1, horizon]
-  w0: number;             // withdrawal rate at t=0,         [0.02, 0.08]
+  w0: number;             // withdrawal rate at t=0,         [minWd, 0.08]
   w1: number;             // withdrawal rate at t=horizon/3
   w2: number;             // withdrawal rate at t=2*horizon/3
   w3: number;             // withdrawal rate at t=horizon
@@ -37,15 +37,22 @@ export type GeneBounds = {
   w3: [number, number];
 };
 
-export function defaultBounds(horizonYears: number): GeneBounds {
+export const WITHDRAWAL_CEILING = 0.08;
+
+export function defaultBounds(
+  horizonYears: number,
+  minWithdrawalRate: number,
+): GeneBounds {
+  const lo = Math.min(minWithdrawalRate, WITHDRAWAL_CEILING - 0.005);
+  const wd: [number, number] = [lo, WITHDRAWAL_CEILING];
   return {
     startStock: [0.2, 1.0],
     endStock: [0.2, 1.0],
     transitionYears: [1, Math.max(2, horizonYears)],
-    w0: [0.02, 0.08],
-    w1: [0.02, 0.08],
-    w2: [0.02, 0.08],
-    w3: [0.02, 0.08],
+    w0: wd,
+    w1: wd,
+    w2: wd,
+    w3: wd,
   };
 }
 
@@ -107,6 +114,25 @@ export function genomeLabel(g: Genome): string {
     `${Math.round(g.transitionYears)}y · ` +
     `wd ${wpct(g.w0)}→${wpct(g.w1)}→${wpct(g.w2)}→${wpct(g.w3)}`
   );
+}
+
+/**
+ * Normalized euclidean distance between two genomes in [0, 1]. Used for
+ * fitness sharing — measures how genetically similar two strategies are.
+ */
+export function genomeDistance(
+  a: Genome,
+  b: Genome,
+  bounds: GeneBounds,
+): number {
+  let sum = 0;
+  for (const k of GENE_KEYS) {
+    const [lo, hi] = bounds[k];
+    const span = hi - lo || 1;
+    const d = (a[k] - b[k]) / span;
+    sum += d * d;
+  }
+  return Math.sqrt(sum / GENE_KEYS.length);
 }
 
 // ---------------------------------------------------------------------------
@@ -233,6 +259,58 @@ export function fitnessOf(m: EvolveMetrics, w: FitnessWeights): number {
 }
 
 // ---------------------------------------------------------------------------
+// Islands
+// ---------------------------------------------------------------------------
+
+/**
+ * An island is a sub-population evolving under its own fitness weighting.
+ * Running several islands in parallel and never (or rarely) migrating between
+ * them is what produces *distinct* optima — each island answers a different
+ * definition of "best".
+ */
+export type IslandProfile = {
+  id: string;
+  name: string;
+  blurb: string;
+  weights: FitnessWeights;
+};
+
+/**
+ * Build the standard set of island profiles. "Balanced" uses the user's own
+ * weight sliders; the others are fixed goal-specialists. The success floor is
+ * shared across all islands so the user's floor slider applies everywhere.
+ */
+export function buildProfiles(userWeights: FitnessWeights): IslandProfile[] {
+  const floor = userWeights.successFloor;
+  return [
+    {
+      id: 'balanced',
+      name: 'Balanced',
+      blurb: 'Your weight sliders',
+      weights: userWeights,
+    },
+    {
+      id: 'safety',
+      name: 'Safety-first',
+      blurb: 'Maximize the cushion above zero',
+      weights: { successFloor: floor, safety: 0.85, spending: 0.15, slope: 0 },
+    },
+    {
+      id: 'spending',
+      name: 'Spend-it-down',
+      blurb: 'Maximize lifetime spending',
+      weights: { successFloor: floor, safety: 0.1, spending: 0.9, slope: 0.05 },
+    },
+    {
+      id: 'rampup',
+      name: 'Ramp-up',
+      blurb: 'Spend more in later years',
+      weights: { successFloor: floor, safety: 0.2, spending: 0.45, slope: 0.4 },
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Genetic algorithm
 // ---------------------------------------------------------------------------
 
@@ -240,6 +318,7 @@ export type EvolveConfig = {
   initialBalance: number;
   horizonYears: number;
   tailMethod?: TailMethod;
+  /** Population size *per island*. */
   populationSize: number;
   generations: number;
   tournamentSize: number;
@@ -248,38 +327,55 @@ export type EvolveConfig = {
   /** Stddev of gaussian mutation as a fraction of each gene's range. */
   mutationSigma: number;
   elitism: number;
-  weights: FitnessWeights;
+  /** Lower bound for all withdrawal genes — the feasible minimum SWR. */
+  minWithdrawalRate: number;
+  /**
+   * Fitness-sharing radius (normalized genome distance). Individuals within
+   * this radius of each other have their selection fitness divided down,
+   * pushing each island's population to spread out. 0 disables sharing.
+   */
+  sharingRadius: number;
+  profiles: IslandProfile[];
   seed: number;
 };
 
 export const DEFAULT_CONFIG: Omit<
   EvolveConfig,
-  'initialBalance' | 'horizonYears' | 'tailMethod'
+  'initialBalance' | 'horizonYears' | 'tailMethod' | 'profiles'
 > = {
-  populationSize: 60,
-  generations: 25,
+  populationSize: 40,
+  generations: 20,
   tournamentSize: 3,
   crossoverRate: 0.7,
   mutationRate: 0.15,
   mutationSigma: 0.1,
-  elitism: 4,
-  weights: DEFAULT_WEIGHTS,
+  elitism: 3,
+  minWithdrawalRate: 0.0325,
+  sharingRadius: 0.15,
   seed: 1,
 };
 
 export type Individual = {
   genome: Genome;
   metrics?: EvolveMetrics;
+  /** Raw scalar fitness under the island's weights. */
   fitness?: number;
+  /** Fitness after niche penalty — used for selection, not for ranking. */
+  sharedFitness?: number;
+};
+
+export type IslandState = {
+  profile: IslandProfile;
+  /** Population sorted by raw fitness, descending. */
+  population: Individual[];
+  best: Individual;
+  bestFitness: number;
+  medianFitness: number;
 };
 
 export type GenerationSnapshot = {
   generation: number;
-  best: Individual;
-  median: Individual;
-  bestFitness: number;
-  medianFitness: number;
-  population: Individual[];
+  islands: IslandState[];
 };
 
 // Mulberry32 — small, seedable, deterministic.
@@ -350,22 +446,50 @@ function tournament(
   k: number,
   rng: () => number,
 ): Individual {
+  const score = (i: Individual) => i.sharedFitness ?? i.fitness ?? -Infinity;
   let best = pop[Math.floor(rng() * pop.length)];
   for (let i = 1; i < k; i++) {
     const c = pop[Math.floor(rng() * pop.length)];
-    if ((c.fitness ?? -Infinity) > (best.fitness ?? -Infinity)) best = c;
+    if (score(c) > score(best)) best = c;
   }
   return best;
+}
+
+/**
+ * Triangular fitness sharing. Each individual's selection fitness is divided
+ * by its niche count — the sum of (1 - d/radius) over neighbors within
+ * `radius`. Clustered individuals get penalized; loners keep full fitness.
+ */
+function applySharing(
+  pop: Individual[],
+  bounds: GeneBounds,
+  radius: number,
+): void {
+  if (radius <= 0) {
+    for (const ind of pop) ind.sharedFitness = ind.fitness;
+    return;
+  }
+  for (let i = 0; i < pop.length; i++) {
+    let niche = 0;
+    for (let j = 0; j < pop.length; j++) {
+      const d = genomeDistance(pop[i].genome, pop[j].genome, bounds);
+      if (d < radius) niche += 1 - d / radius;
+    }
+    const f = pop[i].fitness ?? 0;
+    pop[i].sharedFitness = niche > 0 ? f / niche : f;
+  }
 }
 
 export type EvalFn = (genomes: Genome[]) => Promise<ScenarioResult[]>;
 
 /**
- * Run the GA. `evaluate` is injected so this module stays UI-free —
- * the store wires it to the worker pool.
+ * Run the island-model GA. `evaluate` is injected so this module stays
+ * UI-free — the store wires it to the worker pool. All islands' newcomers are
+ * evaluated in one batched call per generation for worker-pool efficiency;
+ * fitness is then applied per-island with that island's weights.
  *
- * Calls `onGeneration` after each generation finishes scoring; lets the UI
- * update a live convergence chart.
+ * `onGeneration` fires after each generation is scored, so the UI can draw a
+ * live per-island convergence chart.
  */
 export async function evolve(
   cfg: EvolveConfig,
@@ -373,77 +497,108 @@ export async function evolve(
   onGeneration?: (snap: GenerationSnapshot) => void,
   shouldCancel?: () => boolean,
 ): Promise<GenerationSnapshot[]> {
-  const bounds = defaultBounds(cfg.horizonYears);
+  const bounds = defaultBounds(cfg.horizonYears, cfg.minWithdrawalRate);
   const rng = makeRng(cfg.seed);
-  let pop: Individual[] = Array.from({ length: cfg.populationSize }, () => ({
-    genome: randomGenome(rng, bounds),
-  }));
 
-  await scorePopulation(pop, cfg, evaluate);
+  // Seed every island with its own random population.
+  let pops: Individual[][] = cfg.profiles.map(() =>
+    Array.from({ length: cfg.populationSize }, () => ({
+      genome: randomGenome(rng, bounds),
+    })),
+  );
+
+  await scoreAcrossIslands(pops, cfg, bounds, evaluate);
   const history: GenerationSnapshot[] = [];
-  history.push(snapshotOf(0, pop));
+  history.push(snapshotOf(0, cfg.profiles, pops));
   onGeneration?.(history[0]);
 
   for (let gen = 1; gen <= cfg.generations; gen++) {
     if (shouldCancel?.()) break;
 
-    pop.sort(
-      (a, b) => (b.fitness ?? -Infinity) - (a.fitness ?? -Infinity),
-    );
-    const elites = pop.slice(0, cfg.elitism).map((i) => ({ ...i }));
-    const next: Individual[] = [...elites];
-
-    while (next.length < cfg.populationSize) {
-      const p1 = tournament(pop, cfg.tournamentSize, rng);
-      let childG: Genome;
-      if (rng() < cfg.crossoverRate) {
-        const p2 = tournament(pop, cfg.tournamentSize, rng);
-        childG = crossover(p1.genome, p2.genome, rng);
-      } else {
-        childG = { ...p1.genome };
+    // Breed each island independently.
+    const nextPops: Individual[][] = pops.map((pop) => {
+      const sorted = [...pop].sort(
+        (a, b) => (b.fitness ?? -Infinity) - (a.fitness ?? -Infinity),
+      );
+      const elites = sorted.slice(0, cfg.elitism).map((i) => ({ ...i }));
+      const next: Individual[] = [...elites];
+      while (next.length < cfg.populationSize) {
+        const p1 = tournament(pop, cfg.tournamentSize, rng);
+        let childG: Genome;
+        if (rng() < cfg.crossoverRate) {
+          const p2 = tournament(pop, cfg.tournamentSize, rng);
+          childG = crossover(p1.genome, p2.genome, rng);
+        } else {
+          childG = { ...p1.genome };
+        }
+        childG = mutate(
+          childG, rng, bounds, cfg.mutationRate, cfg.mutationSigma,
+        );
+        next.push({ genome: childG });
       }
-      childG = mutate(childG, rng, bounds, cfg.mutationRate, cfg.mutationSigma);
-      next.push({ genome: childG });
-    }
+      return next;
+    });
 
-    // Score only the new (non-elite) individuals.
-    const newcomers = next.slice(cfg.elitism);
-    await scorePopulation(newcomers, cfg, evaluate);
-    pop = next;
+    await scoreAcrossIslands(nextPops, cfg, bounds, evaluate);
+    pops = nextPops;
 
-    const snap = snapshotOf(gen, pop);
+    const snap = snapshotOf(gen, cfg.profiles, pops);
     history.push(snap);
     onGeneration?.(snap);
   }
   return history;
 }
 
-async function scorePopulation(
-  pop: Individual[],
+/**
+ * Score every not-yet-evaluated individual across all islands in a single
+ * batched `evaluate` call, then apply each island's weights + fitness sharing.
+ */
+async function scoreAcrossIslands(
+  pops: Individual[][],
   cfg: EvolveConfig,
+  bounds: GeneBounds,
   evaluate: EvalFn,
 ): Promise<void> {
-  const need = pop.filter((p) => p.metrics === undefined);
-  if (need.length === 0) return;
-  const results = await evaluate(need.map((p) => p.genome));
-  for (let i = 0; i < need.length; i++) {
-    need[i].metrics = metricsFromResult(results[i], cfg.initialBalance);
-    need[i].fitness = fitnessOf(need[i].metrics!, cfg.weights);
+  const pending: Individual[] = [];
+  for (const pop of pops) {
+    for (const ind of pop) {
+      if (ind.metrics === undefined) pending.push(ind);
+    }
+  }
+  if (pending.length > 0) {
+    const results = await evaluate(pending.map((p) => p.genome));
+    for (let i = 0; i < pending.length; i++) {
+      pending[i].metrics = metricsFromResult(results[i], cfg.initialBalance);
+    }
+  }
+  // Apply per-island weights and fitness sharing.
+  for (let isl = 0; isl < pops.length; isl++) {
+    const w = cfg.profiles[isl].weights;
+    for (const ind of pops[isl]) {
+      ind.fitness = fitnessOf(ind.metrics!, w);
+    }
+    applySharing(pops[isl], bounds, cfg.sharingRadius);
   }
 }
 
-function snapshotOf(generation: number, pop: Individual[]): GenerationSnapshot {
-  const sorted = [...pop].sort(
-    (a, b) => (b.fitness ?? -Infinity) - (a.fitness ?? -Infinity),
-  );
-  const best = sorted[0];
-  const median = sorted[Math.floor(sorted.length / 2)];
-  return {
-    generation,
-    best,
-    median,
-    bestFitness: best.fitness ?? 0,
-    medianFitness: median.fitness ?? 0,
-    population: sorted,
-  };
+function snapshotOf(
+  generation: number,
+  profiles: IslandProfile[],
+  pops: Individual[][],
+): GenerationSnapshot {
+  const islands: IslandState[] = pops.map((pop, i) => {
+    const sorted = [...pop].sort(
+      (a, b) => (b.fitness ?? -Infinity) - (a.fitness ?? -Infinity),
+    );
+    const best = sorted[0];
+    const median = sorted[Math.floor(sorted.length / 2)];
+    return {
+      profile: profiles[i],
+      population: sorted,
+      best,
+      bestFitness: best.fitness ?? 0,
+      medianFitness: median.fitness ?? 0,
+    };
+  });
+  return { generation, islands };
 }

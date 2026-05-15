@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import {
+  buildProfiles,
   DEFAULT_CONFIG,
   DEFAULT_WEIGHTS,
   evolve,
@@ -23,18 +24,16 @@ export type EvolveStoreState = {
   running: boolean;
   cancelRequested: boolean;
   history: GenerationSnapshot[];
-  /** Current best individual across all generations seen so far. */
-  best: Individual | null;
-  /** Top-N (by fitness) from the final generation. */
-  topN: Individual[];
-  weights: FitnessWeights;
-  generations: number;
-  populationSize: number;
   computeMs: number;
   lastConfig: EvolveConfig | null;
+  weights: FitnessWeights;
+  minWithdrawalRate: number;
+  generations: number;
+  populationSize: number;
   selectedGenomeId: string | null;
 
   setWeights: (w: Partial<FitnessWeights>) => void;
+  setMinWithdrawalRate: (r: number) => void;
   setGenerations: (n: number) => void;
   setPopulationSize: (n: number) => void;
   setSelected: (id: string | null) => void;
@@ -43,31 +42,31 @@ export type EvolveStoreState = {
   reset: () => void;
 };
 
-const TOP_N = 10;
-
 export const useEvolveStore = create<EvolveStoreState>((set, get) => {
   let runId = 0;
   return {
     running: false,
     cancelRequested: false,
     history: [],
-    best: null,
-    topN: [],
-    weights: { ...DEFAULT_WEIGHTS },
-    generations: DEFAULT_CONFIG.generations,
-    populationSize: DEFAULT_CONFIG.populationSize,
     computeMs: 0,
     lastConfig: null,
+    weights: { ...DEFAULT_WEIGHTS },
+    minWithdrawalRate: DEFAULT_CONFIG.minWithdrawalRate,
+    generations: DEFAULT_CONFIG.generations,
+    populationSize: DEFAULT_CONFIG.populationSize,
     selectedGenomeId: null,
 
     setWeights(w) {
       set({ weights: { ...get().weights, ...w } });
     },
+    setMinWithdrawalRate(r) {
+      set({ minWithdrawalRate: Math.max(0.02, Math.min(0.05, r)) });
+    },
     setGenerations(n) {
-      set({ generations: Math.max(1, Math.min(200, Math.round(n))) });
+      set({ generations: Math.max(5, Math.min(80, Math.round(n))) });
     },
     setPopulationSize(n) {
-      set({ populationSize: Math.max(8, Math.min(400, Math.round(n))) });
+      set({ populationSize: Math.max(20, Math.min(200, Math.round(n))) });
     },
     setSelected(id) {
       set({ selectedGenomeId: id });
@@ -80,7 +79,8 @@ export const useEvolveStore = create<EvolveStoreState>((set, get) => {
       const myId = ++runId;
       const cfg: EvolveConfig = {
         ...DEFAULT_CONFIG,
-        weights: get().weights,
+        profiles: buildProfiles(get().weights),
+        minWithdrawalRate: get().minWithdrawalRate,
         generations: get().generations,
         populationSize: get().populationSize,
         initialBalance: inputs.initialBalance,
@@ -92,8 +92,6 @@ export const useEvolveStore = create<EvolveStoreState>((set, get) => {
         running: true,
         cancelRequested: false,
         history: [],
-        best: null,
-        topN: [],
         lastConfig: cfg,
         selectedGenomeId: null,
       });
@@ -110,19 +108,7 @@ export const useEvolveStore = create<EvolveStoreState>((set, get) => {
           evaluate,
           (snap) => {
             if (myId !== runId) return;
-            const prevBest = get().best;
-            const newBest =
-              !prevBest ||
-              (snap.best.fitness ?? -Infinity) >
-                (prevBest.fitness ?? -Infinity)
-                ? snap.best
-                : prevBest;
-            const topN = snap.population.slice(0, TOP_N);
-            set({
-              history: [...get().history, snap],
-              best: newBest,
-              topN,
-            });
+            set({ history: [...get().history, snap] });
           },
           () => myId !== runId || get().cancelRequested,
         );
@@ -143,8 +129,6 @@ export const useEvolveStore = create<EvolveStoreState>((set, get) => {
         running: false,
         cancelRequested: false,
         history: [],
-        best: null,
-        topN: [],
         computeMs: 0,
         lastConfig: null,
         selectedGenomeId: null,
@@ -153,4 +137,15 @@ export const useEvolveStore = create<EvolveStoreState>((set, get) => {
   };
 });
 
-export const EVOLVE_TOP_N = TOP_N;
+/** Champions = the best individual from each island in the latest snapshot. */
+export function latestChampions(
+  history: GenerationSnapshot[],
+): Array<{ islandId: string; islandName: string; individual: Individual }> {
+  if (history.length === 0) return [];
+  const snap = history[history.length - 1];
+  return snap.islands.map((isl) => ({
+    islandId: isl.profile.id,
+    islandName: isl.profile.name,
+    individual: isl.best,
+  }));
+}
