@@ -141,9 +141,14 @@ export function GlidePath({
             let cashTop = yb.cashTop;
             let bondTop = yb.bondTop;
             if (key.endsWith('BondTop')) {
-              bondTop = Math.max(cashTop, yPx);
+              bondTop = yPx;
+              // If dragging bondTop above cashTop, push cashTop up with it
+              // so a stacked pair of handles doesn't lock.
+              if (bondTop < cashTop) cashTop = bondTop;
             } else {
-              cashTop = Math.min(bondTop, yPx);
+              cashTop = yPx;
+              // If dragging cashTop below bondTop, push bondTop down with it.
+              if (cashTop > bondTop) bondTop = cashTop;
             }
             next[which] = pixelsToWeights(bondTop, cashTop, innerH);
             const nextAlloc = endpointsToAllocation(next, horizonYears);
