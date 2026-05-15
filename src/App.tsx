@@ -18,6 +18,7 @@ import { StatPanel } from './components/results/StatPanel';
 import { SuccessBar } from './components/results/SuccessBar';
 import { WhereAmI } from './components/results/WhereAmI';
 import { FrontierView } from './components/optimize/FrontierView';
+import { EvolveView } from './components/evolve/EvolveView';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, tryDeserialize } from './data/urlState';
 import { useCompareStore } from './store/compareStore';
@@ -28,7 +29,7 @@ import { createPool } from './worker/pool';
 import './App.css';
 
 type View = 'spaghetti' | 'calendar' | 'whereami' | 'sleeves';
-type TopMode = 'single' | 'optimize';
+type TopMode = 'single' | 'optimize' | 'evolve';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -170,8 +171,15 @@ export function App() {
             >
               Optimize / frontier
             </button>
+            <button
+              className={topMode === 'evolve' ? 'active' : ''}
+              onClick={() => setTopMode('evolve')}
+            >
+              Evolve
+            </button>
           </div>
           {topMode === 'optimize' && <FrontierView />}
+          {topMode === 'evolve' && <EvolveView />}
           {topMode === 'single' && <>
           {!data && <div className="loading">Loading historical data…</div>}
           {data && (
