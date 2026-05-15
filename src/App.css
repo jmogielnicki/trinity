@@ -201,3 +201,31 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 
 .frontier-list-wrap summary { cursor: pointer; font-size: 12px; color: #555; padding: 4px 0; }
 .frontier-list-wrap[open] summary { margin-bottom: 6px; }
+
+/* Evolve view */
+.evolve-controls { border: 1px solid #eee; border-radius: 4px; padding: 10px 12px; background: #fafafa; }
+.evolve-controls-title { font-size: 11px; color: #555; margin-bottom: 8px; }
+.evolve-controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; }
+.evolve-slider { display: grid; grid-template-columns: 130px 1fr 50px; align-items: center; gap: 8px; font-size: 12px; color: #444; }
+.evolve-slider-label { color: #555; }
+.evolve-slider-value { font-variant-numeric: tabular-nums; color: #222; text-align: right; font-size: 11px; }
+.evolve-slider input[type=range] { width: 100%; }
+
+.evolve-progress { display: flex; flex-direction: column; gap: 4px; }
+.evolve-progress-label { font-size: 11px; color: #666; }
+.evolve-progress-bar { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+.evolve-progress-fill { height: 100%; background: #1f77b4; transition: width 120ms linear; }
+
+.evolve-split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 1100px) { .evolve-split { grid-template-columns: 1fr; } }
+
+.evolve-topn .frontier-table tbody tr:hover { background: #f4f8fb; }
+.evolve-row-selected, .evolve-topn .frontier-table tbody tr.evolve-row-selected { background: #e8f1f8; }
+.evolve-topn .frontier-table td:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+
+.evolve-preview { border: 1px solid #eee; border-radius: 4px; padding: 10px; background: #fafafa; display: flex; flex-direction: column; gap: 6px; }
+.evolve-preview-label { font-size: 12px; color: #333; }
+.evolve-preview-stats { font-size: 11px; color: #666; }
+.evolve-spark-row { display: flex; flex-direction: column; gap: 8px; }
+.evolve-spark { background: #fff; border-radius: 3px; padding: 4px; }
+.evolve-spark-title { font-size: 10px; color: #777; padding: 0 4px 2px; }
