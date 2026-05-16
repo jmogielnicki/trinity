@@ -20,7 +20,7 @@ import { WhereAmI } from './components/results/WhereAmI';
 import { FrontierView } from './components/optimize/FrontierView';
 import { EvolveView } from './components/evolve/EvolveView';
 import { loadHistorical } from './data/load';
-import { gateCustomSrc, tryDeserialize } from './data/urlState';
+import { gateCustomSrc, serialize, tryDeserialize } from './data/urlState';
 import { useCompareStore } from './store/compareStore';
 import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
@@ -99,11 +99,38 @@ export function App() {
     if (parsed.tailMethod) scenario.setTailMethod(parsed.tailMethod);
     if (parsed.withdrawalSource)
       scenario.setWithdrawalSource(parsed.withdrawalSource);
+    if (parsed.view) setView(parsed.view as View);
     (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
       sweep.setAxis(a, parsed.axes[a]),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync single-scenario state to URL hash so shared links restore the exact view.
+  useEffect(() => {
+    if (topMode !== 'single') return;
+    const hash = serialize({
+      initialBalance: scenario.initialBalance,
+      horizonYears: scenario.horizonYears,
+      allocation: scenario.allocation,
+      withdrawal: scenario.withdrawal,
+      axes: sweep.axes,
+      tailMethod: scenario.tailMethod,
+      withdrawalSource: scenario.withdrawalSource,
+      view,
+    });
+    history.replaceState(null, '', '#' + hash);
+  }, [
+    topMode,
+    scenario.initialBalance,
+    scenario.horizonYears,
+    scenario.allocation,
+    scenario.withdrawal,
+    scenario.tailMethod,
+    scenario.withdrawalSource,
+    sweep.axes,
+    view,
+  ]);
 
   useEffect(() => {
     if (!data || !pool) return;
