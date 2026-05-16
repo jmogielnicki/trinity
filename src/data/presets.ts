@@ -131,6 +131,45 @@ export const PRESETS: Preset[] = [
     },
   },
   {
+    id: 'years-bucket',
+    name: 'Years-of-expenses bucket — 2yr cash / 6yr bonds',
+    description:
+      '68/24/8 stocks/bonds/cash at 4% withdrawal ($1M → $40k/yr). ' +
+      'Spend cash first, then bonds, never stocks unless forced. ' +
+      'In positive stock years: trim stocks to refill bonds back to 6 years of expenses, ' +
+      'then bonds to refill cash back to 2 years. In down years: let cash and bonds absorb the spend without touching stocks.',
+    state: {
+      initialBalance: STARTING,
+      horizonYears: HORIZON,
+      // At 4% of $1M = $40k/yr: 2yr cash = $80k (8%), 6yr bonds = $240k (24%), rest stocks (68%)
+      allocation: flatStatic(0.68, 0.24, 0.08),
+      withdrawal: { type: 'fixedPercent', rate: 0.04 },
+      withdrawalSource: {
+        type: 'bucket',
+        order: ['cash', 'bond', 'stock'],
+        refill: [
+          {
+            targetSleeve: 'bond',
+            floor: 6,
+            ceiling: 6,
+            floorMode: 'withdrawalYears',
+            sourceSleeve: 'stock',
+            sourceReturnGate: 0,
+          },
+          {
+            targetSleeve: 'cash',
+            floor: 2,
+            ceiling: 2,
+            floorMode: 'withdrawalYears',
+            sourceSleeve: 'bond',
+          },
+        ],
+      },
+      tailMethod: { type: 'truncate' },
+      axes: PINNED_AXES,
+    },
+  },
+  {
     id: 'glide-down',
     name: 'Glide path 80→40 stocks — 4%',
     description: 'Start aggressive (80/20), end conservative (40/60) over the horizon. Classic age-based de-risking.',
