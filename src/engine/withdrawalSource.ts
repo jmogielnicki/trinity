@@ -10,20 +10,33 @@ import type { AnnualReturns, Sleeves, Sleeve, Weights } from './types';
  * during downturns, only touch stocks/bonds when cash is empty. No automatic
  * rebalance: sleeves drift over time the way they would in real life.
  *
- * "bucket" is waterfall + a yearly refill rule: when the target sleeve falls
- * below `floor` (as a fraction of total), top it up from the source sleeve
- * back to `ceiling`, but only if the source is at or above
- * `sourceMinRatio × its initial value`. The classic "spend cash, only sell
- * stocks when they're up" play.
+ * "bucket" is waterfall + a chain of refill rules that run after returns each
+ * year. Rules are evaluated in order; each sees sleeves as modified by the
+ * previous rule.
  */
 export type RefillRule = {
   targetSleeve: Sleeve;
-  /** Refill triggers when targetSleeve / total < floor (0..1). */
+  /**
+   * Refill triggers when the target sleeve falls below this floor.
+   * Interpretation depends on floorMode:
+   *   'portfolioFraction' (default): floor is 0..1, compared against
+   *     targetSleeve / totalPortfolio.
+   *   'withdrawalYears': floor is a number of years; compared against
+   *     targetSleeve in dollars vs floor × annualWithdrawal.
+   */
   floor: number;
-  /** Refill restores targetSleeve / total back up to ceiling (0..1). */
+  /** Refill restores the target sleeve back up to ceiling (same units as floor). */
   ceiling: number;
+  /** How floor/ceiling are interpreted. Defaults to 'portfolioFraction'. */
+  floorMode?: 'portfolioFraction' | 'withdrawalYears';
   sourceSleeve: Sleeve;
-  /** Optional gating: only refill when sourceSleeve ≥ this × initial source value. */
+  /**
+   * Optional: only refill when the source sleeve's real return this year
+   * exceeded this threshold. Set to 0 to mean "only in positive-return years".
+   * Undefined = no return gate (always fire when floor is breached).
+   */
+  sourceReturnGate?: number;
+  /** Optional: only refill when sourceSleeve ≥ this × its initial value. */
   sourceMinRatio?: number;
 };
 
@@ -92,29 +105,61 @@ export function applyWithdrawal(
  * Apply a chain of bucket refill rules after returns, in order. Each rule
  * only moves money between sleeves; the total stays constant. A rule is
  * skipped if its trigger conditions don't fire.
+ *
+ * annualWithdrawal is required for rules with floorMode 'withdrawalYears'.
+ * returns is required for rules with a sourceReturnGate.
  */
 export function applyRefill(
   sleeves: Sleeves,
   rules: RefillRule[],
   initialSleeves: Sleeves,
+  annualWithdrawal: number,
+  returns: AnnualReturns,
 ): Sleeves {
   let s = sleeves;
   for (const rule of rules) {
-    s = applyOneRefill(s, rule, initialSleeves);
+    s = applyOneRefill(s, rule, initialSleeves, annualWithdrawal, returns);
   }
   return s;
+}
+
+function sleeveReturn(sleeve: Sleeve, r: AnnualReturns): number {
+  if (sleeve === 'stock') return r.stock_return_real;
+  if (sleeve === 'bond') return r.bond_return_real;
+  return r.cash_return_real ?? 0;
 }
 
 function applyOneRefill(
   sleeves: Sleeves,
   rule: RefillRule,
   initialSleeves: Sleeves,
+  annualWithdrawal: number,
+  returns: AnnualReturns,
 ): Sleeves {
   const total = totalSleeves(sleeves);
   if (total <= 0) return sleeves;
-  const targetFrac = sleeves[rule.targetSleeve] / total;
-  if (targetFrac >= rule.floor) return sleeves;
 
+  // Evaluate the floor condition and target ceiling in dollar terms.
+  let belowFloor: boolean;
+  let targetWant: number;
+  if (rule.floorMode === 'withdrawalYears') {
+    const floorDollars = rule.floor * annualWithdrawal;
+    belowFloor = sleeves[rule.targetSleeve] < floorDollars;
+    targetWant = rule.ceiling * annualWithdrawal;
+  } else {
+    belowFloor = sleeves[rule.targetSleeve] / total < rule.floor;
+    targetWant = rule.ceiling * total;
+  }
+  if (!belowFloor) return sleeves;
+
+  // Return gate: only refill when the source sleeve had a return above the threshold.
+  if (rule.sourceReturnGate != null) {
+    if (sleeveReturn(rule.sourceSleeve, returns) <= rule.sourceReturnGate) {
+      return sleeves;
+    }
+  }
+
+  // Absolute-level gate: only refill when source is above a fraction of its initial value.
   if (rule.sourceMinRatio != null) {
     const initSrc = initialSleeves[rule.sourceSleeve];
     if (initSrc > 0 && sleeves[rule.sourceSleeve] < rule.sourceMinRatio * initSrc) {
@@ -122,9 +167,7 @@ function applyOneRefill(
     }
   }
 
-  const targetWant = rule.ceiling * total;
-  const targetHave = sleeves[rule.targetSleeve];
-  const deficit = targetWant - targetHave;
+  const deficit = targetWant - sleeves[rule.targetSleeve];
   if (deficit <= 0) return sleeves;
   const move = Math.min(deficit, sleeves[rule.sourceSleeve]);
   if (move <= 0) return sleeves;

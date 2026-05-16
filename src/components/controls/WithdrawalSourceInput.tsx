@@ -14,22 +14,21 @@ const SLEEVE_LABELS: Record<Sleeve, string> = {
 
 const SLEEVES: Sleeve[] = ['cash', 'bond', 'stock'];
 
-const DEFAULT_REFILL: RefillRule = {
-  targetSleeve: 'cash',
-  floor: 0.08,
-  ceiling: 0.15,
-  sourceSleeve: 'bond',
-  sourceMinRatio: undefined,
-};
-
 const DEFAULT_REFILL_CHAIN: RefillRule[] = [
-  DEFAULT_REFILL,
   {
     targetSleeve: 'bond',
-    floor: 0.25,
-    ceiling: 0.35,
+    floor: 6,
+    ceiling: 6,
+    floorMode: 'withdrawalYears',
     sourceSleeve: 'stock',
-    sourceMinRatio: 1.0,
+    sourceReturnGate: 0,
+  },
+  {
+    targetSleeve: 'cash',
+    floor: 2,
+    ceiling: 2,
+    floorMode: 'withdrawalYears',
+    sourceSleeve: 'bond',
   },
 ];
 
@@ -71,7 +70,7 @@ export function WithdrawalSourceInput() {
               refill: DEFAULT_REFILL_CHAIN,
             })
           }
-          title="Waterfall plus refill rules: top up cash from bonds, top up bonds from stocks when stocks are doing well."
+          title="Waterfall plus refill rules: replenish sleeves from growth when markets allow."
         >
           bucket
         </button>
@@ -192,7 +191,18 @@ function BucketEditor({
     update({ refill: source.refill.filter((_, i) => i !== idx) });
 
   const addRule = () =>
-    update({ refill: [...source.refill, { ...DEFAULT_REFILL }] });
+    update({
+      refill: [
+        ...source.refill,
+        {
+          targetSleeve: 'cash' as Sleeve,
+          floor: 0.08,
+          ceiling: 0.15,
+          floorMode: 'portfolioFraction' as const,
+          sourceSleeve: 'bond' as Sleeve,
+        },
+      ],
+    });
 
   return (
     <>
@@ -236,7 +246,11 @@ function RefillRuleEditor({
   onChange: (patch: Partial<RefillRule>) => void;
   onRemove: () => void;
 }) {
-  const hasGate = rule.sourceMinRatio != null;
+  const mode = rule.floorMode ?? 'portfolioFraction';
+  const isYears = mode === 'withdrawalYears';
+  const hasReturnGate = rule.sourceReturnGate != null;
+  const hasRatioGate = rule.sourceMinRatio != null;
+
   return (
     <div className="bucket-refill">
       <div className="control-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -247,6 +261,25 @@ function RefillRuleEditor({
           </button>
         )}
       </div>
+
+      {/* Floor mode toggle */}
+      <div className="mode-toggle" style={{ marginBottom: 6 }}>
+        <button
+          className={!isYears ? 'active' : ''}
+          onClick={() => onChange({ floorMode: 'portfolioFraction' })}
+          title="Express floor/ceiling as % of total portfolio"
+        >
+          % of portfolio
+        </button>
+        <button
+          className={isYears ? 'active' : ''}
+          onClick={() => onChange({ floorMode: 'withdrawalYears' })}
+          title="Express floor/ceiling as years of annual expenses"
+        >
+          years of expenses
+        </button>
+      </div>
+
       <div className="rule-line">
         <span>refill</span>
         <select
@@ -263,24 +296,29 @@ function RefillRuleEditor({
         <input
           type="number"
           className="axis-num"
-          step={1}
+          step={isYears ? 0.5 : 1}
           min={0}
-          max={100}
-          value={(rule.floor * 100).toFixed(1)}
-          onChange={(e) => onChange({ floor: +e.target.value / 100 })}
+          max={isYears ? 30 : 100}
+          value={isYears ? rule.floor : (rule.floor * 100).toFixed(1)}
+          onChange={(e) =>
+            onChange({ floor: isYears ? +e.target.value : +e.target.value / 100 })
+          }
         />
-        <span>%, up to</span>
+        <span>{isYears ? 'yrs, up to' : '%, up to'}</span>
         <input
           type="number"
           className="axis-num"
-          step={1}
+          step={isYears ? 0.5 : 1}
           min={0}
-          max={100}
-          value={(rule.ceiling * 100).toFixed(1)}
-          onChange={(e) => onChange({ ceiling: +e.target.value / 100 })}
+          max={isYears ? 30 : 100}
+          value={isYears ? rule.ceiling : (rule.ceiling * 100).toFixed(1)}
+          onChange={(e) =>
+            onChange({ ceiling: isYears ? +e.target.value : +e.target.value / 100 })
+          }
         />
-        <span>%</span>
+        <span>{isYears ? 'yrs' : '%'}</span>
       </div>
+
       <div className="rule-line">
         <span>sell from</span>
         <select
@@ -294,10 +332,33 @@ function RefillRuleEditor({
           ))}
         </select>
       </div>
+
+      {/* Return gate */}
       <label className="rebalance-row">
         <input
           type="checkbox"
-          checked={hasGate}
+          checked={hasReturnGate}
+          onChange={(e) =>
+            onChange({ sourceReturnGate: e.target.checked ? 0 : undefined })
+          }
+        />
+        only when source return &gt;
+        <input
+          type="number"
+          className="axis-num"
+          disabled={!hasReturnGate}
+          step={0.5}
+          value={hasReturnGate ? Math.round((rule.sourceReturnGate ?? 0) * 100) : 0}
+          onChange={(e) => onChange({ sourceReturnGate: +e.target.value / 100 })}
+        />
+        <span>% this year</span>
+      </label>
+
+      {/* Absolute-level gate */}
+      <label className="rebalance-row">
+        <input
+          type="checkbox"
+          checked={hasRatioGate}
           onChange={(e) =>
             onChange({ sourceMinRatio: e.target.checked ? 1.0 : undefined })
           }
@@ -306,9 +367,9 @@ function RefillRuleEditor({
         <input
           type="number"
           className="axis-num"
-          disabled={!hasGate}
+          disabled={!hasRatioGate}
           step={5}
-          value={hasGate ? Math.round((rule.sourceMinRatio ?? 1) * 100) : 100}
+          value={hasRatioGate ? Math.round((rule.sourceMinRatio ?? 1) * 100) : 100}
           onChange={(e) => onChange({ sourceMinRatio: +e.target.value / 100 })}
         />
         <span>% of its initial value</span>

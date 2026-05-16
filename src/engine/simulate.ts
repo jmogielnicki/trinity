@@ -156,7 +156,7 @@ export function simulate(input: SimulateInput): SimulationResult {
     // Bucket refill rule: runs after returns, moves between sleeves only when
     // the trigger and source conditions fire.
     if (withdrawalSource.type === 'bucket') {
-      sleeves = applyRefill(sleeves, withdrawalSource.refill, initialSleeves);
+      sleeves = applyRefill(sleeves, withdrawalSource.refill, initialSleeves, wd, r);
     }
 
     const portRet = effectiveReturn(beforeReturns, sleeves, 0);
