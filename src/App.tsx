@@ -19,6 +19,7 @@ import { SuccessBar } from './components/results/SuccessBar';
 import { WhereAmI } from './components/results/WhereAmI';
 import { FrontierView } from './components/optimize/FrontierView';
 import { EvolveView } from './components/evolve/EvolveView';
+import { CompareScenariosView } from './components/compare/CompareScenariosView';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, serialize, tryDeserialize } from './data/urlState';
 import { useCompareStore } from './store/compareStore';
@@ -29,7 +30,7 @@ import { createPool } from './worker/pool';
 import './App.css';
 
 type View = 'spaghetti' | 'calendar' | 'whereami' | 'sleeves';
-type TopMode = 'single' | 'optimize' | 'evolve';
+type TopMode = 'single' | 'optimize' | 'evolve' | 'compare';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -204,9 +205,16 @@ export function App() {
             >
               Evolve
             </button>
+            <button
+              className={topMode === 'compare' ? 'active' : ''}
+              onClick={() => setTopMode('compare')}
+            >
+              Compare scenarios
+            </button>
           </div>
           {topMode === 'optimize' && <FrontierView />}
           {topMode === 'evolve' && <EvolveView />}
+          {topMode === 'compare' && <CompareScenariosView />}
           {topMode === 'single' && <>
           {!data && <div className="loading">Loading historical data…</div>}
           {data && (
