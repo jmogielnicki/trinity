@@ -74,12 +74,13 @@ export const useCompareScenariosStore = create<CompareScenariosState>(
         const myId = ++pendingId;
         set({ running: true });
         const t0 = performance.now();
-        const results = await pool.runMany(picked.map(savedToScenario));
+        const scenarios = picked.map(savedToScenario);
+        const results = await pool.runMany(scenarios);
         if (myId !== pendingId) return;
         const entries: CompareEntry[] = picked.map((s, i) => ({
           saved: s,
           result: results[i],
-          metrics: metricsFromResult(results[i]),
+          metrics: metricsFromResult(results[i], scenarios[i].initialBalance),
         }));
         set({ entries, running: false, computeMs: performance.now() - t0 });
       },

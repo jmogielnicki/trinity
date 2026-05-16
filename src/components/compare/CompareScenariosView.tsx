@@ -674,6 +674,8 @@ function describeWithdrawal(w: WithdrawalStrategy): string {
       return `${fmtMoney(w.amount)}/yr`;
     case 'percentOfBalance':
       return `${pct(w.rate)} of balance`;
+    case 'floorAndUpside':
+      return `${pct(w.floor)} floor + upside`;
     case 'piecewise':
       return 'piecewise';
     case 'piecewiseLinear':
