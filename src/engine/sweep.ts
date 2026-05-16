@@ -1,9 +1,6 @@
 import { bootstrapTail, hashSeed, makeRng } from './bootstrap';
 import { simulate } from './simulate';
-import {
-  completedSuccessRate,
-  computePercentiles,
-} from './stats';
+import { computePercentiles, successStats } from './stats';
 import type { AllocationStrategy, WithdrawalStrategy } from './strategies';
 import type {
   AnnualReturns,
@@ -96,6 +93,10 @@ export function runScenario(
       );
     } else {
       const rng = makeRng(seed ^ startYear);
+      // Each tail sample is one of samplesPerPrefix draws for this single
+      // start year. Weight them 1/samplesPerPrefix so the cohort counts as
+      // one start year in stats, not samplesPerPrefix.
+      const weight = 1 / tail.samplesPerPrefix;
       for (let s = 0; s < tail.samplesPerPrefix; s++) {
         const tailReturns = bootstrapTail(
           observed.length,
@@ -105,8 +106,8 @@ export function runScenario(
           rng,
         );
         const full = [...observed, ...tailReturns];
-        sims.push(
-          simulate({
+        sims.push({
+          ...simulate({
             startYear,
             initialBalance: scenario.initialBalance,
             horizonYears: scenario.horizonYears,
@@ -117,20 +118,28 @@ export function runScenario(
             bootstrapped: true,
             prefixYears: observed.length,
           }),
-        );
+          weight,
+        });
       }
     }
   }
 
-  const { rate, completed, inProgress } = completedSuccessRate(sims);
+  const stats = successStats(sims);
   const percentiles = computePercentiles(sims, scenario.horizonYears);
-  const failed = sims.find((s) => !s.success && !s.inProgress);
+  // worstStartYear is an observed fact, so it ignores bootstrap-tail failures.
+  const failed = sims.find(
+    (s) => !s.success && !s.inProgress && !s.bootstrapped,
+  );
 
   return {
     sims,
-    successRate: rate,
-    completedCount: completed,
-    inProgressCount: inProgress,
+    successRate: stats.observedRate,
+    completedCount: stats.completedCount,
+    inProgressCount: stats.inProgressCount,
+    projectedSuccessRate: stats.projectedRate,
+    projectedCohortCount: stats.projectedRate != null
+      ? stats.projectedCohortCount
+      : undefined,
     percentiles,
     worstStartYear: failed?.startYear,
   };

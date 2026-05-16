@@ -32,7 +32,11 @@ describe('Bengen 4% rule', () => {
     expect(result.inProgressCount).toBe(0);
   });
 
-  it('has ≥ 93% historical success (10y Treasuries)', () => {
+  it('has ~94% historical success (10y Treasuries, brackets both sides)', () => {
+    // Upper bound matters: with 10y Treasuries this lands ~94%. A run that
+    // crept toward 100% would signal inflation double-counting or a bond
+    // miscalibration, which a lone lower bound would not catch.
     expect(result.successRate).toBeGreaterThanOrEqual(0.93);
+    expect(result.successRate).toBeLessThanOrEqual(0.97);
   });
 });

@@ -4,7 +4,7 @@ import type {
   WithdrawalStrategy,
 } from './strategies';
 import type { ScenarioResult, SimulationResult } from './types';
-import { quantile } from './stats';
+import { weightedQuantile, type WeightedSample } from './stats';
 
 export type CandidateMetrics = {
   successRate: number;
@@ -147,28 +147,35 @@ export function candidateToScenario(
   };
 }
 
-function finalBalances(result: ScenarioResult): number[] {
-  const out: number[] = [];
+function finalBalances(result: ScenarioResult): WeightedSample[] {
+  const out: WeightedSample[] = [];
   for (const s of result.sims as SimulationResult[]) {
     if (s.inProgress) continue;
+    // Bootstrap samples carry weight 1/samplesPerPrefix; observed cohorts 1.
+    const weight = s.weight ?? 1;
     if (!s.success) {
-      out.push(0);
+      out.push({ value: 0, weight });
     } else if (typeof s.finalBalance === 'number') {
-      out.push(s.finalBalance);
+      out.push({ value: s.finalBalance, weight });
     } else if (s.trajectory.length > 0) {
-      out.push(s.trajectory[s.trajectory.length - 1].balance);
+      out.push({
+        value: s.trajectory[s.trajectory.length - 1].balance,
+        weight,
+      });
     }
   }
   return out;
 }
 
 export function metricsFromResult(result: ScenarioResult): CandidateMetrics {
-  const finals = finalBalances(result).sort((a, b) => a - b);
-  const p5 = finals.length ? quantile(finals, 0.05) : NaN;
-  const p50 = finals.length ? quantile(finals, 0.5) : NaN;
-  const p95 = finals.length ? quantile(finals, 0.95) : NaN;
+  const finals = finalBalances(result);
+  const p5 = finals.length ? weightedQuantile(finals, 0.05) : NaN;
+  const p50 = finals.length ? weightedQuantile(finals, 0.5) : NaN;
+  const p95 = finals.length ? weightedQuantile(finals, 0.95) : NaN;
   return {
-    successRate: result.successRate,
+    // Use the bootstrap-projected rate when present (already cohort-weighted);
+    // otherwise the observed historical rate.
+    successRate: result.projectedSuccessRate ?? result.successRate,
     p5Final: p5,
     p50Final: p50,
     p95Final: p95,
