@@ -25,6 +25,12 @@ export type CandidateMetrics = {
    * tells you how much time you spent sweating during bad sequences.
    */
   avgYearsNearDepletion: number;
+  /**
+   * Lowest year-end balance ever reached across every sim, in real $ —
+   * the closest any historical sequence came to depletion, mid-retirement
+   * or otherwise. 0 if any sequence depletes. Higher is better.
+   */
+  minBalance: number;
   /** Worst completed start year (the earliest failure), if any. */
   worstStartYear?: number;
   completedCount: number;
@@ -263,6 +269,16 @@ export function metricsFromResult(
   const avgYearsNearDepletion =
     weightSum > 0 ? yearsNearWeighted / weightSum : NaN;
 
+  // Lowest balance ever touched, across every year of every sim (including
+  // in-progress ones — a near miss is a near miss whether or not the run
+  // has finished). A min isn't skewed by truncation the way an average is.
+  let minBalance = Infinity;
+  for (const s of result.sims) {
+    for (const rec of s.trajectory) {
+      if (rec.balance < minBalance) minBalance = rec.balance;
+    }
+  }
+
   return {
     // Use the bootstrap-projected rate when present (already cohort-weighted);
     // otherwise the observed historical rate.
@@ -272,6 +288,7 @@ export function metricsFromResult(
     p95Final: p95,
     avgAnnualWithdrawal,
     avgYearsNearDepletion,
+    minBalance: Number.isFinite(minBalance) ? minBalance : NaN,
     worstStartYear: result.worstStartYear,
     completedCount: result.completedCount,
   };

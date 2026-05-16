@@ -15,13 +15,21 @@ const SERIES_COLORS = [
   '#8c564b', '#e377c2', '#17becf', '#bcbd22', '#7f7f7f',
 ];
 
-type MetricKey = 'successRate' | 'p5Final' | 'p50Final' | 'p95Final';
+type MetricKey =
+  | 'successRate'
+  | 'p5Final'
+  | 'p50Final'
+  | 'p95Final'
+  | 'avgAnnualWithdrawal'
+  | 'minBalance';
 
 const METRIC_LABEL: Record<MetricKey, string> = {
   successRate: 'Success rate',
   p5Final: '5th-pct final balance',
   p50Final: 'Median final balance',
   p95Final: '95th-pct final balance',
+  avgAnnualWithdrawal: 'Avg annual withdrawal',
+  minBalance: 'Min balance reached',
 };
 
 export function CompareScenariosView() {
@@ -172,6 +180,8 @@ function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
   const bestP5 = best((e) => e.metrics.p5Final);
   const bestP50 = best((e) => e.metrics.p50Final);
   const bestP95 = best((e) => e.metrics.p95Final);
+  const bestAvgWd = best((e) => e.metrics.avgAnnualWithdrawal);
+  const bestMin = best((e) => e.metrics.minBalance);
 
   return (
     <div className="compare-table-wrap">
@@ -188,6 +198,8 @@ function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
             <th className="num">P5 final</th>
             <th className="num">Median final</th>
             <th className="num">P95 final</th>
+            <th className="num">Avg withdrawal</th>
+            <th className="num">Min balance</th>
             <th className="num">Worst start</th>
           </tr>
         </thead>
@@ -224,6 +236,16 @@ function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
                 </td>
                 <td className={lead(m.p95Final, bestP95)}>
                   {fmtMoney(m.p95Final)}
+                </td>
+                <td className={lead(m.avgAnnualWithdrawal, bestAvgWd)}>
+                  {fmtMoney(m.avgAnnualWithdrawal)}
+                </td>
+                <td
+                  className={
+                    bestMin > 0 ? lead(m.minBalance, bestMin) : 'num'
+                  }
+                >
+                  {fmtMoney(m.minBalance)}
                 </td>
                 <td className="num">{m.worstStartYear ?? '—'}</td>
               </tr>
