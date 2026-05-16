@@ -100,7 +100,7 @@ export const PRESETS: Preset[] = [
   {
     id: 'cash-bucket-refill',
     name: 'Cash bucket with refill — 50/35/15',
-    description: '50/35/15 stocks/bonds/cash. Spend cash first; when cash drops below 8% and stocks are at or above their initial value, sell stocks back into cash up to 15%.',
+    description: '50/35/15 stocks/bonds/cash. Spend cash first; when cash drops below 8%, sell bonds to refill cash. When bonds drop below 25% and stocks are at or above their initial value, sell stocks to refill bonds.',
     state: {
       initialBalance: STARTING,
       horizonYears: HORIZON,
@@ -109,13 +109,22 @@ export const PRESETS: Preset[] = [
       withdrawalSource: {
         type: 'bucket',
         order: ['cash', 'bond', 'stock'],
-        refill: {
-          targetSleeve: 'cash',
-          floor: 0.08,
-          ceiling: 0.15,
-          sourceSleeve: 'stock',
-          sourceMinRatio: 1.0,
-        },
+        refill: [
+          {
+            targetSleeve: 'cash',
+            floor: 0.08,
+            ceiling: 0.15,
+            sourceSleeve: 'bond',
+            sourceMinRatio: undefined,
+          },
+          {
+            targetSleeve: 'bond',
+            floor: 0.25,
+            ceiling: 0.35,
+            sourceSleeve: 'stock',
+            sourceMinRatio: 1.0,
+          },
+        ],
       },
       tailMethod: { type: 'truncate' },
       axes: PINNED_AXES,

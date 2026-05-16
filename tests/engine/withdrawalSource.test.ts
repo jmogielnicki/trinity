@@ -47,13 +47,13 @@ describe('bucket withdrawal source (waterfall + refill)', () => {
       withdrawalSource: {
         type: 'bucket',
         order: ['cash', 'bond', 'stock'],
-        refill: {
+        refill: [{
           targetSleeve: 'cash',
           floor: 0.08,
           ceiling: 0.15,
           sourceSleeve: 'stock',
           sourceMinRatio: 1.0,
-        },
+        }],
       },
       returns,
     });
@@ -85,13 +85,13 @@ describe('bucket withdrawal source (waterfall + refill)', () => {
       withdrawalSource: {
         type: 'bucket',
         order: ['cash', 'bond', 'stock'],
-        refill: {
+        refill: [{
           targetSleeve: 'cash',
           floor: 0.08,
           ceiling: 0.15,
           sourceSleeve: 'stock',
           sourceMinRatio: 1.0,
-        },
+        }],
       },
       returns,
     });
@@ -118,18 +118,73 @@ describe('bucket withdrawal source (waterfall + refill)', () => {
       withdrawalSource: {
         type: 'bucket',
         order: ['cash', 'bond', 'stock'],
-        refill: {
+        refill: [{
           targetSleeve: 'cash',
           floor: 0.08,
           ceiling: 0.15,
           sourceSleeve: 'stock',
-        },
+        }],
       },
       returns,
     });
     const y0 = result.trajectory[0].sleeves;
     const total = y0.stock + y0.bond + y0.cash;
     expect(y0.cash / total).toBeCloseTo(0.15, 4);
+  });
+
+  it('two-rule chain: cash refills from bonds, bonds refill from stocks when stocks are up', () => {
+    // 50/35/15 of $1M. Stocks +20%, bonds 0%, cash 0%.
+    // Withdraw $40k from cash first.
+    //   pre-returns: cash 110k, bond 350k, stock 500k (after $40k from cash: 110k)
+    //   post-returns: cash 110k, bond 350k, stock 600k, total 1.06M
+    //   Rule 1: cash/total = 110k/1.06M ≈ 10.4% > floor 8% → no-op
+    //   Rule 2: bond/total = 350k/1.06M ≈ 33% > floor 25% → no-op
+    // Now test a scenario where cash drops below floor: withdraw $80k/yr.
+    //   pre-returns: cash 70k, bond 350k, stock 500k (after $80k from cash)
+    //   post-returns: cash 70k, bond 350k, stock 600k, total 1.02M
+    //   cash/total = 70k/1.02M ≈ 6.9% < floor 8% → rule 1 fires: sell bonds to top cash to 15%
+    //   target cash = 0.15 × 1.02M = 153k, move 83k from bonds → cash
+    //   bond = 267k, cash = 153k
+    //   bond/total = 267k/1.02M ≈ 26.2% > floor 25% → rule 2 does not fire
+    const returns = flatReturns(2000, 1, { s: 0.2, b: 0, c: 0 });
+    const result = simulate({
+      startYear: 2000,
+      initialBalance: 1_000_000,
+      horizonYears: 1,
+      allocation: {
+        type: 'static',
+        weights: { stock: 0.5, bond: 0.35, cash: 0.15 },
+      },
+      withdrawal: { type: 'fixedDollar', amount: 80_000 },
+      withdrawalSource: {
+        type: 'bucket',
+        order: ['cash', 'bond', 'stock'],
+        refill: [
+          {
+            targetSleeve: 'cash',
+            floor: 0.08,
+            ceiling: 0.15,
+            sourceSleeve: 'bond',
+          },
+          {
+            targetSleeve: 'bond',
+            floor: 0.25,
+            ceiling: 0.35,
+            sourceSleeve: 'stock',
+            sourceMinRatio: 1.0,
+          },
+        ],
+      },
+      returns,
+    });
+
+    const y0 = result.trajectory[0].sleeves;
+    const total = y0.stock + y0.bond + y0.cash;
+    // Rule 1 fired: cash at ceiling
+    expect(y0.cash / total).toBeCloseTo(0.15, 3);
+    // Bonds were the source for rule 1; stocks untouched (rule 2 didn't fire)
+    expect(y0.stock).toBeCloseTo(600_000, 3);
+    expect(y0.bond).toBeLessThan(350_000);
   });
 });
 

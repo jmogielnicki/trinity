@@ -30,7 +30,7 @@ export type RefillRule = {
 export type WithdrawalSource =
   | { type: 'proportional'; rebalance: boolean }
   | { type: 'waterfall'; order: Sleeve[] }
-  | { type: 'bucket'; order: Sleeve[]; refill: RefillRule };
+  | { type: 'bucket'; order: Sleeve[]; refill: RefillRule[] };
 
 export const DEFAULT_WITHDRAWAL_SOURCE: WithdrawalSource = {
   type: 'proportional',
@@ -89,10 +89,23 @@ export function applyWithdrawal(
 }
 
 /**
- * Apply a bucket refill rule after returns. Only moves money between sleeves;
- * the total stays constant. No-op if the trigger conditions don't fire.
+ * Apply a chain of bucket refill rules after returns, in order. Each rule
+ * only moves money between sleeves; the total stays constant. A rule is
+ * skipped if its trigger conditions don't fire.
  */
 export function applyRefill(
+  sleeves: Sleeves,
+  rules: RefillRule[],
+  initialSleeves: Sleeves,
+): Sleeves {
+  let s = sleeves;
+  for (const rule of rules) {
+    s = applyOneRefill(s, rule, initialSleeves);
+  }
+  return s;
+}
+
+function applyOneRefill(
   sleeves: Sleeves,
   rule: RefillRule,
   initialSleeves: Sleeves,
