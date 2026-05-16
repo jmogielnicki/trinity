@@ -4,7 +4,7 @@ import type {
   WithdrawalStrategy,
 } from './strategies';
 import type { ScenarioResult, SimulationResult } from './types';
-import { quantile } from './stats';
+import { weightedQuantile, type WeightedSample } from './stats';
 
 // ---------------------------------------------------------------------------
 // Genome
@@ -180,13 +180,16 @@ export function metricsFromResult(
   result: ScenarioResult,
   initialBalance: number,
 ): EvolveMetrics {
-  const safetyVals: number[] = [];
-  const spendingVals: number[] = [];
-  const slopeVals: number[] = [];
-  const finals: number[] = [];
+  const safetyVals: WeightedSample[] = [];
+  const spendingVals: WeightedSample[] = [];
+  const slopeVals: WeightedSample[] = [];
+  const finals: WeightedSample[] = [];
 
   for (const s of result.sims as SimulationResult[]) {
     if (s.inProgress) continue;
+    // Bootstrap samples carry weight 1/samplesPerPrefix so a cohort's tail
+    // draws collapse to one start year; observed cohorts default to 1.
+    const weight = s.weight ?? 1;
     let minBal = Infinity;
     let totalWd = 0;
     let earlyWd = 0;
@@ -202,33 +205,34 @@ export function metricsFromResult(
     }
     if (!s.success) {
       // Depleted runs: clamp safety to 0, count actual withdrawals taken.
-      safetyVals.push(0);
-      finals.push(0);
+      safetyVals.push({ value: 0, weight });
+      finals.push({ value: 0, weight });
     } else {
-      safetyVals.push(Math.max(0, minBal) / initialBalance);
-      finals.push(
-        typeof s.finalBalance === 'number'
-          ? s.finalBalance
-          : s.trajectory[N - 1]?.balance ?? 0,
-      );
+      safetyVals.push({ value: Math.max(0, minBal) / initialBalance, weight });
+      finals.push({
+        value:
+          typeof s.finalBalance === 'number'
+            ? s.finalBalance
+            : s.trajectory[N - 1]?.balance ?? 0,
+        weight,
+      });
     }
-    spendingVals.push(totalWd / initialBalance);
-    slopeVals.push(earlyWd > 0 ? lateWd / earlyWd : 1);
+    spendingVals.push({ value: totalWd / initialBalance, weight });
+    slopeVals.push({ value: earlyWd > 0 ? lateWd / earlyWd : 1, weight });
   }
 
-  safetyVals.sort((a, b) => a - b);
-  spendingVals.sort((a, b) => a - b);
-  slopeVals.sort((a, b) => a - b);
-  finals.sort((a, b) => a - b);
-
   return {
-    successRate: result.successRate,
-    safetyP5: safetyVals.length ? quantile(safetyVals, 0.05) : 0,
-    spendingMedian: spendingVals.length ? quantile(spendingVals, 0.5) : 0,
-    slopeMedian: slopeVals.length ? quantile(slopeVals, 0.5) : 1,
-    p5Final: finals.length ? quantile(finals, 0.05) : NaN,
-    p50Final: finals.length ? quantile(finals, 0.5) : NaN,
-    p95Final: finals.length ? quantile(finals, 0.95) : NaN,
+    // In bootstrap mode the projected rate already equal-weights cohorts;
+    // fall back to the observed rate when no bootstrap tails were used.
+    successRate: result.projectedSuccessRate ?? result.successRate,
+    safetyP5: safetyVals.length ? weightedQuantile(safetyVals, 0.05) : 0,
+    spendingMedian: spendingVals.length
+      ? weightedQuantile(spendingVals, 0.5)
+      : 0,
+    slopeMedian: slopeVals.length ? weightedQuantile(slopeVals, 0.5) : 1,
+    p5Final: finals.length ? weightedQuantile(finals, 0.05) : NaN,
+    p50Final: finals.length ? weightedQuantile(finals, 0.5) : NaN,
+    p95Final: finals.length ? weightedQuantile(finals, 0.95) : NaN,
     worstStartYear: result.worstStartYear,
     completedCount: result.completedCount,
   };
