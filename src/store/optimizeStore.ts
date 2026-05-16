@@ -11,20 +11,36 @@ import {
 import type { SimPool } from '../worker/pool';
 
 export type OptimizeState = {
+  /** All candidates with metrics (unfiltered). */
   results: CandidateResult[];
+  /** Pareto front recomputed against the currently-filtered set. */
   frontier: CandidateResult[];
   selectedIds: string[];
+  /** Minimum success rate, [0, 1]. Strategies below this are hidden + excluded from the frontier. */
+  minSuccessRate: number;
   running: boolean;
   computeMs: number;
   lastConfig: OptimizeConfig | null;
   run: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
   toggleSelected: (id: string) => void;
+  setSelected: (ids: string[]) => void;
   selectAllFrontier: () => void;
   clearSelection: () => void;
+  setMinSuccessRate: (v: number) => void;
   reset: () => void;
 };
 
-const MAX_SELECTED = 10;
+const FRONTIER_PRESELECT = 10;
+
+function filterAndFront(
+  results: CandidateResult[],
+  minSuccessRate: number,
+): CandidateResult[] {
+  const passing = results.filter(
+    (r) => Number.isFinite(r.metrics.successRate) && r.metrics.successRate >= minSuccessRate,
+  );
+  return paretoFront(passing);
+}
 
 export const useOptimizeStore = create<OptimizeState>((set, get) => {
   let pendingId = 0;
@@ -32,6 +48,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     results: [],
     frontier: [],
     selectedIds: [],
+    minSuccessRate: 0,
     running: false,
     computeMs: 0,
     lastConfig: null,
@@ -46,13 +63,14 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       if (myId !== pendingId) return;
       const results: CandidateResult[] = candidates.map((c, i) => ({
         candidate: c,
-        metrics: metricsFromResult(scenarioResults[i]),
+        metrics: metricsFromResult(scenarioResults[i], cfg.initialBalance),
       }));
-      const frontier = paretoFront(results);
-      // Pre-select the frontier (capped at MAX_SELECTED, spread across it).
-      const step = Math.max(1, Math.ceil(frontier.length / MAX_SELECTED));
+      const minSuccessRate = get().minSuccessRate;
+      const frontier = filterAndFront(results, minSuccessRate);
+      // Pre-select up to ~10 frontier strategies, spread across it.
+      const step = Math.max(1, Math.ceil(frontier.length / FRONTIER_PRESELECT));
       const initialSelected: string[] = [];
-      for (let i = 0; i < frontier.length && initialSelected.length < MAX_SELECTED; i += step) {
+      for (let i = 0; i < frontier.length && initialSelected.length < FRONTIER_PRESELECT; i += step) {
         initialSelected.push(frontier[i].candidate.id);
       }
       set({
@@ -69,20 +87,29 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       const cur = get().selectedIds;
       if (cur.includes(id)) {
         set({ selectedIds: cur.filter((x) => x !== id) });
-      } else if (cur.length < MAX_SELECTED) {
+      } else {
         set({ selectedIds: [...cur, id] });
       }
     },
 
+    setSelected(ids) {
+      set({ selectedIds: ids });
+    },
+
     selectAllFrontier() {
       const frontier = get().frontier;
-      set({
-        selectedIds: frontier.slice(0, MAX_SELECTED).map((r) => r.candidate.id),
-      });
+      set({ selectedIds: frontier.map((r) => r.candidate.id) });
     },
 
     clearSelection() {
       set({ selectedIds: [] });
+    },
+
+    setMinSuccessRate(v) {
+      const clamped = Math.max(0, Math.min(1, v));
+      const { results } = get();
+      const frontier = filterAndFront(results, clamped);
+      set({ minSuccessRate: clamped, frontier });
     },
 
     reset() {
@@ -91,6 +118,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         results: [],
         frontier: [],
         selectedIds: [],
+        minSuccessRate: 0,
         running: false,
         computeMs: 0,
         lastConfig: null,
@@ -98,5 +126,3 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     },
   };
 });
-
-export const OPTIMIZE_MAX_SELECTED = MAX_SELECTED;

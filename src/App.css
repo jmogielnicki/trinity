@@ -15,7 +15,7 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 
 .layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: 24px;
 }
 
@@ -268,3 +268,28 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .evolve-spark-row { display: flex; flex-direction: column; gap: 8px; }
 .evolve-spark { background: #fff; border-radius: 3px; padding: 4px; }
 .evolve-spark-title { font-size: 10px; color: #777; padding: 0 4px 2px; }
+
+/* Frontier additions: filter, marquee, apply */
+.frontier-controls { display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: #444; align-items: center; padding: 4px 0; }
+.frontier-axis-pick { display: flex; gap: 6px; align-items: center; }
+.frontier-axis-pick select { padding: 3px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+.frontier-filter { display: flex; gap: 6px; align-items: center; }
+.frontier-filter input[type="range"] { width: 140px; }
+.frontier-filter-val { font-variant-numeric: tabular-nums; min-width: 32px; color: #333; }
+.frontier-tip { color: #888; margin-left: auto; font-style: italic; }
+.frontier-legend .dot-filtered { background: #ddd; }
+.frontier-apply { font-size: 11px; padding: 3px 8px; border: 1px solid #bbb; background: #fff; border-radius: 3px; cursor: pointer; color: #1f77b4; }
+.frontier-apply:hover { background: #eef4ff; border-color: #1f77b4; }
+
+/* Floor + upside editor */
+.floor-upside-editor { display: flex; flex-direction: column; gap: 10px; }
+.floor-upside-hint { font-size: 11px; color: #666; line-height: 1.4; }
+.floor-upside-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.floor-upside-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #444; }
+.floor-upside-grid input { padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+
+/* Frontier color legend */
+.frontier-colorbar { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #555; }
+.frontier-colorbar-label { color: #444; }
+.frontier-colorbar-min, .frontier-colorbar-max { font-variant-numeric: tabular-nums; }
+.frontier-colorbar-svg { border: 1px solid #ddd; border-radius: 2px; vertical-align: middle; display: inline-block; }

@@ -212,7 +212,9 @@ export function App() {
               Compare scenarios
             </button>
           </div>
-          {topMode === 'optimize' && <FrontierView />}
+          {topMode === 'optimize' && (
+            <FrontierView onApplied={() => setTopMode('single')} />
+          )}
           {topMode === 'evolve' && <EvolveView />}
           {topMode === 'compare' && <CompareScenariosView />}
           {topMode === 'single' && <>
