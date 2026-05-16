@@ -152,16 +152,16 @@ export function SpaghettiChart({
       <g transform={`translate(${margin.left},${margin.top})`}>
         {yTicks.map((v) => (
           <g key={v} transform={`translate(0,${y(v)})`}>
-            <line x1={0} x2={innerW} stroke="#eee" />
-            <text x={-8} dy="0.32em" textAnchor="end" fontSize={11} fill="#666">
+            <line x1={0} x2={innerW} stroke="#e6e1d2" />
+            <text x={-8} dy="0.32em" textAnchor="end" fontSize={11} fill="#6b6a62">
               ${(v / 1e6).toFixed(1)}M
             </text>
           </g>
         ))}
         {xTicks.map((v) => (
           <g key={v} transform={`translate(${x(v)},${innerH})`}>
-            <line y1={0} y2={6} stroke="#999" />
-            <text y={20} textAnchor="middle" fontSize={11} fill="#666">
+            <line y1={0} y2={6} stroke="#9b998e" />
+            <text y={20} textAnchor="middle" fontSize={11} fill="#6b6a62">
               y{v}
             </text>
           </g>
@@ -216,7 +216,7 @@ export function SpaghettiChart({
           transform={`translate(${-48},${innerH / 2}) rotate(-90)`}
           textAnchor="middle"
           fontSize={11}
-          fill="#444"
+          fill="#3a3a36"
         >
           balance (real $)
         </text>
@@ -225,7 +225,7 @@ export function SpaghettiChart({
           y={innerH + 32}
           textAnchor="middle"
           fontSize={11}
-          fill="#444"
+          fill="#3a3a36"
         >
           years into retirement
         </text>
@@ -235,9 +235,9 @@ export function SpaghettiChart({
             y={Math.min(drag.y0, drag.y1)}
             width={Math.abs(drag.x1 - drag.x0)}
             height={Math.abs(drag.y1 - drag.y0)}
-            fill="#357"
+            fill="#2a4d3a"
             fillOpacity={0.08}
-            stroke="#357"
+            stroke="#2a4d3a"
             strokeWidth={1}
             strokeDasharray="3,3"
             pointerEvents="none"
@@ -269,12 +269,12 @@ function Tooltip({ hover }: { hover: Hover }) {
         width={200}
         height={36}
         fill="#fff"
-        stroke="#bbb"
+        stroke="#e6e1d2"
         strokeWidth={0.5}
         rx={3}
       />
       {lines.map((l, i) => (
-        <text key={i} x={6} y={-12 + i * 14} fontSize={11} fill="#222">
+        <text key={i} x={6} y={-12 + i * 14} fontSize={11} fill="#1c1c19">
           {l}
         </text>
       ))}
@@ -303,7 +303,7 @@ function SimLine({
 }) {
   const points = sim.trajectory.map((r) => ({ t: r.t, balance: r.balance }));
   const failed = !sim.success && !sim.inProgress;
-  const stroke = failed ? '#d33' : sim.inProgress ? '#888' : color;
+  const stroke = failed ? '#b45a4a' : sim.inProgress ? '#9b998e' : color;
   const baseOpacity = failed ? 0.55 : sim.inProgress ? 0.35 : 0.2;
   const opacity = highlighted ? 1 : dimmed ? 0.04 : baseOpacity;
   const strokeWidth = highlighted ? 2 : 1;

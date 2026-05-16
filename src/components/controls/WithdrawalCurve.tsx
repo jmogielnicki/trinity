@@ -141,7 +141,7 @@ export function WithdrawalCurve({
               x2={width - margin.right}
               y1={y(t) + margin.top}
               y2={y(t) + margin.top}
-              stroke="#eee"
+              stroke="#e6e1d2"
             />
             <text
               x={margin.left - 6}
@@ -149,7 +149,7 @@ export function WithdrawalCurve({
               dy="0.32em"
               textAnchor="end"
               fontSize={10}
-              fill="#888"
+              fill="#9b998e"
             >
               {(t * 100).toFixed(0)}%
             </text>
@@ -158,7 +158,7 @@ export function WithdrawalCurve({
         <polyline
           points={polyPoints}
           fill="none"
-          stroke="#357"
+          stroke="#2a4d3a"
           strokeWidth={2}
         />
         {handles.map((h, i) => (
@@ -169,7 +169,7 @@ export function WithdrawalCurve({
               textAnchor="middle"
               fontSize={10}
               fontWeight={500}
-              fill="#357"
+              fill="#2a4d3a"
               style={{
                 paintOrder: 'stroke',
                 stroke: '#fff',
@@ -188,7 +188,7 @@ export function WithdrawalCurve({
             cy={y(h.rate) + margin.top}
             r={6}
             fill="#fff"
-            stroke="#357"
+            stroke="#2a4d3a"
             strokeWidth={2}
             cursor="ns-resize"
             // d3-drag attaches its own handlers; React doesn't need any.
@@ -205,11 +205,11 @@ export function WithdrawalCurve({
           y={height - 6}
           textAnchor="end"
           fontSize={10}
-          fill="#888"
+          fill="#9b998e"
         >
           year {horizonYears}
         </text>
-        <text x={margin.left} y={height - 6} fontSize={10} fill="#888">
+        <text x={margin.left} y={height - 6} fontSize={10} fill="#9b998e">
           year 0
         </text>
       </svg>

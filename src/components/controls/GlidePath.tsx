@@ -210,12 +210,12 @@ export function GlidePath({
             cy={handlePos[k].cy}
             r={6}
             fill="#fff"
-            stroke="#222"
+            stroke="#1c1c19"
             strokeWidth={2}
             cursor="ns-resize"
           />
         ))}
-        <text x={margin.left} y={height - 6} fontSize={10} fill="#888">
+        <text x={margin.left} y={height - 6} fontSize={10} fill="#9b998e">
           year 0
         </text>
         <text
@@ -223,7 +223,7 @@ export function GlidePath({
           y={height - 6}
           textAnchor="end"
           fontSize={10}
-          fill="#888"
+          fill="#9b998e"
         >
           year {horizonYears}
         </text>

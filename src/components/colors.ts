@@ -6,14 +6,14 @@
  */
 
 export const ASSET = {
-  stock: '#059669', // emerald-600
-  bond: '#b08e3a',  // gold
-  cash: '#7c3aed',  // violet-600
+  stock: '#6b8e7a', // sage
+  bond: '#c8b896',  // wheat
+  cash: '#3a5878',  // slate
 };
 
 export const OUTCOME = {
-  survived: '#2c5282',  // slate-blue
-  depleted: '#d33',
-  inProgress: '#888',
-  snapshot: '#c44',     // current vs snapshot in compare mode
+  survived: '#2a4d3a',   // forest
+  depleted: '#b45a4a',   // clay
+  inProgress: '#9b998e', // muted ink
+  snapshot: '#3a5878',   // slate — current vs snapshot in compare mode
 };

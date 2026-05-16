@@ -98,16 +98,16 @@ export function SleeveChart({
         <g transform={`translate(${margin.left},${margin.top})`}>
           {yTicks.map((v) => (
             <g key={v} transform={`translate(0,${y(v)})`}>
-              <line x1={0} x2={innerW} stroke="#eee" />
-              <text x={-8} dy="0.32em" textAnchor="end" fontSize={11} fill="#666">
+              <line x1={0} x2={innerW} stroke="#e6e1d2" />
+              <text x={-8} dy="0.32em" textAnchor="end" fontSize={11} fill="#6b6a62">
                 {fmt(v)}
               </text>
             </g>
           ))}
           {xTicks.map((v) => (
             <g key={v} transform={`translate(${x(v)},${innerH})`}>
-              <line y1={0} y2={6} stroke="#999" />
-              <text y={20} textAnchor="middle" fontSize={11} fill="#666">
+              <line y1={0} y2={6} stroke="#9b998e" />
+              <text y={20} textAnchor="middle" fontSize={11} fill="#6b6a62">
                 y{v}
               </text>
             </g>
@@ -127,11 +127,11 @@ export function SleeveChart({
             transform={`translate(${-48},${innerH / 2}) rotate(-90)`}
             textAnchor="middle"
             fontSize={11}
-            fill="#444"
+            fill="#3a3a36"
           >
             balance (real $)
           </text>
-          <text x={innerW / 2} y={innerH + 32} textAnchor="middle" fontSize={11} fill="#444">
+          <text x={innerW / 2} y={innerH + 32} textAnchor="middle" fontSize={11} fill="#3a3a36">
             years into retirement
           </text>
         </g>

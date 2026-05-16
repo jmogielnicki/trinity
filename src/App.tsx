@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
+import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { ScenarioActions } from './components/controls/ScenarioActions';
@@ -9,6 +11,7 @@ import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInput';
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { Heatmap } from './components/results/Heatmap';
+import { HeroCard } from './components/results/HeroCard';
 import { SmallMultiples } from './components/results/SmallMultiples';
 import { Legend } from './components/results/Legend';
 import { OutcomeStrip } from './components/results/OutcomeStrip';
@@ -31,6 +34,70 @@ import './App.css';
 
 type View = 'spaghetti' | 'calendar' | 'whereami' | 'sleeves';
 type TopMode = 'single' | 'optimize' | 'evolve' | 'compare';
+
+const CHART_TITLES: Record<View, { lead: string; em: string; sub: string }> = {
+  spaghetti: {
+    lead: 'Outcome ',
+    em: 'envelope',
+    sub: 'Every historical start year as a trajectory. Red lines are failing cohorts.',
+  },
+  calendar: {
+    lead: 'Calendar of ',
+    em: 'cohorts',
+    sub: 'Every retirement start year, colored by portfolio balance over time.',
+  },
+  whereami: {
+    lead: 'Where am ',
+    em: 'I?',
+    sub: 'Recent in-progress retirees against the historical percentile band.',
+  },
+  sleeves: {
+    lead: 'Asset ',
+    em: 'sleeves',
+    sub: 'Stocks / bonds / cash mix across cohorts over the horizon.',
+  },
+};
+
+function StepHead({
+  n,
+  color,
+  title,
+  desc,
+}: {
+  n: number;
+  color: 'a' | 'b' | 'c' | 'd';
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="step-head">
+      <div className={`step-num ${color}`}>{n}</div>
+      <div>
+        <div className="step-title">{title}</div>
+        <div className="step-desc">{desc}</div>
+      </div>
+    </div>
+  );
+}
+
+function TopBar({ workers }: { workers: number | null }) {
+  return (
+    <div className="topbar">
+      <div className="brand">
+        <div className="brand-mark">h</div>
+        <div className="brand-name">
+          Historical <em>Withdrawal</em> Simulator
+        </div>
+      </div>
+      <div className="top-actions">
+        <div className="pill-status">
+          <span className="dot" />
+          {workers ? `Live · ${workers} workers` : 'Loading…'}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function App() {
   const scenario = useScenarioStore();
@@ -155,24 +222,109 @@ export function App() {
   ]);
 
   const showSweepViews = !!grid && grid.axes.length > 0;
+  const chart = CHART_TITLES[view];
+
+  const viewTabs: Array<{ k: View; label: string }> = [
+    { k: 'spaghetti', label: 'spaghetti' },
+    { k: 'calendar', label: 'calendar' },
+    { k: 'whereami', label: 'where am i' },
+    { k: 'sleeves', label: 'sleeves' },
+  ];
+
+  let chartBody: ReactNode = null;
+  if (data && result && !showSweepViews) {
+    if (view === 'spaghetti') {
+      chartBody = (
+        <>
+          <div className="spaghetti-row">
+            <SpaghettiChart
+              result={result}
+              overlay={snapshot?.result ?? null}
+              selectedYears={selectedYears}
+              onToggle={toggleYear}
+              onMarquee={marqueeYears}
+            />
+            <SuccessBar result={result} />
+          </div>
+          <OutcomeStrip
+            result={result}
+            selectedYears={selectedYears}
+            onToggle={toggleYear}
+            onMarquee={marqueeYears}
+            onClear={clearSelection}
+          />
+          <Legend />
+        </>
+      );
+    } else if (view === 'calendar') {
+      chartBody = (
+        <CalendarHeatmap
+          result={result}
+          initialBalance={scenario.initialBalance}
+        />
+      );
+    } else if (view === 'whereami') {
+      chartBody = (
+        <WhereAmI
+          result={result}
+          horizonYears={scenario.horizonYears}
+          initialBalance={scenario.initialBalance}
+          dataEnd={data.end}
+        />
+      );
+    } else {
+      chartBody = (
+        <SleeveChart result={result} selectedYears={selectedYears} />
+      );
+    }
+  }
 
   return (
     <div className="app">
-      <header>
-        <h1>Historical Withdrawal Simulator</h1>
-        <p className="subtitle">
-          Stress-test against every retirement start year from{' '}
-          {data?.start ?? '…'} to {data?.end ?? '…'}.
-        </p>
-      </header>
-      <div className="layout">
-        <aside className="controls">
+      <TopBar workers={pool?.size ?? null} />
+
+      <aside className="sidebar">
+        <div className="side-header">
+          <h1>
+            Historical <em>withdrawal</em> simulator
+          </h1>
+          <p>
+            Stress-test against every retirement start year from{' '}
+            {data?.start ?? '…'} to {data?.end ?? '…'}.
+          </p>
+        </div>
+
+        <div className="group">
+          <StepHead
+            n={1}
+            color="a"
+            title="Starting point"
+            desc="Pick a historical preset or set your own numbers."
+          />
           <PresetPicker />
           <PortfolioInput />
+        </div>
+
+        <div className="group">
+          <StepHead
+            n={2}
+            color="b"
+            title="Glide path"
+            desc="Shape the stocks / bonds / cash mix over the horizon."
+          />
           <AllocationEditor
             horizonYears={scenario.horizonYears}
             allocation={scenario.allocation}
             onChange={scenario.setAllocation}
+          />
+        </div>
+
+        <div className="group">
+          <StepHead
+            n={3}
+            color="c"
+            title="Withdrawal plan"
+            desc="Shape spending over time and choose where it is drawn from."
           />
           <WithdrawalEditor
             horizonYears={scenario.horizonYears}
@@ -180,129 +332,128 @@ export function App() {
             onChange={scenario.setWithdrawal}
           />
           <WithdrawalSourceInput />
+        </div>
+
+        <div className="group">
+          <StepHead
+            n={4}
+            color="d"
+            title="Sweeps & data"
+            desc="Vary parameters, handle partial data, save and share."
+          />
           <TailMethodInput />
           <SweepSelector />
           <ScenarioActions />
           <ScenarioLibrary />
-        </aside>
-        <main className="results">
-          <div className="top-mode-tabs">
-            <button
-              className={topMode === 'single' ? 'active' : ''}
-              onClick={() => setTopMode('single')}
-            >
-              Single scenario
-            </button>
-            <button
-              className={topMode === 'optimize' ? 'active' : ''}
-              onClick={() => setTopMode('optimize')}
-            >
-              Optimize / frontier
-            </button>
-            <button
-              className={topMode === 'evolve' ? 'active' : ''}
-              onClick={() => setTopMode('evolve')}
-            >
-              Evolve
-            </button>
-            <button
-              className={topMode === 'compare' ? 'active' : ''}
-              onClick={() => setTopMode('compare')}
-            >
-              Compare scenarios
-            </button>
-          </div>
-          {topMode === 'optimize' && <FrontierView />}
-          {topMode === 'evolve' && <EvolveView />}
-          {topMode === 'compare' && <CompareScenariosView />}
-          {topMode === 'single' && <>
-          {!data && <div className="loading">Loading historical data…</div>}
-          {data && (
-            <div className="compute-meta">
-              Compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
-              {pool && <span className="pool-meta"> ({pool.size} workers)</span>}
-              {result && !showSweepViews && (
-                <span className="view-toggle">
-                  view:
-                  <button
-                    className={view === 'spaghetti' ? 'active' : ''}
-                    onClick={() => setView('spaghetti')}
-                  >
-                    spaghetti
-                  </button>
-                  <button
-                    className={view === 'calendar' ? 'active' : ''}
-                    onClick={() => setView('calendar')}
-                  >
-                    calendar
-                  </button>
-                  <button
-                    className={view === 'whereami' ? 'active' : ''}
-                    onClick={() => setView('whereami')}
-                  >
-                    where am i
-                  </button>
-                  <button
-                    className={view === 'sleeves' ? 'active' : ''}
-                    onClick={() => setView('sleeves')}
-                  >
-                    sleeves
-                  </button>
-                </span>
-              )}
-            </div>
-          )}
-          {data && result && !showSweepViews && (
-            <>
-              <StatPanel result={result} />
-              {view === 'spaghetti' && (
-                <>
-                  <div className="spaghetti-row">
-                    <SpaghettiChart
-                      result={result}
-                      overlay={snapshot?.result ?? null}
-                      selectedYears={selectedYears}
-                      onToggle={toggleYear}
-                      onMarquee={marqueeYears}
-                    />
-                    <SuccessBar result={result} />
-                  </div>
-                  <OutcomeStrip
+        </div>
+
+        <button
+          className="run-cta"
+          disabled={computing || !data || !pool}
+          onClick={() => void recompute(scenario, sweep)}
+        >
+          {computing ? 'Running…' : 'Re-run simulation'}
+        </button>
+
+        <div className="footnote">
+          Data: Shiller real returns, {data?.start ?? '1871'}–
+          {data?.end ?? 'present'}. All amounts pre-tax, in today's dollars.
+        </div>
+      </aside>
+
+      <main className="canvas">
+        <div className="tabs">
+          <button
+            className={topMode === 'single' ? 'active' : ''}
+            onClick={() => setTopMode('single')}
+          >
+            Single scenario
+          </button>
+          <button
+            className={topMode === 'optimize' ? 'active' : ''}
+            onClick={() => setTopMode('optimize')}
+          >
+            Optimize / frontier
+          </button>
+          <button
+            className={topMode === 'evolve' ? 'active' : ''}
+            onClick={() => setTopMode('evolve')}
+          >
+            Evolve
+          </button>
+          <button
+            className={topMode === 'compare' ? 'active' : ''}
+            onClick={() => setTopMode('compare')}
+          >
+            Compare scenarios
+          </button>
+        </div>
+
+        {topMode === 'optimize' && <FrontierView />}
+        {topMode === 'evolve' && <EvolveView />}
+        {topMode === 'compare' && <CompareScenariosView />}
+
+        {topMode === 'single' && (
+          <div className="results">
+            {!data && (
+              <div className="loading">Loading historical data…</div>
+            )}
+            {data && (
+              <div className="compute-meta">
+                compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
+                {pool && (
+                  <span className="pool-meta">· {pool.size} workers</span>
+                )}
+              </div>
+            )}
+
+            {data && result && !showSweepViews && (
+              <>
+                <div className="hero-grid">
+                  <HeroCard
                     result={result}
-                    selectedYears={selectedYears}
-                    onToggle={toggleYear}
-                    onMarquee={marqueeYears}
-                    onClear={clearSelection}
+                    horizonYears={scenario.horizonYears}
                   />
-                </>
-              )}
-              {view === 'calendar' && (
-                <CalendarHeatmap
-                  result={result}
-                  initialBalance={scenario.initialBalance}
-                />
-              )}
-              {view === 'whereami' && (
-                <WhereAmI
-                  result={result}
-                  horizonYears={scenario.horizonYears}
-                  initialBalance={scenario.initialBalance}
-                  dataEnd={data.end}
-                />
-              )}
-              {view === 'sleeves' && (
-                <SleeveChart result={result} selectedYears={selectedYears} />
-              )}
-              {view === 'spaghetti' && <Legend />}
-            </>
-          )}
-          {data && grid && grid.axes.length === 1 && (
-            <SmallMultiples grid={grid} />
-          )}
-          {data && grid && grid.axes.length === 2 && <Heatmap grid={grid} />}
-          </>}
-        </main>
-      </div>
+                  <StatPanel result={result} />
+                </div>
+
+                <div className="chart-card">
+                  <div className="chart-head">
+                    <div>
+                      <div className="chart-title">
+                        {chart.lead}
+                        <em>{chart.em}</em>
+                      </div>
+                      <div className="step-desc" style={{ maxWidth: '60ch' }}>
+                        {chart.sub}
+                      </div>
+                    </div>
+                    <div className="chart-tools">
+                      <div className="seg">
+                        {viewTabs.map((t) => (
+                          <button
+                            key={t.k}
+                            className={view === t.k ? 'active' : ''}
+                            onClick={() => setView(t.k)}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {chartBody}
+                </div>
+              </>
+            )}
+
+            {data && grid && grid.axes.length === 1 && (
+              <SmallMultiples grid={grid} />
+            )}
+            {data && grid && grid.axes.length === 2 && <Heatmap grid={grid} />}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

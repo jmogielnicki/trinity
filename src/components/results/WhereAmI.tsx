@@ -191,28 +191,28 @@ function Card({
         <g transform={`translate(${margin.left},${margin.top})`}>
           {y.ticks(4).map((v) => (
             <g key={v} transform={`translate(0,${y(v)})`}>
-              <line x1={0} x2={innerW} stroke="#eee" />
-              <text x={-6} dy="0.32em" textAnchor="end" fontSize={10} fill="#666">
+              <line x1={0} x2={innerW} stroke="#e6e1d2" />
+              <text x={-6} dy="0.32em" textAnchor="end" fontSize={10} fill="#6b6a62">
                 {fmt$(v)}
               </text>
             </g>
           ))}
-          <path d={bandArea(outerBand) ?? ''} fill="#357" fillOpacity={0.08} />
-          <path d={bandArea(innerBand) ?? ''} fill="#357" fillOpacity={0.16} />
-          <path d={medianLine(median) ?? ''} fill="none" stroke="#357" strokeWidth={1.2} strokeDasharray="3,3" />
+          <path d={bandArea(outerBand) ?? ''} fill="#2a4d3a" fillOpacity={0.08} />
+          <path d={bandArea(innerBand) ?? ''} fill="#2a4d3a" fillOpacity={0.16} />
+          <path d={medianLine(median) ?? ''} fill="none" stroke="#2a4d3a" strokeWidth={1.2} strokeDasharray="3,3" />
           <path
             d={realizedLine(prefix) ?? ''}
             fill="none"
-            stroke="#c44"
+            stroke="#b45a4a"
             strokeWidth={2}
           />
-          <circle cx={x(tCurrent)} cy={y(currentBalance)} r={3.5} fill="#c44" />
+          <circle cx={x(tCurrent)} cy={y(currentBalance)} r={3.5} fill="#b45a4a" />
           <text
             x={innerW / 2}
             y={innerH + 22}
             textAnchor="middle"
             fontSize={10}
-            fill="#666"
+            fill="#6b6a62"
           >
             year (data through {dataEnd})
           </text>

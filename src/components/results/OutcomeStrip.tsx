@@ -112,7 +112,7 @@ export function OutcomeStrip({
         style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
       >
         <g transform={`translate(${margin.left},${margin.top})`}>
-          <text x={-8} y={stripH / 2} dy="0.32em" textAnchor="end" fontSize={11} fill="#444">
+          <text x={-8} y={stripH / 2} dy="0.32em" textAnchor="end" fontSize={11} fill="#3a3a36">
             start year
           </text>
           {sims.map((s) => {
@@ -139,7 +139,7 @@ export function OutcomeStrip({
                     width={Math.max(2, colW + 0.5)}
                     height={stripH + 2}
                     fill="none"
-                    stroke="#111"
+                    stroke="#1c1c19"
                     strokeWidth={1.5}
                     pointerEvents="none"
                   />
@@ -157,8 +157,8 @@ export function OutcomeStrip({
           })}
           {ticks.map((y) => (
             <g key={y} transform={`translate(${((y - firstYear) / (span + 1)) * innerW},${stripH})`}>
-              <line y1={0} y2={4} stroke="#888" />
-              <text y={16} textAnchor="middle" fontSize={10} fill="#666">
+              <line y1={0} y2={4} stroke="#9b998e" />
+              <text y={16} textAnchor="middle" fontSize={10} fill="#6b6a62">
                 {y}
               </text>
             </g>
@@ -169,9 +169,9 @@ export function OutcomeStrip({
               y={-1}
               width={Math.abs(drag.x1 - drag.x0)}
               height={stripH + 2}
-              fill="#357"
+              fill="#2a4d3a"
               fillOpacity={0.12}
-              stroke="#357"
+              stroke="#2a4d3a"
               strokeWidth={1}
               strokeDasharray="3,3"
               pointerEvents="none"

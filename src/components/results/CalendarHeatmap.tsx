@@ -50,7 +50,7 @@ export function CalendarHeatmap({ result, initialBalance, width = 800 }: Props) 
             y={padT + i * cellH + cellH - 1}
             textAnchor="end"
             fontSize={10}
-            fill="#666"
+            fill="#6b6a62"
           >
             {year}
           </text>
