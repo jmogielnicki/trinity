@@ -18,9 +18,20 @@ const DEFAULT_REFILL: RefillRule = {
   targetSleeve: 'cash',
   floor: 0.08,
   ceiling: 0.15,
-  sourceSleeve: 'stock',
-  sourceMinRatio: 1.0,
+  sourceSleeve: 'bond',
+  sourceMinRatio: undefined,
 };
+
+const DEFAULT_REFILL_CHAIN: RefillRule[] = [
+  DEFAULT_REFILL,
+  {
+    targetSleeve: 'bond',
+    floor: 0.25,
+    ceiling: 0.35,
+    sourceSleeve: 'stock',
+    sourceMinRatio: 1.0,
+  },
+];
 
 export function WithdrawalSourceInput() {
   const { withdrawalSource, setWithdrawalSource } = useScenarioStore();
@@ -57,10 +68,10 @@ export function WithdrawalSourceInput() {
             setWithdrawalSource({
               type: 'bucket',
               order: DEFAULT_WATERFALL_ORDER,
-              refill: DEFAULT_REFILL,
+              refill: DEFAULT_REFILL_CHAIN,
             })
           }
-          title="Waterfall plus a refill rule: top up cash from stocks when cash runs low and stocks are doing well."
+          title="Waterfall plus refill rules: top up cash from bonds, top up bonds from stocks when stocks are doing well."
         >
           bucket
         </button>
@@ -171,10 +182,17 @@ function BucketEditor({
 }) {
   const update = (patch: Partial<Extract<WithdrawalSource, { type: 'bucket' }>>) =>
     onChange({ ...source, ...patch });
-  const updateRefill = (patch: Partial<RefillRule>) =>
-    onChange({ ...source, refill: { ...source.refill, ...patch } });
-  const r = source.refill;
-  const hasGate = r.sourceMinRatio != null;
+
+  const updateRule = (idx: number, patch: Partial<RefillRule>) => {
+    const next = source.refill.map((r, i) => (i === idx ? { ...r, ...patch } : r));
+    update({ refill: next });
+  };
+
+  const removeRule = (idx: number) =>
+    update({ refill: source.refill.filter((_, i) => i !== idx) });
+
+  const addRule = () =>
+    update({ refill: [...source.refill, { ...DEFAULT_REFILL }] });
 
   return (
     <>
@@ -182,84 +200,119 @@ function BucketEditor({
         order={source.order}
         onChange={(order) => update({ order })}
       />
-      <div className="bucket-refill">
-        <div className="control-label">Refill rule</div>
-        <div className="rule-line">
-          <span>refill</span>
-          <select
-            value={r.targetSleeve}
-            onChange={(e) =>
-              updateRefill({ targetSleeve: e.target.value as Sleeve })
-            }
-          >
-            {SLEEVES.map((s) => (
-              <option key={s} value={s}>
-                {SLEEVE_LABELS[s]}
-              </option>
-            ))}
-          </select>
-          <span>when below</span>
-          <input
-            type="number"
-            className="axis-num"
-            step={1}
-            min={0}
-            max={100}
-            value={(r.floor * 100).toFixed(1)}
-            onChange={(e) => updateRefill({ floor: +e.target.value / 100 })}
-          />
-          <span>%, up to</span>
-          <input
-            type="number"
-            className="axis-num"
-            step={1}
-            min={0}
-            max={100}
-            value={(r.ceiling * 100).toFixed(1)}
-            onChange={(e) => updateRefill({ ceiling: +e.target.value / 100 })}
-          />
-          <span>%</span>
-        </div>
-        <div className="rule-line">
-          <span>sell from</span>
-          <select
-            value={r.sourceSleeve}
-            onChange={(e) =>
-              updateRefill({ sourceSleeve: e.target.value as Sleeve })
-            }
-          >
-            {SLEEVES.map((s) => (
-              <option key={s} value={s}>
-                {SLEEVE_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <label className="rebalance-row">
-          <input
-            type="checkbox"
-            checked={hasGate}
-            onChange={(e) =>
-              updateRefill({ sourceMinRatio: e.target.checked ? 1.0 : undefined })
-            }
-          />
-          only when source ≥
-          <input
-            type="number"
-            className="axis-num"
-            disabled={!hasGate}
-            step={5}
-            value={hasGate ? Math.round((r.sourceMinRatio ?? 1) * 100) : 100}
-            onChange={(e) => updateRefill({ sourceMinRatio: +e.target.value / 100 })}
-          />
-          <span>% of its initial value</span>
-        </label>
-        <div className="rule-hint">
-          Draws from cash first; when cash drops below the floor and (if gated)
-          the source is doing well, sells from the source to bring cash back
-          up to the ceiling.
-        </div>
+      {source.refill.map((r, idx) => (
+        <RefillRuleEditor
+          key={idx}
+          rule={r}
+          index={idx}
+          total={source.refill.length}
+          onChange={(patch) => updateRule(idx, patch)}
+          onRemove={() => removeRule(idx)}
+        />
+      ))}
+      {source.refill.length < 3 && (
+        <button className="x-btn" onClick={addRule} style={{ marginTop: 4 }}>
+          + add refill rule
+        </button>
+      )}
+      <div className="rule-hint">
+        Rules run in order after returns. Each rule only fires when its target
+        sleeve is below its floor threshold.
       </div>
     </>
+  );
+}
+
+function RefillRuleEditor({
+  rule,
+  index,
+  total,
+  onChange,
+  onRemove,
+}: {
+  rule: RefillRule;
+  index: number;
+  total: number;
+  onChange: (patch: Partial<RefillRule>) => void;
+  onRemove: () => void;
+}) {
+  const hasGate = rule.sourceMinRatio != null;
+  return (
+    <div className="bucket-refill">
+      <div className="control-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span>Refill rule {total > 1 ? index + 1 : ''}</span>
+        {total > 1 && (
+          <button className="x-btn" onClick={onRemove} title="remove rule">
+            ✕
+          </button>
+        )}
+      </div>
+      <div className="rule-line">
+        <span>refill</span>
+        <select
+          value={rule.targetSleeve}
+          onChange={(e) => onChange({ targetSleeve: e.target.value as Sleeve })}
+        >
+          {SLEEVES.map((s) => (
+            <option key={s} value={s}>
+              {SLEEVE_LABELS[s]}
+            </option>
+          ))}
+        </select>
+        <span>when below</span>
+        <input
+          type="number"
+          className="axis-num"
+          step={1}
+          min={0}
+          max={100}
+          value={(rule.floor * 100).toFixed(1)}
+          onChange={(e) => onChange({ floor: +e.target.value / 100 })}
+        />
+        <span>%, up to</span>
+        <input
+          type="number"
+          className="axis-num"
+          step={1}
+          min={0}
+          max={100}
+          value={(rule.ceiling * 100).toFixed(1)}
+          onChange={(e) => onChange({ ceiling: +e.target.value / 100 })}
+        />
+        <span>%</span>
+      </div>
+      <div className="rule-line">
+        <span>sell from</span>
+        <select
+          value={rule.sourceSleeve}
+          onChange={(e) => onChange({ sourceSleeve: e.target.value as Sleeve })}
+        >
+          {SLEEVES.map((s) => (
+            <option key={s} value={s}>
+              {SLEEVE_LABELS[s]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <label className="rebalance-row">
+        <input
+          type="checkbox"
+          checked={hasGate}
+          onChange={(e) =>
+            onChange({ sourceMinRatio: e.target.checked ? 1.0 : undefined })
+          }
+        />
+        only when source ≥
+        <input
+          type="number"
+          className="axis-num"
+          disabled={!hasGate}
+          step={5}
+          value={hasGate ? Math.round((rule.sourceMinRatio ?? 1) * 100) : 100}
+          onChange={(e) => onChange({ sourceMinRatio: +e.target.value / 100 })}
+        />
+        <span>% of its initial value</span>
+      </label>
+    </div>
   );
 }
