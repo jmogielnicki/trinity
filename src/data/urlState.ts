@@ -17,6 +17,7 @@ export type SerializedState = {
   axes: Record<Axis, AxisMode>;
   tailMethod?: TailMethod;
   withdrawalSource?: WithdrawalSource;
+  view?: string;
 };
 
 const HASH_KEY = 's=';
