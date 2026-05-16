@@ -1,18 +1,111 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useOptimizeStore, OPTIMIZE_MAX_SELECTED } from '../../store/optimizeStore';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { interpolatePlasma } from 'd3-scale-chromatic';
+
+/**
+ * Plasma clamped to its darker portion (skips the bright pale-yellow end so
+ * high-value points stay visible against the white background).
+ */
+function colorScale(t: number): string {
+  const clamped = Math.max(0, Math.min(1, t));
+  return interpolatePlasma(0.1 + clamped * 0.7);
+}
+import { useOptimizeStore } from '../../store/optimizeStore';
 import { useResultsStore } from '../../store/resultsStore';
 import { useScenarioStore } from '../../store/scenarioStore';
-import type { CandidateResult } from '../../engine/optimize';
+import { NEAR_DEPLETION_FRACTION, type CandidateResult } from '../../engine/optimize';
 
-type XAxis = 'successRate' | 'p5Final';
-type YAxis = 'p50Final' | 'p95Final';
+type Axis =
+  | 'successRate'
+  | 'p5Final'
+  | 'p50Final'
+  | 'p95Final'
+  | 'avgAnnualWithdrawal'
+  | 'avgYearsNearDepletion';
+
+const AXIS_LABELS: Record<Axis, string> = {
+  successRate: 'Success rate',
+  p5Final: '5th-pct final balance',
+  p50Final: 'Median final balance',
+  p95Final: '95th-pct final balance',
+  avgAnnualWithdrawal: 'Avg annual withdrawal',
+  avgYearsNearDepletion: 'Avg years near depletion',
+};
+
+const AXIS_OPTIONS: Axis[] = [
+  'successRate',
+  'p5Final',
+  'p50Final',
+  'p95Final',
+  'avgAnnualWithdrawal',
+  'avgYearsNearDepletion',
+];
+
+type ColorBy =
+  | 'frontier'
+  | 'stockPct'
+  | 'withdrawalRate'
+  | 'floor'
+  | 'marginalSpend'
+  | 'successRate'
+  | 'avgYearsNearDepletion';
+
+const COLOR_BY_LABELS: Record<ColorBy, string> = {
+  frontier: 'Pareto frontier',
+  stockPct: 'Stock %',
+  withdrawalRate: 'Withdrawal rate (fixed)',
+  floor: 'Floor % (floor+upside)',
+  marginalSpend: 'Marginal spend ($k per $1M over)',
+  successRate: 'Success rate',
+  avgYearsNearDepletion: 'Years near depletion',
+};
+
+function colorValue(r: CandidateResult, c: ColorBy): number | undefined {
+  switch (c) {
+    case 'frontier':
+      return undefined;
+    case 'stockPct':
+      return r.candidate.numericParams.stockPct;
+    case 'withdrawalRate':
+      return r.candidate.numericParams.withdrawalRate;
+    case 'floor':
+      return r.candidate.numericParams.floor;
+    case 'marginalSpend':
+      return r.candidate.numericParams.marginalSpend;
+    case 'successRate':
+      return Number.isFinite(r.metrics.successRate) ? r.metrics.successRate : undefined;
+    case 'avgYearsNearDepletion':
+      return Number.isFinite(r.metrics.avgYearsNearDepletion)
+        ? r.metrics.avgYearsNearDepletion
+        : undefined;
+  }
+}
+
+function formatColorValue(c: ColorBy, v: number): string {
+  switch (c) {
+    case 'stockPct':
+    case 'withdrawalRate':
+    case 'floor':
+    case 'successRate':
+      return `${(v * 100).toFixed(0)}%`;
+    case 'marginalSpend':
+      return `$${Math.round(v * 1000)}k`;
+    case 'avgYearsNearDepletion':
+      return v.toFixed(1);
+    case 'frontier':
+      return '';
+  }
+}
 
 const SERIES_COLORS = [
   '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
   '#8c564b', '#e377c2', '#17becf', '#bcbd22', '#7f7f7f',
 ];
 
-export function FrontierView() {
+type Props = {
+  onApplied?: () => void;
+};
+
+export function FrontierView({ onApplied }: Props) {
   const scenario = useScenarioStore();
   const pool = useResultsStore((s) => s.pool);
   const data = useResultsStore((s) => s.data);
@@ -20,17 +113,21 @@ export function FrontierView() {
     results,
     frontier,
     selectedIds,
+    minSuccessRate,
     running,
     computeMs,
     lastConfig,
     run,
     toggleSelected,
+    setSelected,
     selectAllFrontier,
     clearSelection,
+    setMinSuccessRate,
   } = useOptimizeStore();
 
-  const [xAxis, setXAxis] = useState<XAxis>('successRate');
-  const [yAxis, setYAxis] = useState<YAxis>('p50Final');
+  const [xAxis, setXAxis] = useState<Axis>('successRate');
+  const [yAxis, setYAxis] = useState<Axis>('avgAnnualWithdrawal');
+  const [colorBy, setColorBy] = useState<ColorBy>('stockPct');
 
   const runSearch = () => {
     if (!pool || !data) return;
@@ -44,18 +141,34 @@ export function FrontierView() {
     );
   };
 
-  // Auto-run once when entering the view if we have nothing yet.
   useEffect(() => {
     if (!pool || !data) return;
     if (results.length === 0 && !running) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pool, data]);
 
+  // Filtered results — drives both the scatter (hides non-passers) and the
+  // frontier set (the store already recomputes the front on filter change).
+  const filteredResults = useMemo(
+    () =>
+      results.filter(
+        (r) =>
+          Number.isFinite(r.metrics.successRate) &&
+          r.metrics.successRate >= minSuccessRate,
+      ),
+    [results, minSuccessRate],
+  );
   const frontierIds = useMemo(
     () => new Set(frontier.map((r) => r.candidate.id)),
     [frontier],
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  const applyStrategy = (r: CandidateResult) => {
+    scenario.setAllocation(r.candidate.allocation);
+    scenario.setWithdrawal(r.candidate.withdrawal);
+    onApplied?.();
+  };
 
   return (
     <div className="frontier-view">
@@ -63,8 +176,8 @@ export function FrontierView() {
         <div>
           <strong>Strategy frontier</strong> — searches{' '}
           {results.length || '…'} candidate strategies, highlights the Pareto-
-          optimal set (best on at least one of: success rate, median final,
-          95th-pct final). Uses current horizon ({scenario.horizonYears}y),
+          optimal set on success rate, avg annual withdrawal, median final, and
+          95th-pct final. Uses current horizon ({scenario.horizonYears}y),
           starting balance, and tail method.
         </div>
         <div className="frontier-actions">
@@ -81,9 +194,9 @@ export function FrontierView() {
       </div>
       {!!results.length && (
         <div className="frontier-meta">
-          {results.length} candidates · {frontier.length} on Pareto frontier ·
-          compute {computeMs.toFixed(0)} ms · select up to {OPTIMIZE_MAX_SELECTED} for
-          comparison ({selectedIds.length} selected)
+          {filteredResults.length}/{results.length} candidates passing ·{' '}
+          {frontier.length} on Pareto frontier · compute {computeMs.toFixed(0)} ms ·{' '}
+          {selectedIds.length} selected
           {lastConfig && lastConfig.horizonYears !== scenario.horizonYears && (
             <span className="frontier-stale">
               {' '}
@@ -95,40 +208,78 @@ export function FrontierView() {
 
       {results.length > 0 && (
         <>
-          <div className="frontier-axes">
-            <label>
+          <div className="frontier-controls">
+            <label className="frontier-axis-pick">
               x:
               <select
                 value={xAxis}
-                onChange={(e) => setXAxis(e.target.value as XAxis)}
+                onChange={(e) => setXAxis(e.target.value as Axis)}
               >
-                <option value="successRate">Success rate</option>
-                <option value="p5Final">5th-pct final balance</option>
+                {AXIS_OPTIONS.map((a) => (
+                  <option key={a} value={a}>
+                    {AXIS_LABELS[a]}
+                  </option>
+                ))}
               </select>
             </label>
-            <label>
+            <label className="frontier-axis-pick">
               y:
               <select
                 value={yAxis}
-                onChange={(e) => setYAxis(e.target.value as YAxis)}
+                onChange={(e) => setYAxis(e.target.value as Axis)}
               >
-                <option value="p50Final">Median final balance</option>
-                <option value="p95Final">95th-pct final balance</option>
+                {AXIS_OPTIONS.map((a) => (
+                  <option key={a} value={a}>
+                    {AXIS_LABELS[a]}
+                  </option>
+                ))}
               </select>
+            </label>
+            <label className="frontier-axis-pick">
+              color:
+              <select
+                value={colorBy}
+                onChange={(e) => setColorBy(e.target.value as ColorBy)}
+              >
+                {(Object.keys(COLOR_BY_LABELS) as ColorBy[]).map((c) => (
+                  <option key={c} value={c}>
+                    {COLOR_BY_LABELS[c]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="frontier-filter">
+              min success ≥
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(minSuccessRate * 100)}
+                onChange={(e) =>
+                  setMinSuccessRate(parseInt(e.target.value, 10) / 100)
+                }
+              />
+              <span className="frontier-filter-val">
+                {(minSuccessRate * 100).toFixed(0)}%
+              </span>
             </label>
           </div>
           <ScatterPlot
-            results={results}
+            results={filteredResults}
             frontierIds={frontierIds}
             selectedIds={selectedSet}
             onToggle={toggleSelected}
+            onMarquee={setSelected}
             xAxis={xAxis}
             yAxis={yAxis}
+            colorBy={colorBy}
           />
           <ComparisonTable
             results={results}
             selectedIds={selectedIds}
             onRemove={toggleSelected}
+            onApply={applyStrategy}
           />
           <ComparisonBars results={results} selectedIds={selectedIds} />
           <FrontierList
@@ -143,7 +294,7 @@ export function FrontierView() {
 }
 
 // ---------------------------------------------------------------------------
-// Scatter plot
+// Scatter plot with marquee selection
 // ---------------------------------------------------------------------------
 
 function ScatterPlot({
@@ -151,20 +302,33 @@ function ScatterPlot({
   frontierIds,
   selectedIds,
   onToggle,
+  onMarquee,
   xAxis,
   yAxis,
+  colorBy,
 }: {
   results: CandidateResult[];
   frontierIds: Set<string>;
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
-  xAxis: XAxis;
-  yAxis: YAxis;
+  onMarquee: (ids: string[]) => void;
+  xAxis: Axis;
+  yAxis: Axis;
+  colorBy: ColorBy;
 }) {
   const [hover, setHover] = useState<CandidateResult | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [marquee, setMarquee] = useState<{
+    x0: number; y0: number; x1: number; y1: number;
+  } | null>(null);
+  const dragStateRef = useRef<{
+    start: { x: number; y: number };
+    moved: boolean;
+  } | null>(null);
+
   const W = 720;
   const H = 360;
-  const padL = 64;
+  const padL = 70;
   const padR = 16;
   const padT = 12;
   const padB = 40;
@@ -173,10 +337,14 @@ function ScatterPlot({
   const yVals = results.map((r) => r.metrics[yAxis]).filter(Number.isFinite);
   if (xVals.length === 0 || yVals.length === 0) return null;
 
-  const xMin = Math.min(...xVals);
-  const xMax = Math.max(...xVals);
-  const yMin = 0;
-  const yMax = Math.max(...yVals);
+  const xMinRaw = Math.min(...xVals);
+  const xMaxRaw = Math.max(...xVals);
+  const yMinRaw = Math.min(...yVals);
+  const yMaxRaw = Math.max(...yVals);
+  const xMin = xAxis === 'successRate' ? Math.min(xMinRaw, 0) : Math.min(0, xMinRaw);
+  const xMax = xMaxRaw;
+  const yMin = yAxis === 'successRate' ? Math.min(yMinRaw, 0) : Math.min(0, yMinRaw);
+  const yMax = yMaxRaw;
   const xRange = xMax - xMin || 1;
   const yRange = yMax - yMin || 1;
 
@@ -185,22 +353,119 @@ function ScatterPlot({
   const yScale = (v: number) =>
     H - padB - ((v - yMin) / yRange) * (H - padT - padB);
 
-  const fmtX = (v: number) =>
-    xAxis === 'successRate' ? `${(v * 100).toFixed(0)}%` : fmtMoney(v);
-  const fmtY = (v: number) => fmtMoney(v);
+  const fmtAxis = (a: Axis, v: number) => {
+    switch (a) {
+      case 'successRate':
+        return `${(v * 100).toFixed(0)}%`;
+      case 'avgYearsNearDepletion':
+        return v.toFixed(1);
+      default:
+        return fmtMoney(v);
+    }
+  };
 
   const xTicks = 5;
   const yTicks = 4;
 
+  // Color-by metric range (over the visible/passing set).
+  const colorVals =
+    colorBy === 'frontier'
+      ? []
+      : results
+          .map((r) => colorValue(r, colorBy))
+          .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const cMin = colorVals.length ? Math.min(...colorVals) : 0;
+  const cMax = colorVals.length ? Math.max(...colorVals) : 1;
+  const cRange = cMax - cMin || 1;
+
+  const colorFor = (r: CandidateResult): string => {
+    if (colorBy === 'frontier') {
+      return frontierIds.has(r.candidate.id) ? '#d62728' : '#888';
+    }
+    const v = colorValue(r, colorBy);
+    if (typeof v !== 'number' || !Number.isFinite(v)) return '#ccc';
+    return colorScale((v - cMin) / cRange);
+  };
+
+  // Mouse → SVG coords via getCTM.
+  const svgPoint = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const rect = svg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * W;
+    const y = ((clientY - rect.top) / rect.height) * H;
+    return { x, y };
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const p = svgPoint(e.clientX, e.clientY);
+    dragStateRef.current = { start: p, moved: false };
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    const drag = dragStateRef.current;
+    if (!drag) return;
+    const p = svgPoint(e.clientX, e.clientY);
+    const dx = p.x - drag.start.x;
+    const dy = p.y - drag.start.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true;
+    setMarquee({
+      x0: Math.min(drag.start.x, p.x),
+      y0: Math.min(drag.start.y, p.y),
+      x1: Math.max(drag.start.x, p.x),
+      y1: Math.max(drag.start.y, p.y),
+    });
+  };
+
+  const onMouseUp = (e: React.MouseEvent) => {
+    const drag = dragStateRef.current;
+    dragStateRef.current = null;
+    if (!drag) return;
+    if (drag.moved && marquee) {
+      const inside: string[] = [];
+      for (const r of results) {
+        const x = xScale(r.metrics[xAxis]);
+        const y = yScale(r.metrics[yAxis]);
+        if (
+          x >= marquee.x0 &&
+          x <= marquee.x1 &&
+          y >= marquee.y0 &&
+          y <= marquee.y1
+        ) {
+          inside.push(r.candidate.id);
+        }
+      }
+      onMarquee(inside);
+      setMarquee(null);
+    } else {
+      // Click on empty space (no point hit handler triggered) → clear selection
+      const target = e.target as Element;
+      if (target.tagName !== 'circle') onMarquee([]);
+      setMarquee(null);
+    }
+  };
+
+  const onMouseLeave = () => {
+    dragStateRef.current = null;
+    setMarquee(null);
+  };
+
   return (
     <div className="frontier-scatter-wrap">
       <svg
+        ref={svgRef}
         className="frontier-scatter"
         viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
         width="100%"
         height={H}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseLeave}
       >
-        {/* axes */}
         <line x1={padL} x2={W - padR} y1={H - padB} y2={H - padB} stroke="#bbb" />
         <line x1={padL} x2={padL} y1={padT} y2={H - padB} stroke="#bbb" />
         {Array.from({ length: xTicks + 1 }, (_, i) => {
@@ -210,7 +475,7 @@ function ScatterPlot({
             <g key={`xt${i}`}>
               <line x1={x} x2={x} y1={H - padB} y2={H - padB + 4} stroke="#bbb" />
               <text x={x} y={H - padB + 16} fontSize="10" textAnchor="middle" fill="#666">
-                {fmtX(v)}
+                {fmtAxis(xAxis, v)}
               </text>
             </g>
           );
@@ -222,7 +487,7 @@ function ScatterPlot({
             <g key={`yt${i}`}>
               <line x1={padL - 4} x2={padL} y1={y} y2={y} stroke="#bbb" />
               <text x={padL - 6} y={y + 3} fontSize="10" textAnchor="end" fill="#666">
-                {fmtY(v)}
+                {fmtAxis(yAxis, v)}
               </text>
             </g>
           );
@@ -234,7 +499,7 @@ function ScatterPlot({
           textAnchor="middle"
           fill="#444"
         >
-          {axisLabel(xAxis)}
+          {AXIS_LABELS[xAxis]}
         </text>
         <text
           x={14}
@@ -244,72 +509,68 @@ function ScatterPlot({
           fill="#444"
           transform={`rotate(-90 14 ${(padT + H - padB) / 2})`}
         >
-          {axisLabel(yAxis)}
+          {AXIS_LABELS[yAxis]}
         </text>
 
-        {/* points: non-frontier first */}
+        {/* Points: single pass using the selected color metric. Selected
+            points get a black stroke; selection ring is independent of
+            color so it stays visible across the whole viridis range. */}
         {results.map((r) => {
-          if (frontierIds.has(r.candidate.id)) return null;
           const x = xScale(r.metrics[xAxis]);
           const y = yScale(r.metrics[yAxis]);
           if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
           const isSel = selectedIds.has(r.candidate.id);
+          const fill = colorFor(r);
           return (
             <circle
               key={r.candidate.id}
               cx={x}
               cy={y}
-              r={isSel ? 5 : 3}
-              fill={isSel ? '#1f77b4' : '#aaa'}
-              fillOpacity={isSel ? 1 : 0.35}
-              stroke={isSel ? '#000' : 'none'}
-              strokeWidth={isSel ? 1 : 0}
-              style={{ cursor: 'pointer' }}
-              onClick={() => onToggle(r.candidate.id)}
-              onMouseEnter={() => setHover(r)}
-              onMouseLeave={() => setHover(null)}
-            />
-          );
-        })}
-        {/* frontier points on top */}
-        {results.map((r) => {
-          if (!frontierIds.has(r.candidate.id)) return null;
-          const x = xScale(r.metrics[xAxis]);
-          const y = yScale(r.metrics[yAxis]);
-          if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-          const isSel = selectedIds.has(r.candidate.id);
-          return (
-            <circle
-              key={r.candidate.id}
-              cx={x}
-              cy={y}
-              r={isSel ? 7 : 5}
-              fill="#d62728"
-              fillOpacity={0.9}
+              r={isSel ? 6 : 4}
+              fill={fill}
+              fillOpacity={isSel ? 1 : 0.7}
               stroke={isSel ? '#000' : '#fff'}
-              strokeWidth={isSel ? 2 : 1}
+              strokeWidth={isSel ? 2 : 0.5}
               style={{ cursor: 'pointer' }}
-              onClick={() => onToggle(r.candidate.id)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(r.candidate.id);
+              }}
               onMouseEnter={() => setHover(r)}
               onMouseLeave={() => setHover(null)}
             />
           );
         })}
+
+        {marquee && (
+          <rect
+            x={marquee.x0}
+            y={marquee.y0}
+            width={marquee.x1 - marquee.x0}
+            height={marquee.y1 - marquee.y0}
+            fill="#1f77b4"
+            fillOpacity={0.12}
+            stroke="#1f77b4"
+            strokeDasharray="4 3"
+            pointerEvents="none"
+          />
+        )}
 
         {hover && (
           <g pointerEvents="none">
             <rect
               x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10)}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 60)}
+              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70)}
               width={230}
-              height={56}
+              height={66}
               fill="#fff"
               stroke="#999"
               rx={3}
             />
             <text
               x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10) + 6}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 60) + 14}
+              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70) + 14}
               fontSize="11"
               fill="#222"
             >
@@ -317,52 +578,71 @@ function ScatterPlot({
             </text>
             <text
               x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10) + 6}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 60) + 28}
+              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70) + 28}
               fontSize="10"
               fill="#555"
             >
-              success {(hover.metrics.successRate * 100).toFixed(1)}% · p50{' '}
-              {fmtMoney(hover.metrics.p50Final)}
+              success {(hover.metrics.successRate * 100).toFixed(1)}% · avg wd{' '}
+              {fmtMoney(hover.metrics.avgAnnualWithdrawal)}/y
             </text>
             <text
               x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10) + 6}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 60) + 42}
+              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70) + 42}
               fontSize="10"
               fill="#555"
             >
-              p5 {fmtMoney(hover.metrics.p5Final)} · p95{' '}
+              p50 {fmtMoney(hover.metrics.p50Final)} · p95{' '}
               {fmtMoney(hover.metrics.p95Final)}
+            </text>
+            <text
+              x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10) + 6}
+              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70) + 56}
+              fontSize="10"
+              fill="#555"
+            >
+              near-depletion years: {hover.metrics.avgYearsNearDepletion.toFixed(1)}
             </text>
           </g>
         )}
       </svg>
       <div className="frontier-legend">
-        <span><span className="dot dot-frontier" /> Pareto-optimal</span>
-        <span><span className="dot dot-other" /> dominated</span>
-        <span><span className="dot dot-selected" /> selected (click to toggle)</span>
+        {colorBy === 'frontier' ? (
+          <>
+            <span><span className="dot dot-frontier" /> Pareto-optimal</span>
+            <span><span className="dot dot-other" /> dominated</span>
+          </>
+        ) : (
+          <ColorBar colorBy={colorBy} cMin={cMin} cMax={cMax} />
+        )}
+        <span><span className="dot dot-selected" /> selected</span>
+        <span className="frontier-tip">
+          drag = marquee select · click = toggle · click empty = clear
+        </span>
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Comparison table
+// Comparison table — now with Apply button
 // ---------------------------------------------------------------------------
 
 function ComparisonTable({
   results,
   selectedIds,
   onRemove,
+  onApply,
 }: {
   results: CandidateResult[];
   selectedIds: string[];
   onRemove: (id: string) => void;
+  onApply: (r: CandidateResult) => void;
 }) {
   if (selectedIds.length === 0) {
     return (
       <p className="frontier-empty">
-        Click points in the scatter plot, or use "Select frontier", to populate
-        the comparison.
+        Drag a marquee or click points in the scatter plot — or use "Select
+        frontier" — to populate the comparison.
       </p>
     );
   }
@@ -381,10 +661,15 @@ function ComparisonTable({
             <th>Withdrawal</th>
             <th>Allocation</th>
             <th>Success</th>
+            <th>Avg wd/yr</th>
             <th>P5 final</th>
             <th>Median final</th>
             <th>P95 final</th>
+            <th title={`# yrs/sim balance < ${NEAR_DEPLETION_FRACTION * 100}% of initial`}>
+              Near-depl yrs
+            </th>
             <th>Worst start</th>
+            <th></th>
             <th></th>
           </tr>
         </thead>
@@ -405,10 +690,21 @@ function ComparisonTable({
                   ? `${(r.metrics.successRate * 100).toFixed(1)}%`
                   : '—'}
               </td>
+              <td>{fmtMoney(r.metrics.avgAnnualWithdrawal)}</td>
               <td>{fmtMoney(r.metrics.p5Final)}</td>
               <td>{fmtMoney(r.metrics.p50Final)}</td>
               <td>{fmtMoney(r.metrics.p95Final)}</td>
+              <td>{r.metrics.avgYearsNearDepletion.toFixed(1)}</td>
               <td>{r.metrics.worstStartYear ?? '—'}</td>
+              <td>
+                <button
+                  className="frontier-apply"
+                  onClick={() => onApply(r)}
+                  title="Load this strategy into the single-scenario view"
+                >
+                  Apply
+                </button>
+              </td>
               <td>
                 <button
                   className="frontier-remove"
@@ -427,7 +723,7 @@ function ComparisonTable({
 }
 
 // ---------------------------------------------------------------------------
-// Comparison bars (final-balance percentile profile per selected strategy)
+// Comparison bars (final-balance P5/Median/P95 whiskers)
 // ---------------------------------------------------------------------------
 
 function ComparisonBars({
@@ -453,7 +749,7 @@ function ComparisonBars({
   );
 
   const W = 720;
-  const rowH = 28;
+  const rowH = 22;
   const labelW = 240;
   const padR = 60;
   const H = rowH * selected.length + 20;
@@ -462,7 +758,7 @@ function ComparisonBars({
   return (
     <div className="frontier-bars-wrap">
       <div className="frontier-bars-title">
-        Final-balance distribution (P5 / Median / P95) per strategy
+        Final-balance distribution (P5 / Median / P95) per selected strategy
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
         {selected.map((r, i) => {
@@ -482,7 +778,6 @@ function ComparisonBars({
               >
                 {truncate(r.candidate.label, 36)}
               </text>
-              {/* whisker from p5 to p95 */}
               <line
                 x1={labelW + p5x}
                 x2={labelW + p95x}
@@ -494,7 +789,6 @@ function ComparisonBars({
               />
               <circle cx={labelW + p5x} cy={y + rowH / 2} r={4} fill={color} opacity={0.55} />
               <circle cx={labelW + p95x} cy={y + rowH / 2} r={4} fill={color} opacity={0.55} />
-              {/* median marker */}
               <rect
                 x={labelW + p50x - 3}
                 y={y + 4}
@@ -518,10 +812,6 @@ function ComparisonBars({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Frontier list (clickable, all frontier points even if not in scatter focus)
-// ---------------------------------------------------------------------------
-
 function FrontierList({
   frontier,
   selectedIds,
@@ -541,9 +831,11 @@ function FrontierList({
             <th></th>
             <th>Strategy</th>
             <th>Success</th>
+            <th>Avg wd/yr</th>
             <th>P5 final</th>
             <th>Median final</th>
             <th>P95 final</th>
+            <th>Near-depl yrs</th>
           </tr>
         </thead>
         <tbody>
@@ -562,9 +854,11 @@ function FrontierList({
                   ? `${(r.metrics.successRate * 100).toFixed(1)}%`
                   : '—'}
               </td>
+              <td>{fmtMoney(r.metrics.avgAnnualWithdrawal)}</td>
               <td>{fmtMoney(r.metrics.p5Final)}</td>
               <td>{fmtMoney(r.metrics.p50Final)}</td>
               <td>{fmtMoney(r.metrics.p95Final)}</td>
+              <td>{r.metrics.avgYearsNearDepletion.toFixed(1)}</td>
             </tr>
           ))}
         </tbody>
@@ -573,17 +867,37 @@ function FrontierList({
   );
 }
 
-function axisLabel(a: XAxis | YAxis): string {
-  switch (a) {
-    case 'successRate':
-      return 'Success rate';
-    case 'p5Final':
-      return '5th-pct final balance';
-    case 'p50Final':
-      return 'Median final balance';
-    case 'p95Final':
-      return '95th-pct final balance';
-  }
+function ColorBar({
+  colorBy,
+  cMin,
+  cMax,
+}: {
+  colorBy: ColorBy;
+  cMin: number;
+  cMax: number;
+}) {
+  const W = 120;
+  const H = 10;
+  const stops = 12;
+  return (
+    <span className="frontier-colorbar">
+      <span className="frontier-colorbar-label">{COLOR_BY_LABELS[colorBy]}:</span>
+      <span className="frontier-colorbar-min">{formatColorValue(colorBy, cMin)}</span>
+      <svg width={W} height={H} className="frontier-colorbar-svg">
+        {Array.from({ length: stops }, (_, i) => (
+          <rect
+            key={i}
+            x={(i / stops) * W}
+            y={0}
+            width={W / stops + 0.5}
+            height={H}
+            fill={colorScale(i / (stops - 1))}
+          />
+        ))}
+      </svg>
+      <span className="frontier-colorbar-max">{formatColorValue(colorBy, cMax)}</span>
+    </span>
+  );
 }
 
 function fmtMoney(n: number): string {

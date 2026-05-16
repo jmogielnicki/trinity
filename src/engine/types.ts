@@ -51,14 +51,39 @@ export type SimulationResult = {
   prefixYears: number;
   finalBalance?: number;
   depletedAt?: number;
+  /**
+   * Aggregation weight for stats. 1 for an observed cohort (one start year =
+   * one sim); 1/samplesPerPrefix for a bootstrap sample, so a cohort's N
+   * samples together count as a single start year rather than N. Unset is
+   * treated as 1.
+   */
+  weight?: number;
 };
 
 export type ScenarioResult = {
   sims: SimulationResult[];
+  /**
+   * Success rate over fully-observed historical cohorts only — a hard
+   * historical fact. Bootstrap-projected cohorts are reported separately
+   * via projectedSuccessRate so observed and sampled never blend.
+   */
   successRate: number;
+  /** Fully-observed completed cohorts (the successRate denominator). */
   completedCount: number;
+  /** Truncate-mode in-progress cohorts (excluded from successRate). */
   inProgressCount: number;
+  /**
+   * Success rate over bootstrap cohorts, equal-weighted per start year.
+   * Undefined when the scenario used no bootstrap tails.
+   */
+  projectedSuccessRate?: number;
+  /** Number of distinct start years represented by bootstrap cohorts. */
+  projectedCohortCount?: number;
   percentiles: PercentileBand[];
+  /**
+   * Start year of the most severe observed failure — the cohort whose
+   * portfolio depleted earliest. Undefined when no observed cohort failed.
+   */
   worstStartYear?: number;
 };
 

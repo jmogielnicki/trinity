@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   generateCandidates,
+  metricsFromResult,
   paretoFront,
   type CandidateResult,
 } from '../../src/engine/optimize';
+import type { ScenarioResult, SimulationResult } from '../../src/engine/types';
 
 function mkResult(
   id: string,
   successRate: number,
   p50Final: number,
   p95Final: number,
+  avgAnnualWithdrawal = 40_000,
 ): CandidateResult {
   return {
     candidate: {
@@ -18,14 +21,15 @@ function mkResult(
       allocation: { type: 'static', weights: { stock: 0.6, bond: 0.4, cash: 0 } },
       withdrawal: { type: 'fixedPercent', rate: 0.04 },
       params: { withdrawal: '4%', allocation: '60/40' },
+      numericParams: { stockPct: 0.6, withdrawalRate: 0.04 },
     },
     metrics: {
       successRate,
       p5Final: p50Final * 0.5,
       p50Final,
       p95Final,
-      avgWithdrawal: 40_000,
-      minBalance: p50Final * 0.3,
+      avgAnnualWithdrawal,
+      avgYearsNearDepletion: 0,
       completedCount: 100,
     },
   };
@@ -63,5 +67,54 @@ describe('generateCandidates', () => {
     expect(cands.length).toBeGreaterThan(50);
     const ids = new Set(cands.map((c) => c.id));
     expect(ids.size).toBe(cands.length);
+  });
+});
+
+function fakeSim(
+  trajectory: Array<{ balance: number; withdrawal: number }>,
+  success = true,
+): SimulationResult {
+  return {
+    startYear: 2000,
+    inProgress: false,
+    bootstrapped: false,
+    prefixYears: 0,
+    success,
+    finalBalance: trajectory[trajectory.length - 1]?.balance ?? 0,
+    trajectory: trajectory.map((r, t) => ({
+      t,
+      calendarYear: 2000 + t,
+      balance: r.balance,
+      withdrawal: r.withdrawal,
+      weights: { stock: 0.6, bond: 0.4, cash: 0 },
+      sleeves: { stock: 0, bond: 0, cash: 0 },
+    })),
+  };
+}
+
+describe('metricsFromResult', () => {
+  it('computes avg annual withdrawal and near-depletion years across completed sims', () => {
+    // Sim A: never near depletion (1M → 900k → 800k), withdraws 40k/y
+    const a = fakeSim([
+      { balance: 900_000, withdrawal: 40_000 },
+      { balance: 800_000, withdrawal: 40_000 },
+    ]);
+    // Sim B: dips below 25% (250k threshold) for 2 of 2 years, withdraws 50k/y
+    const b = fakeSim([
+      { balance: 200_000, withdrawal: 50_000 },
+      { balance: 100_000, withdrawal: 50_000 },
+    ]);
+    const result: ScenarioResult = {
+      sims: [a, b],
+      successRate: 1.0,
+      completedCount: 2,
+      inProgressCount: 0,
+      percentiles: [],
+    };
+    const m = metricsFromResult(result, 1_000_000);
+    // (40k + 50k) / 2 sims = 45k
+    expect(m.avgAnnualWithdrawal).toBeCloseTo(45_000, 0);
+    // (0 + 2) / 2 = 1.0
+    expect(m.avgYearsNearDepletion).toBeCloseTo(1.0, 5);
   });
 });

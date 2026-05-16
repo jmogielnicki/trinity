@@ -10,18 +10,33 @@ export function StatPanel({ result }: { result: ScenarioResult }) {
       ? result.percentiles[result.percentiles.length - 1].values.p5
       : NaN;
 
+  const hasProjection = result.projectedSuccessRate != null;
+
   return (
     <div className="stat-panel">
       <Stat
-        label="Success rate"
+        label={hasProjection ? 'Success rate (observed)' : 'Success rate'}
         value={
           Number.isFinite(result.successRate)
             ? `${(result.successRate * 100).toFixed(1)}%`
             : '—'
         }
       />
-      <Stat label="Sims (completed)" value={`${result.completedCount}`} />
-      <Stat label="Sims (in-progress)" value={`${result.inProgressCount}`} />
+      {hasProjection && (
+        <Stat
+          label="Success rate (bootstrap-projected)"
+          value={`${(result.projectedSuccessRate! * 100).toFixed(1)}%`}
+        />
+      )}
+      <Stat label="Cohorts (observed)" value={`${result.completedCount}`} />
+      <Stat
+        label={hasProjection ? 'Cohorts (projected)' : 'Cohorts (in-progress)'}
+        value={`${
+          hasProjection
+            ? result.projectedCohortCount ?? 0
+            : result.inProgressCount
+        }`}
+      />
       <Stat
         label="Median final balance"
         value={Number.isFinite(finalP50) ? fmt(finalP50) : '—'}

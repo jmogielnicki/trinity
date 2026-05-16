@@ -22,8 +22,11 @@ describe('Trinity Study 75/25 4%', () => {
     data,
   );
 
-  it('hits roughly 95% success (within 5pp)', () => {
-    expect(result.successRate).toBeGreaterThan(0.9);
-    expect(result.successRate).toBeLessThanOrEqual(1.0);
+  it('hits roughly 95% success (brackets both sides)', () => {
+    // Published Trinity result is ~95%. CLAUDE.md §12 requires reproduction
+    // within 1–2pp, so bracket tightly: a one-sided lower bound would pass
+    // even at 100%, hiding a returns/inflation miscalibration.
+    expect(result.successRate).toBeGreaterThanOrEqual(0.92);
+    expect(result.successRate).toBeLessThanOrEqual(0.97);
   });
 });

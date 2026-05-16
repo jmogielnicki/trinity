@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { runScenario } from '../../src/engine/sweep';
 import { runSweep } from '../../src/engine/sweepRunner';
 import { loadHistoricalFromDisk } from './loadData';
 
@@ -43,5 +44,41 @@ describe('sweep runner', () => {
     expect(grid.axes).toHaveLength(2);
     // 3 withdrawal × 3 stock = 9 cells
     expect(grid.cells).toHaveLength(9);
+  });
+});
+
+describe('worstStartYear', () => {
+  const data = loadHistoricalFromDisk();
+
+  it('is the earliest-depleting cohort, not merely the first to fail', () => {
+    const result = runScenario(
+      {
+        initialBalance: 1_000_000,
+        horizonYears: 30,
+        allocation: {
+          type: 'static',
+          weights: { stock: 0.6, bond: 0.4, cash: 0 },
+        },
+        withdrawal: { type: 'fixedPercent', rate: 0.04 },
+        startYearRange: { from: 1926, to: data.end - 30 + 1 },
+      },
+      data,
+    );
+    const failures = result.sims.filter(
+      (s) => !s.success && !s.inProgress && !s.bootstrapped,
+    );
+    expect(failures.length).toBeGreaterThan(1);
+
+    const worstSim = result.sims.find(
+      (s) => s.startYear === result.worstStartYear,
+    )!;
+    const earliestDepletion = Math.min(...failures.map((s) => s.depletedAt!));
+    // worstStartYear points at the cohort that depleted soonest.
+    expect(worstSim.depletedAt).toBe(earliestDepletion);
+    // For 60/40 4% that is 1966 — the canonical bad-sequence retiree — not
+    // 1965, which fails too but survives several years longer.
+    expect(result.worstStartYear).toBe(1966);
+    const firstFailingYear = Math.min(...failures.map((s) => s.startYear));
+    expect(result.worstStartYear).not.toBe(firstFailingYear);
   });
 });
