@@ -31,7 +31,16 @@ export function computePercentiles(
     const balances: number[] = [];
     for (const s of sims) {
       const rec = s.trajectory[t];
-      if (rec) balances.push(rec.balance);
+      if (rec) {
+        balances.push(rec.balance);
+      } else if (s.depletedAt != null) {
+        // A depleted sim has no trajectory record past depletedAt. It must
+        // stay in the band at 0 — dropping it lets failed paths silently
+        // leave the envelope, which makes the downside percentiles recover
+        // over time (survivorship bias). In-progress sims that simply ran
+        // out of data (no depletedAt) are correctly left out.
+        balances.push(0);
+      }
     }
     if (balances.length === 0) continue;
     balances.sort((a, b) => a - b);

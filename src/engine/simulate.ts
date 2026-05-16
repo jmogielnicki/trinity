@@ -138,20 +138,21 @@ export function simulate(input: SimulateInput): SimulationResult {
       };
     }
 
-    const beforeReturns: Sleeves = { ...sleeves };
-
-    // Apply per-sleeve returns.
-    sleeves = applyReturns(sleeves, r);
-
-    // Optional rebalance back to target. When data forced cash → 0, rebalance
-    // uses the adjusted weights so we don't try to refill a sleeve we just
-    // dropped.
+    // Rebalance to target before returns, so year-t returns are earned on
+    // year-t's allocation (matches the spec loop). When data forced cash → 0,
+    // rebalance uses the adjusted weights so we don't try to refill a sleeve
+    // we just dropped.
     if (
       withdrawalSource.type === 'proportional' &&
       withdrawalSource.rebalance
     ) {
       sleeves = rebalanceTo(sleeves, weights);
     }
+
+    const beforeReturns: Sleeves = { ...sleeves };
+
+    // Apply per-sleeve returns.
+    sleeves = applyReturns(sleeves, r);
 
     // Bucket refill rule: runs after returns, moves between sleeves only when
     // the trigger and source conditions fire.

@@ -477,24 +477,40 @@ describe('proportional without rebalance lets sleeves drift', () => {
     expect(r0.bond / total).toBeGreaterThan(0.5);
   });
 
-  it('with rebalance on, sleeves snap back to target after the same year', () => {
-    const returns = flatReturns(2000, 1, { s: -0.2, b: 0, c: 0 });
-    const result = simulate({
+  it('with rebalance on, year-t returns are earned on the target allocation', () => {
+    // Year 0: stocks -20%. That drifts the portfolio below 50% stocks. With
+    // rebalance on, year 1 is re-snapped to 50/50 *before* year-1 returns
+    // apply — so year 1's portfolio return is the 50/50 blend of {+10%, 0%}
+    // = +5%. With rebalance off it would be the drifted blend (< 5%). This
+    // pins the rebalance-before-returns ordering (glide paths depend on it).
+    const returns = [
+      ...flatReturns(2000, 1, { s: -0.2, b: 0, c: 0 }),
+      ...flatReturns(2001, 1, { s: 0.1, b: 0, c: 0 }),
+    ];
+    const base = {
       startYear: 2000,
       initialBalance: 1_000_000,
-      horizonYears: 1,
+      horizonYears: 2,
       allocation: {
-        type: 'static',
+        type: 'static' as const,
         weights: { stock: 0.5, bond: 0.5, cash: 0 },
       },
-      withdrawal: { type: 'fixedDollar', amount: 40_000 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
+      withdrawal: { type: 'fixedDollar' as const, amount: 40_000 },
       returns,
-    });
+    };
 
-    const r0 = result.trajectory[0].sleeves;
-    const total = r0.stock + r0.bond;
-    expect(r0.stock / total).toBeCloseTo(0.5, 5);
-    expect(r0.bond / total).toBeCloseTo(0.5, 5);
+    const rebalanced = simulate({
+      ...base,
+      withdrawalSource: { type: 'proportional', rebalance: true },
+    });
+    expect(rebalanced.trajectory[1].return).toBeCloseTo(0.05, 6);
+
+    const drifted = simulate({
+      ...base,
+      withdrawalSource: { type: 'proportional', rebalance: false },
+    });
+    // Drifted: stocks are underweight after year 0, so the +10% stock year
+    // contributes less than the 50/50 blend.
+    expect(drifted.trajectory[1].return).toBeLessThan(0.05);
   });
 });
