@@ -1,3 +1,4 @@
+import { minBalanceReached } from '../../engine/stats';
 import type { ScenarioResult } from '../../engine/types';
 
 export function StatPanel({ result }: { result: ScenarioResult }) {
@@ -9,6 +10,7 @@ export function StatPanel({ result }: { result: ScenarioResult }) {
     result.percentiles.length > 0
       ? result.percentiles[result.percentiles.length - 1].values.p5
       : NaN;
+  const minBalance = minBalanceReached(result.sims);
 
   const hasProjection = result.projectedSuccessRate != null;
 
@@ -46,8 +48,8 @@ export function StatPanel({ result }: { result: ScenarioResult }) {
         value={Number.isFinite(finalP5) ? fmt(finalP5) : '—'}
       />
       <Stat
-        label="Worst start year"
-        value={result.worstStartYear ? `${result.worstStartYear}` : 'none'}
+        label="Min balance reached"
+        value={Number.isFinite(minBalance) ? fmt(minBalance) : '—'}
       />
     </div>
   );
