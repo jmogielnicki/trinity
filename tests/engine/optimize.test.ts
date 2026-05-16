@@ -30,6 +30,7 @@ function mkResult(
       p95Final,
       avgAnnualWithdrawal,
       avgYearsNearDepletion: 0,
+      minBalance: p50Final * 0.4,
       completedCount: 100,
     },
   };
@@ -116,5 +117,7 @@ describe('metricsFromResult', () => {
     expect(m.avgAnnualWithdrawal).toBeCloseTo(45_000, 0);
     // (0 + 2) / 2 = 1.0
     expect(m.avgYearsNearDepletion).toBeCloseTo(1.0, 5);
+    // Lowest year-end balance anywhere: sim B's final year at 100k.
+    expect(m.minBalance).toBe(100_000);
   });
 });

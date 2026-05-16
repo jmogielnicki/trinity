@@ -4,7 +4,7 @@ import type {
   WithdrawalStrategy,
 } from './strategies';
 import type { ScenarioResult, SimulationResult } from './types';
-import { weightedQuantile, type WeightedSample } from './stats';
+import { minBalanceReached, weightedQuantile, type WeightedSample } from './stats';
 
 export type CandidateMetrics = {
   successRate: number;
@@ -25,6 +25,12 @@ export type CandidateMetrics = {
    * tells you how much time you spent sweating during bad sequences.
    */
   avgYearsNearDepletion: number;
+  /**
+   * Lowest year-end balance ever reached across every sim, in real $ —
+   * the closest any historical sequence came to depletion, mid-retirement
+   * or otherwise. 0 if any sequence depletes. Higher is better.
+   */
+  minBalance: number;
   /** Worst completed start year (the earliest failure), if any. */
   worstStartYear?: number;
   completedCount: number;
@@ -272,6 +278,7 @@ export function metricsFromResult(
     p95Final: p95,
     avgAnnualWithdrawal,
     avgYearsNearDepletion,
+    minBalance: minBalanceReached(result.sims),
     worstStartYear: result.worstStartYear,
     completedCount: result.completedCount,
   };

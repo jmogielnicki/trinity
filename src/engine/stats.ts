@@ -99,6 +99,23 @@ export function computePercentiles(
   return bands;
 }
 
+/**
+ * Lowest balance touched across every year of every sim — the closest any
+ * sequence came to depletion, whether mid-retirement or at the very end.
+ * Scans all sims including in-progress ones; a minimum (unlike an average)
+ * isn't skewed by truncated trajectories. 0 if any sequence depletes.
+ * NaN when there are no sims with trajectory data.
+ */
+export function minBalanceReached(sims: SimulationResult[]): number {
+  let min = Infinity;
+  for (const s of sims) {
+    for (const rec of s.trajectory) {
+      if (rec.balance < min) min = rec.balance;
+    }
+  }
+  return Number.isFinite(min) ? min : NaN;
+}
+
 export type SuccessStats = {
   /** Rate over fully-observed completed cohorts. NaN if there are none. */
   observedRate: number;
