@@ -126,10 +126,20 @@ export function runScenario(
 
   const stats = successStats(sims);
   const percentiles = computePercentiles(sims, scenario.horizonYears);
-  // worstStartYear is an observed fact, so it ignores bootstrap-tail failures.
-  const failed = sims.find(
-    (s) => !s.success && !s.inProgress && !s.bootstrapped,
-  );
+  // worstStartYear is the most severe observed failure — the cohort whose
+  // portfolio depleted earliest, not merely the first failing start year.
+  // Observed fact only, so bootstrap-tail failures are ignored. Ties break
+  // toward the earlier start year (sims iterate ascending).
+  let worst: SimulationResult | undefined;
+  for (const s of sims) {
+    if (s.success || s.inProgress || s.bootstrapped) continue;
+    if (
+      worst === undefined ||
+      (s.depletedAt ?? Infinity) < (worst.depletedAt ?? Infinity)
+    ) {
+      worst = s;
+    }
+  }
 
   return {
     sims,
@@ -141,7 +151,7 @@ export function runScenario(
       ? stats.projectedCohortCount
       : undefined,
     percentiles,
-    worstStartYear: failed?.startYear,
+    worstStartYear: worst?.startYear,
   };
 }
 

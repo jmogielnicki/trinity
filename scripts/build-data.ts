@@ -86,16 +86,58 @@ function parseDate(s: string): { year: number; month: number } | null {
   return { year, month };
 }
 
+type ShillerColumns = { cpi: number; trp: number; bondTr: number };
+
+/**
+ * Resolve the columns we need by header name rather than by hardcoded index.
+ * Shiller occasionally inserts columns; a fixed index would then silently
+ * read the wrong series (e.g. a nominal index where we expect a real one).
+ * Throws loudly with the actual header if a column can't be found.
+ */
+function resolveColumns(headerLine: string): ShillerColumns {
+  const header = splitCsvRow(headerLine).map((h) => h.trim());
+  const find = (label: string, match: (h: string) => boolean): number => {
+    const idx = header.findIndex(match);
+    if (idx < 0) {
+      throw new Error(
+        `Shiller CSV: could not locate the "${label}" column.\n` +
+          `Header was: ${header.join(' | ')}`,
+      );
+    }
+    return idx;
+  };
+  const cpi = find('Price Index CPI', (h) => /\bCPI\b/i.test(h));
+  const trp = find(
+    'Total Return Price',
+    (h) => h.toLowerCase() === 'total return price',
+  );
+  // Shiller publishes two "Total Bond Returns" columns: a monthly return
+  // factor followed by a cumulative index. We ratio the cumulative index,
+  // which is the second occurrence.
+  const bondCols = header
+    .map((h, i) => ({ h, i }))
+    .filter((c) => /total bond returns/i.test(c.h));
+  if (bondCols.length < 2) {
+    throw new Error(
+      `Shiller CSV: expected two "Total Bond Returns" columns (monthly ` +
+        `factor + cumulative index), found ${bondCols.length}.\n` +
+        `Header was: ${header.join(' | ')}`,
+    );
+  }
+  return { cpi, trp, bondTr: bondCols[1].i };
+}
+
 function parseShiller(csv: string): MonthRow[] {
   const lines = csv.replace(/\r/g, '').split('\n').filter(Boolean);
+  const col = resolveColumns(lines[0]);
   const rows: MonthRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = splitCsvRow(lines[i]);
     const date = parseDate(cols[0]);
     if (!date) continue;
-    const cpi = parseNum(cols[4]);
-    const trp = parseNum(cols[9]);
-    const bondTr = parseNum(cols[16]);
+    const cpi = parseNum(cols[col.cpi]);
+    const trp = parseNum(cols[col.trp]);
+    const bondTr = parseNum(cols[col.bondTr]);
     if (cpi == null || trp == null || bondTr == null) continue;
     rows.push({ year: date.year, month: date.month, cpi, trp, bondTr });
   }
@@ -190,6 +232,39 @@ function buildAnnual(
   return out;
 }
 
+/**
+ * Guard against a column mix-up: ratioing a nominal index where a real one
+ * is expected (or the reverse) silently shifts every return by inflation.
+ * Real total returns over 1871+ run ~7%/yr for stocks and ~2.5%/yr for
+ * bonds; wide bands here catch a gross misread without tripping on normal
+ * data revisions.
+ */
+function assertSaneReturns(
+  annual: { stock_return_real: number; bond_return_real: number }[],
+): void {
+  if (annual.length === 0) throw new Error('No annual rows produced.');
+  const cagr = (pick: (r: (typeof annual)[number]) => number): number => {
+    let logSum = 0;
+    for (const r of annual) logSum += Math.log(1 + pick(r));
+    return Math.expm1(logSum / annual.length);
+  };
+  const stock = cagr((r) => r.stock_return_real);
+  const bond = cagr((r) => r.bond_return_real);
+  if (stock < 0.04 || stock > 0.1) {
+    throw new Error(
+      `Stock real CAGR ${(stock * 100).toFixed(2)}% is outside the sane ` +
+        `[4%, 10%] band — likely a Shiller column mix-up (a nominal index ` +
+        `read as real?).`,
+    );
+  }
+  if (bond < 0 || bond > 0.05) {
+    throw new Error(
+      `Bond real CAGR ${(bond * 100).toFixed(2)}% is outside the sane ` +
+        `[0%, 5%] band — likely a Shiller column mix-up.`,
+    );
+  }
+}
+
 function main() {
   if (!existsSync(SHILLER_PATH)) {
     console.error(
@@ -203,6 +278,7 @@ function main() {
     ? parseTbill(readFileSync(TBILL_PATH, 'utf-8'))
     : new Map<string, number>();
   const annual = buildAnnual(monthly, tbill);
+  assertSaneReturns(annual);
   const yearsWithCash = annual.filter((r) => r.cash_return_real != null);
   const meta = {
     start: annual[0].year,

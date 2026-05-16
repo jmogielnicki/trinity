@@ -80,6 +80,10 @@ export type ScenarioResult = {
   /** Number of distinct start years represented by bootstrap cohorts. */
   projectedCohortCount?: number;
   percentiles: PercentileBand[];
+  /**
+   * Start year of the most severe observed failure — the cohort whose
+   * portfolio depleted earliest. Undefined when no observed cohort failed.
+   */
   worstStartYear?: number;
 };
 
