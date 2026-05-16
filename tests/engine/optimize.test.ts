@@ -24,6 +24,8 @@ function mkResult(
       p5Final: p50Final * 0.5,
       p50Final,
       p95Final,
+      avgWithdrawal: 40_000,
+      minBalance: p50Final * 0.3,
       completedCount: 100,
     },
   };

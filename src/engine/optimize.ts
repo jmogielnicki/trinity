@@ -14,6 +14,10 @@ export type CandidateMetrics = {
   p5Final: number;
   /** 95th-percentile final balance (upside). */
   p95Final: number;
+  /** Mean withdrawal across every simulated year of every sim (real $). */
+  avgWithdrawal: number;
+  /** Lowest year-end balance ever reached across all sims (real $). */
+  minBalance: number;
   /** Worst completed start year (the earliest failure), if any. */
   worstStartYear?: number;
   completedCount: number;
@@ -162,6 +166,34 @@ function finalBalances(result: ScenarioResult): number[] {
   return out;
 }
 
+/** Mean withdrawal per simulated year, pooled across every sim. */
+function avgAnnualWithdrawal(result: ScenarioResult): number {
+  let sum = 0;
+  let n = 0;
+  for (const s of result.sims as SimulationResult[]) {
+    for (const rec of s.trajectory) {
+      sum += rec.withdrawal;
+      n++;
+    }
+  }
+  return n === 0 ? NaN : sum / n;
+}
+
+/**
+ * Lowest year-end balance reached anywhere — captures mid-retirement near
+ * misses, not just the final balance. Hits 0 for any scenario that ever
+ * depletes.
+ */
+function minBalanceReached(result: ScenarioResult): number {
+  let min = Infinity;
+  for (const s of result.sims as SimulationResult[]) {
+    for (const rec of s.trajectory) {
+      if (rec.balance < min) min = rec.balance;
+    }
+  }
+  return Number.isFinite(min) ? min : NaN;
+}
+
 export function metricsFromResult(result: ScenarioResult): CandidateMetrics {
   const finals = finalBalances(result).sort((a, b) => a - b);
   const p5 = finals.length ? quantile(finals, 0.05) : NaN;
@@ -172,6 +204,8 @@ export function metricsFromResult(result: ScenarioResult): CandidateMetrics {
     p5Final: p5,
     p50Final: p50,
     p95Final: p95,
+    avgWithdrawal: avgAnnualWithdrawal(result),
+    minBalance: minBalanceReached(result),
     worstStartYear: result.worstStartYear,
     completedCount: result.completedCount,
   };
