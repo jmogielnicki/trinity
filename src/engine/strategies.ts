@@ -67,6 +67,40 @@ export type WithdrawalStrategy =
       stepSize: number;   // gain fraction per step, e.g. 0.10 (every 10%)
       stepBoost: number;  // spending multiplier per step, e.g. 0.05 (5% more)
     }
+  /**
+   * Endowment method: apply `rate` to the rolling `lookbackYears`-average of
+   * portfolio balance, then enforce a floor of `floorFraction` × last year's
+   * withdrawal to prevent severe lifestyle cuts.
+   *
+   *   avg  = mean(trajectory[-lookbackYears:].balance)
+   *   target = rate × avg
+   *   wd   = max(target, floorFraction × prevWithdrawal)
+   *
+   * Typical parameters: rate = 0.05, lookbackYears = 10, floorFraction = 0.90.
+   */
+  | {
+      type: 'endowment';
+      rate: number;
+      lookbackYears: number;
+      floorFraction: number;
+    }
+  /**
+   * Vanguard Dynamic Spending: apply `rate` to current balance as a baseline,
+   * then cap the year-over-year change within [floor, ceiling].
+   *
+   *   baseline = rate × balance
+   *   wd = clamp(baseline, prevWithdrawal × (1 + floor), prevWithdrawal × (1 + ceiling))
+   *
+   * `ceiling` is a positive fraction (e.g. 0.05 = max +5% per year).
+   * `floor` is a negative fraction (e.g. -0.025 = max -2.5% per year).
+   * Typical parameters: rate = 0.04–0.05, ceiling = 0.05, floor = -0.025.
+   */
+  | {
+      type: 'vanguardDynamic';
+      rate: number;
+      ceiling: number;
+      floor: number;
+    }
   | { type: 'custom'; fn: (state: YearState, initial: number) => number }
   /**
    * Source-string variant of `custom`. Body is the function body of
@@ -205,6 +239,24 @@ export function computeWithdrawal(
       const gainFraction = Math.max(0, peakBalance / initial - 1);
       const steps = Math.floor(gainFraction / strat.stepSize);
       return strat.baseRate * initial * Math.pow(1 + strat.stepBoost, steps);
+    }
+    case 'endowment': {
+      const window = state.trajectory.slice(-strat.lookbackYears);
+      const avg = window.length
+        ? window.reduce((s, r) => s + r.balance, 0) / window.length
+        : state.balance;
+      const target = strat.rate * avg;
+      const prev = state.trajectory[state.trajectory.length - 1];
+      return prev ? Math.max(target, strat.floorFraction * prev.withdrawal) : target;
+    }
+    case 'vanguardDynamic': {
+      const baseline = strat.rate * state.balance;
+      const prev = state.trajectory[state.trajectory.length - 1];
+      if (!prev) return baseline;
+      return Math.min(
+        prev.withdrawal * (1 + strat.ceiling),
+        Math.max(prev.withdrawal * (1 + strat.floor), baseline),
+      );
     }
     case 'custom':
       return strat.fn(state, initial);
