@@ -3,14 +3,11 @@ import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { ScenarioActions } from './components/controls/ScenarioActions';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
-import { SweepSelector } from './components/controls/SweepSelector';
 import { TailMethodInput } from './components/controls/TailMethodInput';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInput';
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
-import { Heatmap } from './components/results/Heatmap';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
-import { SmallMultiples } from './components/results/SmallMultiples';
 import { Legend } from './components/results/Legend';
 import { OutcomeStrip } from './components/results/OutcomeStrip';
 import { SleeveChart } from './components/results/SleeveChart';
@@ -40,7 +37,6 @@ export function App() {
   const {
     data,
     result,
-    grid,
     computeMs,
     pool,
     computing,
@@ -158,8 +154,6 @@ export function App() {
     sweep,
   ]);
 
-  const showSweepViews = !!grid && grid.axes.length > 0;
-
   return (
     <div className="app">
       <header>
@@ -188,7 +182,6 @@ export function App() {
           <h3 className="section-heading">Withdrawal source</h3>
           <WithdrawalSourceInput />
           <TailMethodInput />
-          <SweepSelector />
           <ScenarioActions />
           <ScenarioLibrary />
         </aside>
@@ -237,7 +230,7 @@ export function App() {
             <div className="compute-meta">
               Compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
               {pool && <span className="pool-meta"> ({pool.size} workers)</span>}
-              {result && !showSweepViews && (
+              {result && (
                 <span className="view-toggle">
                   view:
                   <button
@@ -268,7 +261,7 @@ export function App() {
               )}
             </div>
           )}
-          {data && result && !showSweepViews && (
+          {data && result && (
             <>
               <StatPanel result={result} />
               {view === 'spaghetti' && (
@@ -322,10 +315,6 @@ export function App() {
               {view === 'spaghetti' && <Legend />}
             </>
           )}
-          {data && grid && grid.axes.length === 1 && (
-            <SmallMultiples grid={grid} />
-          )}
-          {data && grid && grid.axes.length === 2 && <Heatmap grid={grid} />}
           </>}
         </main>
       </div>

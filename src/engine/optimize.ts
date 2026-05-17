@@ -48,8 +48,10 @@ export type CandidateNumericParams = {
   floor?: number;
   /** Marginal-spend coefficient for `floorAndUpside`. */
   marginalSpend?: number;
-  /** Value of the swept parameter in a lock-2-vary-1 study. */
+  /** Value of the primary swept dimension in a study. */
   varyValue?: number;
+  /** Value of the secondary swept dimension in a 2D study. */
+  varyValue2?: number;
 };
 
 export type Candidate = {
@@ -71,6 +73,8 @@ export type Candidate = {
 export type CandidateResult = {
   candidate: Candidate;
   metrics: CandidateMetrics;
+  /** Full scenario result, kept so 1D studies can show trajectory fans. */
+  result: ScenarioResult;
   /** Index into sorted frontier (only set for Pareto-optimal results). */
   paretoRank?: number;
 };
