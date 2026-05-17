@@ -21,6 +21,7 @@ function flatReturns(
     cash_return_real: v.c,
     cpi: 100,
     inflation: inf,
+    cape: null,
   }));
 }
 

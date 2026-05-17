@@ -706,6 +706,8 @@ function describeWithdrawal(w: WithdrawalStrategy): string {
       return `guardrails ${pct(w.base)}`;
     case 'ruleBased':
       return `rule-based ${pct(w.base)}`;
+    case 'capeWithdrawal':
+      return `CAPE (a=${pct(w.a)}, b=${w.b})`;
     case 'custom':
     case 'customSrc':
       return 'custom';
