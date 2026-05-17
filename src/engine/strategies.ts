@@ -62,17 +62,19 @@ export type WithdrawalStrategy =
    * all-time-high crosses a new multiple of `stepSize` above `initial`.
    *
    *   steps = floor(peakGain / stepSize)
-   *   wd    = baseRate × initial × (1 + stepBoost)^steps
+   *   wd    = baseRate × initial × (1 + stepBoost × steps)
    *
-   * Unlike floorAndUpside the increase is locked in — a subsequent drop
-   * below the threshold does not reduce spending. Peak is tracked via the
-   * trajectory so no extra state is needed outside the sim loop.
+   * Both thresholds and boosts are anchored to the initial values, so the
+   * relationship is linear: each additional step adds the same fixed dollar
+   * amount. Unlike floorAndUpside the increase is locked in — a subsequent
+   * drop below the threshold does not reduce spending. Peak is tracked via
+   * the trajectory so no extra state is needed outside the sim loop.
    */
   | {
       type: 'ratchet';
       baseRate: number;   // e.g. 0.04
-      stepSize: number;   // gain fraction per step, e.g. 0.10 (every 10%)
-      stepBoost: number;  // spending multiplier per step, e.g. 0.05 (5% more)
+      stepSize: number;   // gain fraction per step, e.g. 0.10 (every 10% above initial)
+      stepBoost: number;  // additive spending increase per step, e.g. 0.05 (5% of initial spending)
     }
   /**
    * Endowment method: apply `rate` to the rolling `lookbackYears`-average of
@@ -283,7 +285,7 @@ export function computeWithdrawal(
       );
       const gainFraction = Math.max(0, peakBalance / initial - 1);
       const steps = Math.floor(gainFraction / strat.stepSize);
-      return strat.baseRate * initial * Math.pow(1 + strat.stepBoost, steps);
+      return strat.baseRate * initial * (1 + strat.stepBoost * steps);
     }
     case 'endowment': {
       const window = state.trajectory.slice(-strat.lookbackYears);

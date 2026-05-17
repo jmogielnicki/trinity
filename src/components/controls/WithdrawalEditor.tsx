@@ -239,7 +239,7 @@ function RatchetEditor({
   onChange: (baseRate: number, stepSize: number, stepBoost: number) => void;
 }) {
   const exampleSteps = Math.floor(0.20 / stepSize);
-  const exampleWd = (baseRate * Math.pow(1 + stepBoost, exampleSteps) * 100).toFixed(2);
+  const exampleWd = (baseRate * (1 + stepBoost * exampleSteps) * 100).toFixed(2);
   const pctFmt = (v: number) => (v * 100).toFixed(2).replace(/\.?0+$/, '');
   const pctParse = (s: string) => {
     if (s.trim() === '') return null;

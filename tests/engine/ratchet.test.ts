@@ -29,10 +29,10 @@ describe('ratchet withdrawal', () => {
   });
 
   it('steps up at each 10% threshold', () => {
-    // Balance just above 10% gain → 1 step → 4% × 1.05 = 4.2%
+    // Balance just above 10% gain → 1 step → 4% × (1 + 0.05×1) = 4.2%
     expect(computeWithdrawal(strat, state(1_100_001), initial, 0)).toBeCloseTo(42_000, 0);
-    // Balance just above 20% gain → 2 steps → 4% × 1.05² ≈ 4.41%
-    expect(computeWithdrawal(strat, state(1_200_001), initial, 0)).toBeCloseTo(44_100, 0);
+    // Balance just above 20% gain → 2 steps → 4% × (1 + 0.05×2) = 4.4%
+    expect(computeWithdrawal(strat, state(1_200_001), initial, 0)).toBeCloseTo(44_000, 0);
     // Balance at exactly 10% → 1 step
     expect(computeWithdrawal(strat, state(1_100_000), initial, 0)).toBeCloseTo(42_000, 0);
   });
@@ -46,7 +46,7 @@ describe('ratchet withdrawal', () => {
   it('ratchet tracks the peak, not the current balance', () => {
     // Peak was 1.25M (2 steps) but current is 950k
     const s = state(950_000, [1_050_000, 1_250_000, 1_100_000, 980_000]);
-    expect(computeWithdrawal(strat, s, initial, 0)).toBeCloseTo(44_100, 0);
+    expect(computeWithdrawal(strat, s, initial, 0)).toBeCloseTo(44_000, 0);
   });
 
   it('does not ratchet below initial even with high trajectory lows', () => {
