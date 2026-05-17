@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { scaleLinear } from 'd3-scale';
 import { line } from 'd3-shape';
-import type { SimulationResult } from '../../engine/types';
+import type { SimulationResult, YearStateRecord } from '../../engine/types';
 
 type Props = {
   sim: SimulationResult;
@@ -84,6 +84,22 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
   const calTicks = trajectory
     .filter((r) => r.t % calStep === 0 || r.t === trajectory.length - 1)
     .map((r) => ({ t: r.t, label: String(r.calendarYear) }));
+
+  // Hover state: index into trajectory
+  const [hoveredT, setHoveredT] = useState<number | null>(null);
+  const hoveredRecord: YearStateRecord | null =
+    hoveredT != null ? (trajectory[hoveredT] ?? null) : null;
+
+  const handleMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const t = Math.round(xScale.invert(px));
+    const clamped = Math.max(0, Math.min(trajectory.length - 1, t));
+    setHoveredT(clamped);
+  };
+
+  // Flip tooltip to left when in right half
+  const tooltipFlip = hoveredT != null && xScale(hoveredT) > innerW / 2;
 
   return (
     <div className="sim-detail-panel">
@@ -217,6 +233,99 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
           >
             years into retirement / calendar year
           </text>
+
+          {/* Hover interaction overlay */}
+          <rect
+            x={0}
+            y={0}
+            width={innerW}
+            height={innerH}
+            fill="transparent"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => setHoveredT(null)}
+            style={{ cursor: 'crosshair' }}
+          />
+
+          {/* Crosshair + tooltip */}
+          {hoveredRecord != null && hoveredT != null && (
+            <g pointerEvents="none">
+              {/* Vertical crosshair line */}
+              <line
+                x1={xScale(hoveredT)}
+                x2={xScale(hoveredT)}
+                y1={0}
+                y2={innerH}
+                stroke="#555"
+                strokeWidth={1}
+                strokeDasharray="3,2"
+              />
+              {/* Dot on balance line */}
+              <circle
+                cx={xScale(hoveredT)}
+                cy={yScale(hoveredRecord.balance)}
+                r={4}
+                fill={strokeColor}
+                stroke="#fff"
+                strokeWidth={1.5}
+              />
+              {/* Dot on withdrawal bar top */}
+              <circle
+                cx={xScale(hoveredT)}
+                cy={lineAreaH + 6 + (barStripH - 6) - yWdScale(hoveredRecord.withdrawal)}
+                r={3}
+                fill="#f97316"
+                stroke="#fff"
+                strokeWidth={1.5}
+              />
+              {/* Tooltip box */}
+              {(() => {
+                const r = hoveredRecord;
+                const tipLines = [
+                  `Year ${r.t}  ·  ${r.calendarYear}`,
+                  `Balance: ${fmt$(r.balance)}`,
+                  `Withdrawal: ${fmt$(r.withdrawal)}  (${fmtPct(r.withdrawal / initialBalance)} of initial)`,
+                  r.return != null
+                    ? `Return: ${fmtPct(r.return)}  ${r.return >= 0 ? '▲' : '▼'}`
+                    : null,
+                  `Alloc: ${fmtPct(r.weights.stock, 0)} stocks · ${fmtPct(r.weights.bond, 0)} bonds · ${fmtPct(r.weights.cash, 0)} cash`,
+                ].filter(Boolean) as string[];
+
+                const tipW = 248;
+                const tipLineH = 15;
+                const tipPad = 8;
+                const tipH = tipLines.length * tipLineH + tipPad * 2;
+                const cx = xScale(hoveredT);
+                const tx = tooltipFlip ? cx - tipW - 10 : cx + 10;
+                const ty = Math.max(0, yScale(r.balance) - tipH / 2);
+
+                return (
+                  <g transform={`translate(${tx},${ty})`}>
+                    <rect
+                      x={0} y={0}
+                      width={tipW} height={tipH}
+                      fill="#fff"
+                      stroke="#bbb"
+                      strokeWidth={0.5}
+                      rx={4}
+                      filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))"
+                    />
+                    {tipLines.map((l, i) => (
+                      <text
+                        key={i}
+                        x={tipPad}
+                        y={tipPad + (i + 0.75) * tipLineH}
+                        fontSize={11}
+                        fill={i === 0 ? '#222' : '#444'}
+                        fontWeight={i === 0 ? 600 : 400}
+                      >
+                        {l}
+                      </text>
+                    ))}
+                  </g>
+                );
+              })()}
+            </g>
+          )}
         </g>
       </svg>
 
