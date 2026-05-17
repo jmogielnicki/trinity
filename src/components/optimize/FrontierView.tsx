@@ -22,7 +22,8 @@ type Axis =
   | 'p50Final'
   | 'p95Final'
   | 'avgAnnualWithdrawal'
-  | 'avgYearsNearDepletion';
+  | 'avgYearsNearDepletion'
+  | 'minBalance';
 
 const AXIS_LABELS: Record<Axis, string> = {
   successRate: 'Success rate',
@@ -31,6 +32,7 @@ const AXIS_LABELS: Record<Axis, string> = {
   p95Final: '95th-pct final balance',
   avgAnnualWithdrawal: 'Avg annual withdrawal',
   avgYearsNearDepletion: 'Avg years near depletion',
+  minBalance: 'Min balance reached',
 };
 
 const AXIS_OPTIONS: Axis[] = [
@@ -40,6 +42,7 @@ const AXIS_OPTIONS: Axis[] = [
   'p95Final',
   'avgAnnualWithdrawal',
   'avgYearsNearDepletion',
+  'minBalance',
 ];
 
 type ColorBy =
