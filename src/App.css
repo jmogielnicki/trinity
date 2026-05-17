@@ -30,8 +30,43 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
   height: fit-content;
 }
 .control-group { display: flex; flex-direction: column; gap: 8px; }
-.control-group label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #444; }
-.control-group input[type="number"] { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; }
+.control-group label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #555; font-weight: 500; }
+
+/* Shared numeric input style — used by NumericInput component */
+.num-input,
+.control-group input[type="number"],
+.floor-upside-grid input {
+  padding: 7px 10px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #111;
+  background: #fff;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.num-input:focus,
+.control-group input[type="number"]:focus,
+.floor-upside-grid input:focus {
+  border-color: #335577;
+  box-shadow: 0 0 0 3px rgba(51, 85, 119, 0.12);
+}
+.num-input:hover:not(:focus),
+.control-group input[type="number"]:hover:not(:focus),
+.floor-upside-grid input:hover:not(:focus) {
+  border-color: #aab4bf;
+}
+
+/* Remove spinner arrows from number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; }
 
 .curve-editor { display: block; touch-action: none; user-select: none; }
 .control-label { font-size: 12px; color: #444; }
@@ -96,9 +131,35 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .view-toggle button.active { background: #357; color: #fff; border-color: #357; }
 
 .editor-block { display: flex; flex-direction: column; gap: 6px; }
-.mode-toggle { display: flex; gap: 4px; }
-.mode-toggle button { font-size: 11px; padding: 3px 10px; border: 1px solid #ccc; background: #fff; border-radius: 3px; cursor: pointer; }
-.mode-toggle button.active { background: #357; color: #fff; border-color: #357; }
+.mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: #efefef;
+  border-radius: 8px;
+  padding: 3px;
+}
+.mode-toggle button {
+  font-size: 11px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+  font-weight: 500;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+  white-space: nowrap;
+}
+.mode-toggle button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.6);
+  color: #333;
+}
+.mode-toggle button.active {
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.07);
+}
 
 .script-area { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; }
 .script-sig { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #666; }
@@ -150,7 +211,27 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 
 .rule-hint { font-size: 11px; color: #777; padding: 2px 0 4px; }
 
-.preset-select { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; background: #fff; cursor: pointer; }
+.preset-select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  cursor: pointer;
+  color: #111;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: auto;
+}
+.preset-select:focus {
+  border-color: #335577;
+  box-shadow: 0 0 0 3px rgba(51, 85, 119, 0.12);
+}
+.preset-select:hover:not(:focus) {
+  border-color: #aab4bf;
+}
 
 .rebalance-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; }
 .waterfall-order ol { list-style: none; padding: 0; margin: 4px 0; display: flex; flex-direction: column; gap: 3px; }
@@ -285,8 +366,8 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .floor-upside-editor { display: flex; flex-direction: column; gap: 10px; }
 .floor-upside-hint { font-size: 11px; color: #666; line-height: 1.4; }
 .floor-upside-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.floor-upside-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #444; }
-.floor-upside-grid input { padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+.floor-upside-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #555; font-weight: 500; }
+/* .floor-upside-grid input styling is handled by .num-input above */
 
 /* Frontier color legend */
 .frontier-colorbar { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #555; }
