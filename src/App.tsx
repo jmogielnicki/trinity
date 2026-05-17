@@ -9,6 +9,7 @@ import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInput';
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { Heatmap } from './components/results/Heatmap';
+import { SimDetailPanel } from './components/results/SimDetailPanel';
 import { SmallMultiples } from './components/results/SmallMultiples';
 import { Legend } from './components/results/Legend';
 import { OutcomeStrip } from './components/results/OutcomeStrip';
@@ -50,6 +51,7 @@ export function App() {
   const [view, setView] = useState<View>('spaghetti');
   const [topMode, setTopMode] = useState<TopMode>('single');
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+  const [detailYear, setDetailYear] = useState<number | null>(null);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) => {
@@ -58,6 +60,7 @@ export function App() {
       else next.add(year);
       return next;
     });
+    setDetailYear((prev) => (prev === year ? null : year));
   };
   const marqueeYears = (years: number[]) => {
     setSelectedYears((prev) => {
@@ -66,7 +69,7 @@ export function App() {
       return next;
     });
   };
-  const clearSelection = () => setSelectedYears(new Set());
+  const clearSelection = () => { setSelectedYears(new Set()); setDetailYear(null); };
 
   useEffect(() => {
     let cancelled = false;
@@ -276,6 +279,16 @@ export function App() {
                     onMarquee={marqueeYears}
                     onClear={clearSelection}
                   />
+                  {detailYear != null && (() => {
+                    const sim = result.sims.find(s => s.startYear === detailYear);
+                    return sim ? (
+                      <SimDetailPanel
+                        sim={sim}
+                        initialBalance={scenario.initialBalance}
+                        onClose={() => setDetailYear(null)}
+                      />
+                    ) : null;
+                  })()}
                 </>
               )}
               {view === 'calendar' && (
