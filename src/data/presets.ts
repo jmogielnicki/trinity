@@ -228,4 +228,116 @@ export const PRESETS: Preset[] = [
       axes: PINNED_AXES,
     },
   },
+  {
+    id: 'rising-equity-pfau',
+    name: 'Rising equity 30→60 — Pfau — 4%',
+    description:
+      'Pfau rising-equity glidepath: start conservative at 30/70 stocks/bonds, ' +
+      'add 2% equity per year for 15 years, then hold at 60/40. ' +
+      'Mitigates sequence-of-returns risk by keeping equity low in the fragile early years.',
+    state: {
+      initialBalance: STARTING,
+      horizonYears: HORIZON,
+      allocation: {
+        type: 'risingEquity',
+        start: { stock: 0.3, bond: 0.7, cash: 0 },
+        end: { stock: 0.6, bond: 0.4, cash: 0 },
+        years: 15,
+      },
+      withdrawal: { type: 'fixedPercent', rate: 0.04 },
+      withdrawalSource: { type: 'proportional', rebalance: true },
+      tailMethod: { type: 'truncate' },
+      axes: PINNED_AXES,
+    },
+  },
+  {
+    id: 'cape-withdrawal',
+    name: 'CAPE-based withdrawal — 60/40',
+    description:
+      'Blanchett CAPE rule: W = 1.75% + 0.5 × (1/CAPE), applied to the current balance each year. ' +
+      'Pulls back automatically when markets are expensive and spends more when they are cheap. ' +
+      'CAPE data available from 1881; earlier start years use a fallback CAPE of 20.',
+    state: {
+      initialBalance: STARTING,
+      horizonYears: HORIZON,
+      allocation: flatStatic(0.6, 0.4, 0),
+      withdrawal: { type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20 },
+      withdrawalSource: { type: 'proportional', rebalance: true },
+      tailMethod: { type: 'truncate' },
+      axes: PINNED_AXES,
+    },
+  },
+  {
+    id: 'ratchet-swr',
+    name: 'Ratcheting SWR 3.25% — 60/40',
+    description:
+      'Start conservatively at 3.25% (inflation-adjusted). Each time the portfolio grows 50% above ' +
+      'its starting value, permanently raise real spending by 10%. Gains are locked in — ' +
+      'a subsequent crash does not cut the elevated floor.',
+    state: {
+      initialBalance: STARTING,
+      horizonYears: HORIZON,
+      allocation: flatStatic(0.6, 0.4, 0),
+      withdrawal: { type: 'ratchet', baseRate: 0.0325, stepSize: 0.5, stepBoost: 0.1 },
+      withdrawalSource: { type: 'proportional', rebalance: true },
+      tailMethod: { type: 'truncate' },
+      axes: PINNED_AXES,
+    },
+  },
+  {
+    id: 'guardrails-gk',
+    name: 'Guyton-Klinger guardrails 5% — 65/35',
+    description:
+      'Start at 5% of initial balance. Each year, if the current implied withdrawal rate drifts ' +
+      'more than 20% above the starting rate, cut spending 10%; if it drifts 20% below, raise 10%. ' +
+      'Spending is capped between 80% and 125% of the original amount.',
+    state: {
+      initialBalance: STARTING,
+      horizonYears: HORIZON,
+      allocation: flatStatic(0.65, 0.35, 0),
+      withdrawal: {
+        type: 'guardrails',
+        base: 0.05,
+        trigger: 0.2,
+        floor: 0.8,
+        ceiling: 1.25,
+      },
+      withdrawalSource: { type: 'proportional', rebalance: true },
+      tailMethod: { type: 'truncate' },
+      axes: PINNED_AXES,
+    },
+  },
+  {
+    id: 'endowment',
+    name: 'Endowment method 5% — 65/35',
+    description:
+      'University-endowment style: withdraw 5% of the 10-year rolling average portfolio balance. ' +
+      'Smooths out market volatility. A 90% floor on year-over-year spending prevents severe lifestyle cuts.',
+    state: {
+      initialBalance: STARTING,
+      horizonYears: HORIZON,
+      allocation: flatStatic(0.65, 0.35, 0),
+      withdrawal: { type: 'endowment', rate: 0.05, lookbackYears: 10, floorFraction: 0.9 },
+      withdrawalSource: { type: 'proportional', rebalance: true },
+      tailMethod: { type: 'truncate' },
+      axes: PINNED_AXES,
+    },
+  },
+  {
+    id: 'vanguard-dynamic',
+    name: 'Vanguard dynamic spending 5% — 60/40',
+    description:
+      'Apply 5% to the current portfolio balance each year, then constrain the result: ' +
+      'spending can rise at most 5% from the prior year and fall at most 2.5%. ' +
+      'Adapts to markets while preventing jarring year-over-year swings.',
+    state: {
+      initialBalance: STARTING,
+      horizonYears: HORIZON,
+      allocation: flatStatic(0.6, 0.4, 0),
+      withdrawal: { type: 'vanguardDynamic', rate: 0.05, ceiling: 0.05, floor: -0.025 },
+      withdrawalSource: { type: 'proportional', rebalance: true },
+      tailMethod: { type: 'truncate' },
+      axes: PINNED_AXES,
+    },
+  },
 ];
