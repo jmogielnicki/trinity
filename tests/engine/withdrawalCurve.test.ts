@@ -3,7 +3,7 @@ import { computeWithdrawal } from '../../src/engine/strategies';
 import type { YearState } from '../../src/engine/types';
 
 function st(t: number, balance = 1_000_000): YearState {
-  return { t, balance, calendarYear: 2000 + t, trajectory: [] };
+  return { t, balance, calendarYear: 2000 + t, trajectory: [], cape: null };
 }
 
 describe('piecewiseLinear withdrawal', () => {

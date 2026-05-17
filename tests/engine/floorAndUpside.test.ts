@@ -3,7 +3,7 @@ import { computeWithdrawal } from '../../src/engine/strategies';
 import type { YearState } from '../../src/engine/types';
 
 function state(balance: number, t = 0): YearState {
-  return { t, balance, calendarYear: 2000 + t, trajectory: [] };
+  return { t, balance, calendarYear: 2000 + t, trajectory: [], cape: null };
 }
 
 describe('floorAndUpside withdrawal', () => {
