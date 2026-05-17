@@ -71,19 +71,6 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
         <strong>{axes[1].label}</strong> · click a cell to apply or save that
         variant.
       </div>
-      <div className="study-heatmap-grid">
-        {METRICS.map((m) => (
-          <MetricHeatmap
-            key={m.key}
-            spec={m}
-            results={results}
-            axes={axes}
-            cols={cols}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
-        ))}
-      </div>
       {selected && (
         <div className="study-heatmap-detail">
           <div className="study-heatmap-detail-info">
@@ -117,6 +104,19 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
           </div>
         </div>
       )}
+      <div className="study-heatmap-grid">
+        {METRICS.map((m) => (
+          <MetricHeatmap
+            key={m.key}
+            spec={m}
+            results={results}
+            axes={axes}
+            cols={cols}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+        ))}
+      </div>
     </div>
   );
 }
