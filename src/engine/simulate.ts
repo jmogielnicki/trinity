@@ -122,7 +122,13 @@ export function simulate(input: SimulateInput): SimulationResult {
     );
 
     // Withdraw at start of year.
+    const sleevesAtStart: Sleeves = { ...sleeves };
     sleeves = applyWithdrawal(sleeves, wd, withdrawalSource);
+    const withdrawalBySleeve: Sleeves = {
+      stock: sleevesAtStart.stock - sleeves.stock,
+      bond: sleevesAtStart.bond - sleeves.bond,
+      cash: sleevesAtStart.cash - sleeves.cash,
+    };
     if (totalSleeves(sleeves) <= 0) {
       trajectory.push({
         t,
@@ -132,6 +138,11 @@ export function simulate(input: SimulateInput): SimulationResult {
         weights: weightsRaw,
         sleeves: { stock: 0, bond: 0, cash: 0 },
         depleted: true,
+        sleevesStart: sleevesAtStart,
+        withdrawalBySleeve,
+        rebalanceFlow: { stock: 0, bond: 0, cash: 0 },
+        returnBySleeve: { stock: 0, bond: 0, cash: 0 },
+        refillFlow: { stock: 0, bond: 0, cash: 0 },
       });
       return {
         startYear,
@@ -148,6 +159,7 @@ export function simulate(input: SimulateInput): SimulationResult {
     // are earned on year-t's allocation (matches the spec loop). When data
     // forced cash → 0, this uses the adjusted weights so we don't refill a
     // sleeve we just dropped.
+    const sleevesAfterWithdrawal: Sleeves = { ...sleeves };
     if (
       withdrawalSource.type === 'proportional' &&
       withdrawalSource.rebalance
@@ -160,17 +172,34 @@ export function simulate(input: SimulateInput): SimulationResult {
       // — otherwise the allocation strategy is silently ignored after year 0.
       sleeves = applyGlideStep(sleeves, prevTarget, weights);
     }
+    const rebalanceFlow: Sleeves = {
+      stock: sleeves.stock - sleevesAfterWithdrawal.stock,
+      bond: sleeves.bond - sleevesAfterWithdrawal.bond,
+      cash: sleeves.cash - sleevesAfterWithdrawal.cash,
+    };
     prevTarget = weights;
 
     const beforeReturns: Sleeves = { ...sleeves };
 
     // Apply per-sleeve returns.
     sleeves = applyReturns(sleeves, r);
+    const returnBySleeve: Sleeves = {
+      stock: sleeves.stock - beforeReturns.stock,
+      bond: sleeves.bond - beforeReturns.bond,
+      cash: sleeves.cash - beforeReturns.cash,
+    };
 
     // Bucket refill rule: runs after returns, moves between sleeves only when
     // the trigger and source conditions fire.
+    let refillFlow: Sleeves = { stock: 0, bond: 0, cash: 0 };
     if (withdrawalSource.type === 'bucket') {
+      const beforeRefill: Sleeves = { ...sleeves };
       sleeves = applyRefill(sleeves, withdrawalSource.refill, initialSleeves, wd, r);
+      refillFlow = {
+        stock: sleeves.stock - beforeRefill.stock,
+        bond: sleeves.bond - beforeRefill.bond,
+        cash: sleeves.cash - beforeRefill.cash,
+      };
     }
 
     const portRet = effectiveReturn(beforeReturns, sleeves, 0);
@@ -183,6 +212,11 @@ export function simulate(input: SimulateInput): SimulationResult {
       weights: weightsRaw,
       sleeves: { ...sleeves },
       return: portRet,
+      sleevesStart: sleevesAtStart,
+      withdrawalBySleeve,
+      rebalanceFlow,
+      returnBySleeve,
+      refillFlow,
     });
   }
 

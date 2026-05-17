@@ -35,6 +35,22 @@ export type YearStateRecord = {
   sleeves: Sleeves;
   return?: number;
   depleted?: boolean;
+  /** Sleeve balances at the START of the year, before withdrawal. */
+  sleevesStart?: Sleeves;
+  /** How much of the withdrawal came from each sleeve. */
+  withdrawalBySleeve?: Sleeves;
+  /**
+   * Net rebalancing flow per sleeve (positive = bought in, negative = sold).
+   * Covers both full annual rebalances and deliberate glide-path shifts.
+   */
+  rebalanceFlow?: Sleeves;
+  /** Dollar return earned by each sleeve during the year. */
+  returnBySleeve?: Sleeves;
+  /**
+   * Bucket refill net flow per sleeve (positive = received, negative = sourced).
+   * Zero/absent when no bucket refill fired.
+   */
+  refillFlow?: Sleeves;
 };
 
 export type YearState = {
