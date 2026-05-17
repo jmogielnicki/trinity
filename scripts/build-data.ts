@@ -31,6 +31,7 @@ type MonthRow = {
   cpi: number;
   trp: number; // cumulative stock total return price
   bondTr: number; // cumulative bond total return index
+  cape: number | null; // Shiller CAPE (P/E10); null before ~1881
 };
 
 /**
@@ -86,7 +87,7 @@ function parseDate(s: string): { year: number; month: number } | null {
   return { year, month };
 }
 
-type ShillerColumns = { cpi: number; trp: number; bondTr: number };
+type ShillerColumns = { cpi: number; trp: number; bondTr: number; cape: number | null };
 
 /**
  * Resolve the columns we need by header name rather than by hardcoded index.
@@ -124,7 +125,12 @@ function resolveColumns(headerLine: string): ShillerColumns {
         `Header was: ${header.join(' | ')}`,
     );
   }
-  return { cpi, trp, bondTr: bondCols[1].i };
+  // CAPE column: "Ratio P/E10 or CAPE" — must not match "TR CAPE" variant.
+  // Use index -1 (absent) gracefully so pre-1881 NAs don't crash the build.
+  const capeIdx = header.findIndex(
+    (h) => /\bCAPE\b/i.test(h) && !/\bTR\b/i.test(h),
+  );
+  return { cpi, trp, bondTr: bondCols[1].i, cape: capeIdx >= 0 ? capeIdx : null };
 }
 
 function parseShiller(csv: string): MonthRow[] {
@@ -139,7 +145,8 @@ function parseShiller(csv: string): MonthRow[] {
     const trp = parseNum(cols[col.trp]);
     const bondTr = parseNum(cols[col.bondTr]);
     if (cpi == null || trp == null || bondTr == null) continue;
-    rows.push({ year: date.year, month: date.month, cpi, trp, bondTr });
+    const cape = col.cape != null ? parseNum(cols[col.cape]) : null;
+    rows.push({ year: date.year, month: date.month, cpi, trp, bondTr, cape });
   }
   return rows;
 }
@@ -227,6 +234,8 @@ function buildAnnual(
       cash_return_real: cashReal == null ? null : round(cashReal),
       cpi: round(cur.cpi, 4),
       inflation: round(inflation),
+      // December CAPE for this year; null before ~1881 (requires 10y earnings)
+      cape: cur.cape != null ? round(cur.cape, 2) : null,
     });
   }
   return out;

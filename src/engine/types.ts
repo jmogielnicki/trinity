@@ -14,6 +14,8 @@ export type AnnualReturns = {
   cash_return_real: number | null;
   cpi: number;
   inflation: number;
+  /** Shiller CAPE (P/E10) as of December. Null before ~1881. */
+  cape: number | null;
 };
 
 export type HistoricalSeries = {
@@ -40,6 +42,8 @@ export type YearState = {
   balance: number;
   calendarYear: number;
   trajectory: YearStateRecord[];
+  /** Shiller CAPE for this year; null when unavailable (pre-1881 or missing). */
+  cape: number | null;
 };
 
 export type SimulationResult = {

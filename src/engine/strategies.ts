@@ -42,6 +42,14 @@ export type WithdrawalStrategy =
       trigger: number;
     }
   | { type: 'ruleBased'; base: number; rules: Rule[] }
+  /**
+   * CAPE-based withdrawal (Blanchett / "CAPE rule"):
+   *   rate = a + b × (1 / CAPE)
+   * Applied to the current portfolio balance each year (variable withdrawal).
+   * Conservative defaults: a = 0.0175, b = 0.5.
+   * When CAPE is unavailable (pre-1881), falls back to rate = a + b / fallbackCape.
+   */
+  | { type: 'capeWithdrawal'; a: number; b: number; fallbackCape: number }
   | { type: 'custom'; fn: (state: YearState, initial: number) => number }
   /**
    * Source-string variant of `custom`. Body is the function body of
@@ -166,6 +174,11 @@ export function computeWithdrawal(
         }
       }
       return rate * initial;
+    }
+    case 'capeWithdrawal': {
+      const cape = state.cape ?? strat.fallbackCape;
+      const rate = strat.a + strat.b / cape;
+      return rate * state.balance;
     }
     case 'custom':
       return strat.fn(state, initial);

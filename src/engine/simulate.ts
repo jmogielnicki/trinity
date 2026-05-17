@@ -75,6 +75,7 @@ export function simulate(input: SimulateInput): SimulationResult {
       balance: initialBalance,
       calendarYear: startYear,
       trajectory,
+      cape: returns[0]?.cape ?? null,
     };
     const w0Raw = computeWeights(
       allocation,
@@ -98,6 +99,7 @@ export function simulate(input: SimulateInput): SimulationResult {
       balance: balanceBefore,
       calendarYear,
       trajectory,
+      cape: r.cape,
     };
 
     const weightsRaw: Weights = computeWeights(
