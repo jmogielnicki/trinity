@@ -3,6 +3,9 @@ import type { Weights, YearState } from './types';
 
 export type WithdrawalStrategy =
   | { type: 'fixedPercent'; rate: number }
+  /** Fixed real $/year — constant purchasing power, set independently of the
+   *  portfolio size. `amount` is in today's dollars, like every other figure
+   *  the engine handles. */
   | { type: 'fixedDollar'; amount: number }
   /**
    * % of current balance, but never less than `floor × initial` (real $).
@@ -206,6 +209,7 @@ export function computeWithdrawal(
       // rate of initial, inflation-adjusted. In real $ terms this is constant.
       return strat.rate * initial;
     case 'fixedDollar':
+      // Already in real (today's) $ — see the type definition.
       return strat.amount;
     case 'percentOfBalance': {
       // % of current balance, floored at a fixed real commitment. The floor
