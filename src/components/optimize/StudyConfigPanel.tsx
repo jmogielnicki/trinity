@@ -22,7 +22,7 @@ import { WithdrawalSourceInput } from '../controls/WithdrawalSourceInput';
 
 const DIMENSIONS: Array<{ key: StudyDimension; label: string }> = [
   { key: 'allocation', label: 'Holdings mix' },
-  { key: 'withdrawal', label: 'Withdrawal rate' },
+  { key: 'withdrawal', label: 'Withdrawal strategy' },
   { key: 'source', label: 'Withdrawal source' },
 ];
 
@@ -63,49 +63,97 @@ function familyDefault(family: WithdrawalFamily): WithdrawalRangeSpec {
   }
 }
 
+// Flat grayscale icons for the pin / sweep toggle.
+function PinIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor" aria-hidden>
+      <path d="M6 1.4h4l-.7 5.1 2.7 2.4v1.1H4V8.9l2.7-2.4z" />
+      <rect x="7.4" y="9.6" width="1.2" height="5" />
+    </svg>
+  );
+}
+
+function SweepIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="12"
+      height="12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 8h10M5.5 5 3 8l2.5 3M10.5 5 13 8l-2.5 3" />
+    </svg>
+  );
+}
+
 export function StudyConfigPanel() {
   const { study, setStudy } = useOptimizeStore();
   const horizonYears = useScenarioStore((s) => s.horizonYears);
   const update = (patch: Partial<StudyConfig>) => setStudy({ ...study, ...patch });
+  const sweptCount = study.varying.length;
+
+  const setPinned = (key: StudyDimension) => {
+    if (!study.varying.includes(key)) return;
+    if (study.varying.length <= 1) return; // always keep one swept
+    update({ varying: study.varying.filter((d) => d !== key) });
+  };
+  const setSwept = (key: StudyDimension) => {
+    if (study.varying.includes(key)) return;
+    if (study.varying.length >= 2) return; // 2D max
+    update({ varying: [...study.varying, key] });
+  };
 
   return (
     <div className="study-panel">
       <div className="study-panel-intro">
-        Pin two dimensions, sweep the third. Every variant runs against all
-        historical start years; compare them below.
+        Pin the dimensions you want held constant and sweep the rest. Sweep one
+        for a scatter / trajectory comparison, or two for a heatmap grid (max
+        two).
       </div>
       {DIMENSIONS.map(({ key, label }) => {
-        const varying = study.varying === key;
+        const sweepIdx = study.varying.indexOf(key);
+        const swept = sweepIdx >= 0;
+        const role =
+          swept && sweptCount === 2 ? (sweepIdx === 0 ? 'rows' : 'columns') : null;
         return (
-          <div key={key} className={`study-row${varying ? ' varying' : ''}`}>
+          <div key={key} className={`study-row${swept ? ' varying' : ''}`}>
             <div className="study-row-head">
-              <span className="study-dim-name">{label}</span>
+              <span className="study-dim-name">
+                {label}
+                {role && <span className="study-dim-role"> · {role}</span>}
+              </span>
               <div className="mode-toggle study-dim-toggle">
                 <button
-                  className={!varying ? 'active' : ''}
-                  onClick={() => {
-                    if (varying) return;
-                    // Make some other dimension vary instead so exactly one
-                    // is always swept; pick the first that isn't this one.
-                    const next = DIMENSIONS.find((d) => d.key !== key)!.key;
-                    update({ varying: next });
-                  }}
-                  title="Pin this dimension to a single value"
+                  className={!swept ? 'active' : ''}
+                  onClick={() => setPinned(key)}
+                  disabled={swept && sweptCount <= 1}
+                  title="Hold this dimension constant"
                 >
-                  📌 locked
+                  <PinIcon /> pinned
                 </button>
                 <button
-                  className={varying ? 'active' : ''}
-                  onClick={() => update({ varying: key })}
+                  className={swept ? 'active' : ''}
+                  onClick={() => setSwept(key)}
+                  disabled={!swept && sweptCount >= 2}
                   title="Sweep this dimension across many variants"
                 >
-                  ↔ sweep
+                  <SweepIcon /> sweep
                 </button>
               </div>
             </div>
             <div className="study-row-body">
-              {varying ? (
-                <VaryEditor study={study} update={update} horizonYears={horizonYears} />
+              {swept ? (
+                <VaryEditor
+                  dim={key}
+                  study={study}
+                  update={update}
+                  horizonYears={horizonYears}
+                />
               ) : (
                 <LockedEditor
                   dim={key}
@@ -169,58 +217,78 @@ function LockedEditor({
 // ---------------------------------------------------------------------------
 
 function VaryEditor({
+  dim,
   study,
   update,
   horizonYears,
 }: {
+  dim: StudyDimension;
   study: StudyConfig;
   update: (p: Partial<StudyConfig>) => void;
   horizonYears: number;
 }) {
+  const mode = study.varyMode[dim];
+  const setMode = (m: 'range' | 'list') =>
+    update({ varyMode: { ...study.varyMode, [dim]: m } });
   return (
     <>
       <div className="mode-toggle study-vary-mode">
         <button
-          className={study.varyMode === 'range' ? 'active' : ''}
-          onClick={() => update({ varyMode: 'range' })}
+          className={mode === 'range' ? 'active' : ''}
+          onClick={() => setMode('range')}
         >
           range
         </button>
         <button
-          className={study.varyMode === 'list' ? 'active' : ''}
-          onClick={() => update({ varyMode: 'list' })}
+          className={mode === 'list' ? 'active' : ''}
+          onClick={() => setMode('list')}
         >
           hand-picked list
         </button>
       </div>
-      {study.varyMode === 'range' ? (
-        <RangeEditor study={study} update={update} />
+      {mode === 'range' ? (
+        <RangeEditor dim={dim} study={study} update={update} />
       ) : (
-        <ListEditor study={study} update={update} horizonYears={horizonYears} />
+        <ListEditor
+          dim={dim}
+          study={study}
+          update={update}
+          horizonYears={horizonYears}
+        />
       )}
-      <VariantCount study={study} />
+      <VariantCount dim={dim} study={study} />
     </>
   );
 }
 
-function VariantCount({ study }: { study: StudyConfig }) {
+function VariantCount({
+  dim,
+  study,
+}: {
+  dim: StudyDimension;
+  study: StudyConfig;
+}) {
   let n: number;
-  if (study.varyMode === 'list') {
+  if (study.varyMode[dim] === 'list') {
     n =
-      study.varying === 'allocation'
+      dim === 'allocation'
         ? study.allocationList.length
-        : study.varying === 'withdrawal'
+        : dim === 'withdrawal'
           ? study.withdrawalList.length
           : study.sourceList.length;
-  } else if (study.varying === 'allocation') {
+  } else if (dim === 'allocation') {
     n = allocationRangeVariants(study.allocationRange).length;
-  } else if (study.varying === 'withdrawal') {
+  } else if (dim === 'withdrawal') {
     const r = study.withdrawalRange;
     n = rangeValues(r.from, r.to, r.step).length;
   } else {
     n = study.sourcePresetIds.length;
   }
-  return <div className="rule-hint">{n} variant{n === 1 ? '' : 's'} will run.</div>;
+  return (
+    <div className="rule-hint">
+      {n} variant{n === 1 ? '' : 's'} on this axis.
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -228,13 +296,15 @@ function VariantCount({ study }: { study: StudyConfig }) {
 // ---------------------------------------------------------------------------
 
 function RangeEditor({
+  dim,
   study,
   update,
 }: {
+  dim: StudyDimension;
   study: StudyConfig;
   update: (p: Partial<StudyConfig>) => void;
 }) {
-  if (study.varying === 'allocation') {
+  if (dim === 'allocation') {
     const r = study.allocationRange;
     const set = (patch: Partial<AllocationRangeSpec>) =>
       update({ allocationRange: { ...r, ...patch } });
@@ -265,7 +335,7 @@ function RangeEditor({
       </div>
     );
   }
-  if (study.varying === 'withdrawal') {
+  if (dim === 'withdrawal') {
     return <WithdrawalRangeEditor spec={study.withdrawalRange} update={update} />;
   }
   return (
@@ -454,15 +524,17 @@ function WithdrawalRangeEditor({
 // ---------------------------------------------------------------------------
 
 function ListEditor({
+  dim,
   study,
   update,
   horizonYears,
 }: {
+  dim: StudyDimension;
   study: StudyConfig;
   update: (p: Partial<StudyConfig>) => void;
   horizonYears: number;
 }) {
-  if (study.varying === 'allocation') {
+  if (dim === 'allocation') {
     return (
       <EntryList
         items={study.allocationList}
@@ -482,7 +554,7 @@ function ListEditor({
       />
     );
   }
-  if (study.varying === 'withdrawal') {
+  if (dim === 'withdrawal') {
     return (
       <EntryList
         items={study.withdrawalList}

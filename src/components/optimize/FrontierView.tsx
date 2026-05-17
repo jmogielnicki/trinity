@@ -15,6 +15,11 @@ import { useScenarioStore } from '../../store/scenarioStore';
 import { NEAR_DEPLETION_FRACTION, type CandidateResult } from '../../engine/optimize';
 import { varyLabel } from '../../engine/study';
 import { StudyConfigPanel } from './StudyConfigPanel';
+import { StudyHeatmaps } from './StudyHeatmaps';
+import { StudyTrajectories } from './StudyTrajectories';
+import { useLibraryStore } from '../../store/libraryStore';
+import { useSweepStore } from '../../store/sweepStore';
+import type { SerializedState } from '../../data/urlState';
 
 type Axis =
   | 'successRate'
@@ -122,10 +127,13 @@ export function FrontierView({ onApplied }: Props) {
   const scenario = useScenarioStore();
   const pool = useResultsStore((s) => s.pool);
   const data = useResultsStore((s) => s.data);
+  const saveToLibrary = useLibraryStore((s) => s.save);
+  const sweepAxes = useSweepStore((s) => s.axes);
   const {
     study,
     studyDirty,
     results,
+    axes,
     frontier,
     selectedIds,
     minSuccessRate,
@@ -144,6 +152,9 @@ export function FrontierView({ onApplied }: Props) {
   const [xAxis, setXAxis] = useState<Axis>('successRate');
   const [yAxis, setYAxis] = useState<Axis>('avgAnnualWithdrawal');
   const [colorBy, setColorBy] = useState<ColorBy>('varyValue');
+  const [viewMode, setViewMode] = useState<'scatter' | 'trajectories'>('scatter');
+
+  const is2D = axes.length === 2;
 
   const runSearch = () => {
     if (!pool || !data) return;
@@ -188,16 +199,31 @@ export function FrontierView({ onApplied }: Props) {
     onApplied?.();
   };
 
+  const saveVariant = (r: CandidateResult) => {
+    const name = window.prompt('Save this variant to your library as:', r.candidate.label);
+    if (!name) return;
+    const state: SerializedState = {
+      initialBalance: scenario.initialBalance,
+      horizonYears: scenario.horizonYears,
+      allocation: r.candidate.allocation,
+      withdrawal: r.candidate.withdrawal,
+      withdrawalSource: r.candidate.withdrawalSource,
+      tailMethod: scenario.tailMethod,
+      axes: sweepAxes,
+    };
+    saveToLibrary(name, state);
+  };
+
   return (
     <div className="frontier-view">
       <div className="frontier-header">
         <div>
-          <strong>Strategy study</strong> — pin two of {`{`}holdings mix,
-          withdrawal rate, withdrawal source{`}`} and sweep the third. Every
-          variant runs against all historical start years; the Pareto-optimal
-          set is highlighted on success rate, avg annual withdrawal, median
-          final, and 95th-pct final. Uses the current horizon (
-          {scenario.horizonYears}y), starting balance, and tail method.
+          <strong>Strategy study</strong> — pin some of {`{`}holdings mix,
+          withdrawal strategy, withdrawal source{`}`} and sweep the rest. Sweep
+          one dimension for a scatter / trajectory comparison; sweep two for a
+          heatmap grid. Every variant runs against all historical start years.
+          Uses the current horizon ({scenario.horizonYears}y), starting
+          balance, and tail method.
         </div>
         <div className="frontier-actions">
           <button onClick={runSearch} disabled={running || !pool || !data}>
@@ -233,89 +259,122 @@ export function FrontierView({ onApplied }: Props) {
         </div>
       )}
 
-      {results.length > 0 && (
+      {results.length > 0 && is2D && (
+        <StudyHeatmaps
+          results={results}
+          axes={axes}
+          onApply={applyStrategy}
+          onSave={saveVariant}
+        />
+      )}
+
+      {results.length > 0 && !is2D && (
         <>
           <div className="frontier-controls">
-            <label className="frontier-axis-pick">
-              x:
-              <select
-                value={xAxis}
-                onChange={(e) => setXAxis(e.target.value as Axis)}
+            <div className="mode-toggle study-view-toggle">
+              <button
+                className={viewMode === 'scatter' ? 'active' : ''}
+                onClick={() => setViewMode('scatter')}
               >
-                {AXIS_OPTIONS.map((a) => (
-                  <option key={a} value={a}>
-                    {AXIS_LABELS[a]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="frontier-axis-pick">
-              y:
-              <select
-                value={yAxis}
-                onChange={(e) => setYAxis(e.target.value as Axis)}
+                scatter
+              </button>
+              <button
+                className={viewMode === 'trajectories' ? 'active' : ''}
+                onClick={() => setViewMode('trajectories')}
               >
-                {AXIS_OPTIONS.map((a) => (
-                  <option key={a} value={a}>
-                    {AXIS_LABELS[a]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="frontier-axis-pick">
-              color:
-              <select
-                value={colorBy}
-                onChange={(e) => setColorBy(e.target.value as ColorBy)}
-              >
-                {(Object.keys(COLOR_BY_LABELS) as ColorBy[]).map((c) => (
-                  <option key={c} value={c}>
-                    {c === 'varyValue'
-                      ? `${varyLabel(study)} (swept)`
-                      : COLOR_BY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="frontier-filter">
-              min success ≥
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={Math.round(minSuccessRate * 100)}
-                onChange={(e) =>
-                  setMinSuccessRate(parseInt(e.target.value, 10) / 100)
-                }
-              />
-              <span className="frontier-filter-val">
-                {(minSuccessRate * 100).toFixed(0)}%
-              </span>
-            </label>
+                trajectories
+              </button>
+            </div>
+            {viewMode === 'scatter' && (
+              <>
+                <label className="frontier-axis-pick">
+                  x:
+                  <select
+                    value={xAxis}
+                    onChange={(e) => setXAxis(e.target.value as Axis)}
+                  >
+                    {AXIS_OPTIONS.map((a) => (
+                      <option key={a} value={a}>
+                        {AXIS_LABELS[a]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="frontier-axis-pick">
+                  y:
+                  <select
+                    value={yAxis}
+                    onChange={(e) => setYAxis(e.target.value as Axis)}
+                  >
+                    {AXIS_OPTIONS.map((a) => (
+                      <option key={a} value={a}>
+                        {AXIS_LABELS[a]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="frontier-axis-pick">
+                  color:
+                  <select
+                    value={colorBy}
+                    onChange={(e) => setColorBy(e.target.value as ColorBy)}
+                  >
+                    {(Object.keys(COLOR_BY_LABELS) as ColorBy[]).map((c) => (
+                      <option key={c} value={c}>
+                        {c === 'varyValue'
+                          ? `${varyLabel(study)} (swept)`
+                          : COLOR_BY_LABELS[c]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="frontier-filter">
+                  min success ≥
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(minSuccessRate * 100)}
+                    onChange={(e) =>
+                      setMinSuccessRate(parseInt(e.target.value, 10) / 100)
+                    }
+                  />
+                  <span className="frontier-filter-val">
+                    {(minSuccessRate * 100).toFixed(0)}%
+                  </span>
+                </label>
+              </>
+            )}
           </div>
-          <ScatterPlot
-            results={filteredResults}
-            frontierIds={frontierIds}
-            selectedIds={selectedSet}
-            onToggle={toggleSelected}
-            onMarquee={setSelected}
-            xAxis={xAxis}
-            yAxis={yAxis}
-            colorBy={colorBy}
-          />
-          <ComparisonTable
-            results={results}
-            selectedIds={selectedIds}
-            onRemove={toggleSelected}
-            onApply={applyStrategy}
-          />
-          <ComparisonBars results={results} selectedIds={selectedIds} />
-          <FrontierList
-            frontier={frontier}
-            selectedIds={selectedSet}
-            onToggle={toggleSelected}
-          />
+          {viewMode === 'scatter' ? (
+            <>
+              <ScatterPlot
+                results={filteredResults}
+                frontierIds={frontierIds}
+                selectedIds={selectedSet}
+                onToggle={toggleSelected}
+                onMarquee={setSelected}
+                xAxis={xAxis}
+                yAxis={yAxis}
+                colorBy={colorBy}
+              />
+              <ComparisonTable
+                results={results}
+                selectedIds={selectedIds}
+                onRemove={toggleSelected}
+                onApply={applyStrategy}
+              />
+              <ComparisonBars results={results} selectedIds={selectedIds} />
+              <FrontierList
+                frontier={frontier}
+                selectedIds={selectedSet}
+                onToggle={toggleSelected}
+              />
+            </>
+          ) : (
+            <StudyTrajectories results={results} />
+          )}
         </>
       )}
     </div>

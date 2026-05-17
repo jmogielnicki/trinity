@@ -325,6 +325,32 @@ input[type="number"] { -moz-appearance: textfield; }
 .study-list { display: flex; flex-direction: column; gap: 8px; }
 .study-list-entry { border: 1px solid #ececec; border-radius: 4px; padding: 8px; background: #fcfcfc; }
 .study-list-entry-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 500; color: #444; margin-bottom: 6px; }
+.study-dim-toggle button { display: inline-flex; align-items: center; gap: 4px; }
+.study-dim-toggle svg { display: block; }
+.study-dim-role { font-weight: 500; color: #888; font-size: 11px; }
+.study-view-toggle { margin-right: 4px; }
+
+/* 2D study heatmaps */
+.study-heatmaps { display: flex; flex-direction: column; gap: 12px; }
+.study-heatmaps-caption { font-size: 12px; color: #555; }
+.study-heatmap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+.study-heatmap { border: 1px solid #e8e8e8; border-radius: 6px; padding: 8px; background: #fff; min-width: 0; }
+.study-heatmap-title { font-size: 12px; font-weight: 600; color: #333; margin-bottom: 6px; }
+.study-heatmap-scroll { overflow-x: auto; }
+.study-heatmap-table { border-collapse: collapse; font-size: 10px; }
+.study-heatmap-table th { font-weight: 500; color: #666; font-size: 10px; padding: 2px 4px; text-align: left; }
+.study-heatmap-table thead th { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.study-heatmap-rowlabel { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: sticky; left: 0; background: #fff; }
+.study-heatmap-corner { background: #fff; }
+.study-heatmap-cell { padding: 3px 5px; text-align: center; cursor: pointer; white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 40px; }
+.study-heatmap-cell:hover { filter: brightness(1.12); }
+.study-heatmap-cell.selected { outline: 3px solid #111; outline-offset: -3px; font-weight: 700; }
+.study-heatmap-detail { display: flex; justify-content: space-between; align-items: center; gap: 16px; border: 1px solid #c9c9c9; border-radius: 6px; padding: 10px 12px; background: #fff; flex-wrap: wrap; position: sticky; top: 8px; z-index: 5; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); }
+.study-heatmap-detail-info { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #555; }
+.study-heatmap-detail-info strong { color: #222; font-size: 13px; }
+.study-heatmap-detail-actions { display: flex; gap: 6px; align-items: center; }
+.study-heatmap-detail-actions button { font-size: 12px; padding: 5px 10px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; }
+.study-heatmap-detail-actions button:hover { background: #f0f0f0; }
 
 .frontier-table-wrap { overflow-x: auto; }
 .frontier-table { width: 100%; border-collapse: collapse; font-size: 12px; }

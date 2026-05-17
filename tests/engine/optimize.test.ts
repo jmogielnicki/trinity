@@ -6,6 +6,7 @@ import {
 } from '../../src/engine/optimize';
 import {
   DEFAULT_STUDY,
+  generateStudy,
   generateStudyCandidates,
   type StudyConfig,
 } from '../../src/engine/study';
@@ -36,6 +37,13 @@ function mkResult(
       avgYearsNearDepletion: 0,
       minBalance: p50Final * 0.4,
       completedCount: 100,
+    },
+    result: {
+      sims: [],
+      successRate,
+      completedCount: 100,
+      inProgressCount: 0,
+      percentiles: [],
     },
   };
 }
@@ -102,8 +110,7 @@ describe('generateStudyCandidates', () => {
   it('sweeps a withdrawal family while pinning a floor', () => {
     const study: StudyConfig = {
       ...DEFAULT_STUDY,
-      varying: 'withdrawal',
-      varyMode: 'range',
+      varying: ['withdrawal'],
       withdrawalRange: {
         family: 'percentOfBalance',
         floor: 0.0325,
@@ -122,11 +129,35 @@ describe('generateStudyCandidates', () => {
     }
   });
 
+  it('builds a row-major grid for a 2D study', () => {
+    const study: StudyConfig = {
+      ...DEFAULT_STUDY,
+      varying: ['source', 'withdrawal'],
+      sourcePresetIds: ['prop-rebal', 'waterfall'],
+      withdrawalRange: {
+        family: 'fixedPercent',
+        from: 0.03,
+        to: 0.05,
+        step: 0.01,
+      },
+    };
+    const { candidates, axes } = generateStudy(study);
+    // 2 source rows × 3 withdrawal cols.
+    expect(axes).toHaveLength(2);
+    expect(axes[0].dimension).toBe('source');
+    expect(axes[1].dimension).toBe('withdrawal');
+    expect(axes[0].ticks).toHaveLength(2);
+    expect(axes[1].ticks).toHaveLength(3);
+    expect(candidates).toHaveLength(6);
+    // Row-major: index = row * cols + col. Row 0 = first source preset.
+    expect(candidates[0].withdrawalSource?.type).toBe('proportional');
+    expect(candidates[3].withdrawalSource?.type).toBe('waterfall');
+  });
+
   it('races the selected withdrawal-source presets', () => {
     const study: StudyConfig = {
       ...DEFAULT_STUDY,
-      varying: 'source',
-      varyMode: 'range',
+      varying: ['source'],
       sourcePresetIds: ['prop-rebal', 'waterfall', 'bucket'],
     };
     const cands = generateStudyCandidates(study);

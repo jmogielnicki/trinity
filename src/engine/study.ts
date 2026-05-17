@@ -8,12 +8,13 @@ import {
 } from './withdrawalSource';
 
 /**
- * A "study" is a lock-2-vary-1 search: two of the three strategy dimensions
- * (allocation, withdrawal, withdrawal source) are pinned to a single concrete
- * value, and the third sweeps over a set of variants. The variants are either
- * generated from a numeric range (`range` mode) or hand-assembled (`list`
- * mode). Every variant is run against all historical start years, and the
- * results are compared side by side.
+ * A "study" pins some of the three strategy dimensions (allocation,
+ * withdrawal, withdrawal source) and sweeps the others. One swept dimension
+ * produces a 1D study (scatter / trajectory comparison); two swept dimensions
+ * produce a 2D study (heatmap grid). Each swept dimension's variants are
+ * either generated from a numeric range (`range` mode) or hand-assembled
+ * (`list` mode). Every variant combination runs against all historical start
+ * years.
  */
 export type StudyDimension = 'allocation' | 'withdrawal' | 'source';
 export type VaryMode = 'range' | 'list';
@@ -74,18 +75,24 @@ export type WithdrawalRangeSpec =
     };
 
 export type StudyConfig = {
-  varying: StudyDimension;
-  varyMode: VaryMode;
-  /** Locked (pinned) value for each non-varying dimension. */
+  /**
+   * Dimensions being swept: 1 entry for a 1D study, 2 for a 2D heatmap study.
+   * `varying[0]` is the primary axis (heatmap rows), `varying[1]` the
+   * secondary (columns).
+   */
+  varying: StudyDimension[];
+  /** range vs list mode, chosen per dimension. */
+  varyMode: Record<StudyDimension, VaryMode>;
+  /** Locked (pinned) value for each non-swept dimension. */
   lockedAllocation: AllocationStrategy;
   lockedWithdrawal: WithdrawalStrategy;
   lockedSource: WithdrawalSource;
-  /** Range-mode specs — only the one matching `varying` is consulted. */
+  /** Range-mode specs — only those for swept dimensions are consulted. */
   allocationRange: AllocationRangeSpec;
   withdrawalRange: WithdrawalRangeSpec;
   /** Selected source-preset ids for source range mode. */
   sourcePresetIds: string[];
-  /** List-mode entries — only the one matching `varying` is consulted. */
+  /** List-mode entries — only those for swept dimensions are consulted. */
   allocationList: AllocationStrategy[];
   withdrawalList: WithdrawalStrategy[];
   sourceList: WithdrawalSource[];
@@ -143,8 +150,8 @@ export const SOURCE_PRESETS: SourcePreset[] = [
 ];
 
 export const DEFAULT_STUDY: StudyConfig = {
-  varying: 'allocation',
-  varyMode: 'range',
+  varying: ['allocation'],
+  varyMode: { allocation: 'range', withdrawal: 'range', source: 'range' },
   lockedAllocation: {
     type: 'static',
     weights: { stock: 0.6, bond: 0.4, cash: 0 },
@@ -278,15 +285,6 @@ export function describeSource(s: WithdrawalSource): string {
 // Variant resolution
 // ---------------------------------------------------------------------------
 
-type ResolvedVariant = {
-  allocation: AllocationStrategy;
-  withdrawal: WithdrawalStrategy;
-  source: WithdrawalSource;
-  /** Numeric value of the swept parameter — drives axis/color coding. */
-  varyValue: number;
-  numeric: CandidateNumericParams;
-};
-
 /** Cap on the number of (stock, bond) combinations a 2D sweep produces. */
 const MAX_ALLOC_COMBOS = 150;
 
@@ -317,14 +315,14 @@ export function allocationRangeVariants(
 }
 
 function allocationVariants(study: StudyConfig): AllocationStrategy[] {
-  if (study.varyMode === 'list') return study.allocationList;
+  if (study.varyMode.allocation === 'list') return study.allocationList;
   return allocationRangeVariants(study.allocationRange);
 }
 
 function withdrawalVariants(
   study: StudyConfig,
 ): Array<{ wd: WithdrawalStrategy; numeric: CandidateNumericParams }> {
-  if (study.varyMode === 'list') {
+  if (study.varyMode.withdrawal === 'list') {
     return study.withdrawalList.map((wd) => ({ wd, numeric: {} }));
   }
   const spec = study.withdrawalRange;
@@ -368,7 +366,7 @@ function withdrawalVariants(
 }
 
 function sourceVariants(study: StudyConfig): WithdrawalSource[] {
-  if (study.varyMode === 'list') return study.sourceList;
+  if (study.varyMode.source === 'list') return study.sourceList;
   return SOURCE_PRESETS.filter((p) => study.sourcePresetIds.includes(p.id)).map(
     (p) => p.source,
   );
@@ -383,39 +381,46 @@ function stockPctOf(a: AllocationStrategy): number | undefined {
   return undefined;
 }
 
-function resolveVariants(study: StudyConfig): ResolvedVariant[] {
-  const { lockedAllocation, lockedWithdrawal, lockedSource } = study;
-  if (study.varying === 'allocation') {
+/** One variant of a single dimension — a partial scenario plus display info. */
+type DimVariant = {
+  allocation?: AllocationStrategy;
+  withdrawal?: WithdrawalStrategy;
+  source?: WithdrawalSource;
+  label: string;
+  /** Numeric value of the variant — drives heatmap axis ordering / color. */
+  varyValue: number;
+  numeric: CandidateNumericParams;
+};
+
+function dimensionVariants(
+  study: StudyConfig,
+  dim: StudyDimension,
+): DimVariant[] {
+  if (dim === 'allocation') {
     return allocationVariants(study).map((allocation) => {
       const stockPct = stockPctOf(allocation);
       return {
         allocation,
-        withdrawal: lockedWithdrawal,
-        source: lockedSource,
+        label: describeAllocation(allocation),
         varyValue: stockPct ?? 0,
-        numeric: { stockPct, varyValue: stockPct },
+        numeric: { stockPct },
       };
     });
   }
-  if (study.varying === 'withdrawal') {
-    return withdrawalVariants(study).map(({ wd, numeric }) => {
-      const varyValue =
-        numeric.withdrawalRate ?? numeric.floor ?? numeric.marginalSpend ?? 0;
-      return {
-        allocation: lockedAllocation,
-        withdrawal: wd,
-        source: lockedSource,
-        varyValue,
-        numeric: { ...numeric, varyValue },
-      };
-    });
+  if (dim === 'withdrawal') {
+    return withdrawalVariants(study).map(({ wd, numeric }) => ({
+      withdrawal: wd,
+      label: describeWithdrawal(wd),
+      varyValue:
+        numeric.withdrawalRate ?? numeric.floor ?? numeric.marginalSpend ?? 0,
+      numeric,
+    }));
   }
   return sourceVariants(study).map((source, i) => ({
-    allocation: lockedAllocation,
-    withdrawal: lockedWithdrawal,
     source,
+    label: describeSource(source),
     varyValue: i,
-    numeric: { varyValue: i },
+    numeric: {},
   }));
 }
 
@@ -423,42 +428,108 @@ function resolveVariants(study: StudyConfig): ResolvedVariant[] {
 // Candidate generation
 // ---------------------------------------------------------------------------
 
-/** Short label for the dimension being swept — used as axis/color title. */
-export function varyLabel(study: StudyConfig): string {
-  switch (study.varying) {
+export type StudyAxis = {
+  dimension: StudyDimension;
+  label: string;
+  /** Variant labels along this axis, in order. */
+  ticks: string[];
+};
+
+export type StudyResult = {
+  /**
+   * For a 2D study, candidates are row-major: index = row * cols + col,
+   * where row indexes `axes[0]` and col indexes `axes[1]`.
+   */
+  candidates: Candidate[];
+  axes: StudyAxis[];
+};
+
+/** Display name for a study dimension; matches the sidebar section headers. */
+export function dimLabel(dim: StudyDimension): string {
+  switch (dim) {
     case 'allocation':
-      return 'Allocation';
+      return 'Holdings mix';
     case 'withdrawal':
-      return 'Withdrawal';
+      return 'Withdrawal strategy';
     case 'source':
       return 'Withdrawal source';
   }
 }
 
+/** De-dupe, drop invalid entries, and cap at 2 swept dimensions. */
+export function normalizeVarying(varying: StudyDimension[]): StudyDimension[] {
+  const seen = new Set<StudyDimension>();
+  const out: StudyDimension[] = [];
+  for (const d of varying) {
+    if (!seen.has(d)) {
+      seen.add(d);
+      out.push(d);
+    }
+  }
+  return out.length ? out.slice(0, 2) : ['allocation'];
+}
+
+/** Primary swept-dimension label — used for 1D scatter color coding. */
+export function varyLabel(study: StudyConfig): string {
+  return dimLabel(normalizeVarying(study.varying)[0]);
+}
+
 /**
- * Turn a study config into the flat candidate list the optimizer runs. Every
- * candidate shares the two locked dimensions; only the varying one differs.
+ * Expand a study config into the candidate grid the optimizer runs. A 1D
+ * study yields a flat list; a 2D study yields a row-major grid (the cartesian
+ * product of the two swept dimensions' variants).
  */
-export function generateStudyCandidates(study: StudyConfig): Candidate[] {
-  const variants = resolveVariants(study);
-  return variants.map((v, i) => {
-    const allocDesc = describeAllocation(v.allocation);
-    const wdDesc = describeWithdrawal(v.withdrawal);
-    const srcDesc = describeSource(v.source);
-    const label =
-      study.varying === 'allocation'
-        ? allocDesc
-        : study.varying === 'withdrawal'
-          ? wdDesc
-          : srcDesc;
+export function generateStudy(study: StudyConfig): StudyResult {
+  const dims = normalizeVarying(study.varying);
+  const variantsByDim = dims.map((d) => dimensionVariants(study, d));
+
+  const makeCandidate = (picks: DimVariant[], idx: number): Candidate => {
+    const allocation =
+      picks.find((p) => p.allocation)?.allocation ?? study.lockedAllocation;
+    const withdrawal =
+      picks.find((p) => p.withdrawal)?.withdrawal ?? study.lockedWithdrawal;
+    const source = picks.find((p) => p.source)?.source ?? study.lockedSource;
+    const numeric: CandidateNumericParams = {};
+    for (const p of picks) Object.assign(numeric, p.numeric);
+    numeric.varyValue = picks[0]?.varyValue;
+    if (picks[1]) numeric.varyValue2 = picks[1].varyValue;
+    const label = picks.map((p) => p.label).join('  ×  ');
     return {
-      id: `${study.varying}-${i}-${label}`,
+      id: `c${idx}·${label}`,
       label,
-      allocation: v.allocation,
-      withdrawal: v.withdrawal,
-      withdrawalSource: v.source,
-      params: { withdrawal: wdDesc, allocation: allocDesc, source: srcDesc },
-      numericParams: v.numeric,
+      allocation,
+      withdrawal,
+      withdrawalSource: source,
+      params: {
+        allocation: describeAllocation(allocation),
+        withdrawal: describeWithdrawal(withdrawal),
+        source: describeSource(source),
+      },
+      numericParams: numeric,
     };
-  });
+  };
+
+  const candidates: Candidate[] = [];
+  if (dims.length === 1) {
+    variantsByDim[0].forEach((v, i) => candidates.push(makeCandidate([v], i)));
+  } else {
+    const [rows, cols] = variantsByDim;
+    let i = 0;
+    for (const r of rows) {
+      for (const c of cols) candidates.push(makeCandidate([r, c], i++));
+    }
+  }
+
+  const axes: StudyAxis[] = dims.map((d, k) => ({
+    dimension: d,
+    label: dimLabel(d),
+    ticks: variantsByDim[k].map((v) => v.label),
+  }));
+
+  return { candidates, axes };
+}
+
+/** Flat candidate list — convenience for callers that don't need the grid. */
+export function generateStudyCandidates(study: StudyConfig): Candidate[] {
+  return generateStudy(study).candidates;
 }

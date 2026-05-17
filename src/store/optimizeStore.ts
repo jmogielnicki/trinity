@@ -3,20 +3,26 @@ import {
   candidateToScenario,
   metricsFromResult,
   paretoFront,
-  type Candidate,
   type CandidateResult,
   type OptimizeConfig,
 } from '../engine/optimize';
-import { DEFAULT_STUDY, generateStudyCandidates, type StudyConfig } from '../engine/study';
+import {
+  DEFAULT_STUDY,
+  generateStudy,
+  type StudyAxis,
+  type StudyConfig,
+} from '../engine/study';
 import type { SimPool } from '../worker/pool';
 
 export type OptimizeState = {
-  /** Lock-2-vary-1 study configuration that defines the candidate set. */
+  /** Study configuration that defines the candidate set. */
   study: StudyConfig;
   /** True when the study has changed since the last search — results are stale. */
   studyDirty: boolean;
-  /** All candidates with metrics (unfiltered). */
+  /** All candidates with metrics (unfiltered), row-major for 2D studies. */
   results: CandidateResult[];
+  /** Swept-dimension axes from the last run — 1 entry for 1D, 2 for 2D. */
+  axes: StudyAxis[];
   /** Pareto front recomputed against the currently-filtered set. */
   frontier: CandidateResult[];
   selectedIds: string[];
@@ -55,6 +61,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     study: DEFAULT_STUDY,
     studyDirty: false,
     results: [],
+    axes: [],
     frontier: [],
     selectedIds: [],
     minSuccessRate: 0,
@@ -70,13 +77,14 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       const myId = ++pendingId;
       set({ running: true });
       const t0 = performance.now();
-      const candidates: Candidate[] = generateStudyCandidates(get().study);
+      const { candidates, axes } = generateStudy(get().study);
       const scenarios = candidates.map((c) => candidateToScenario(c, cfg));
       const scenarioResults = await pool.runMany(scenarios);
       if (myId !== pendingId) return;
       const results: CandidateResult[] = candidates.map((c, i) => ({
         candidate: c,
         metrics: metricsFromResult(scenarioResults[i], cfg.initialBalance),
+        result: scenarioResults[i],
       }));
       const minSuccessRate = get().minSuccessRate;
       const frontier = filterAndFront(results, minSuccessRate);
@@ -87,6 +95,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         .map((r) => r.candidate.id);
       set({
         results,
+        axes,
         frontier,
         selectedIds: initialSelected,
         running: false,
@@ -135,6 +144,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         study: DEFAULT_STUDY,
         studyDirty: false,
         results: [],
+        axes: [],
         frontier: [],
         selectedIds: [],
         minSuccessRate: 0,
