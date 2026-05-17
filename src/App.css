@@ -272,6 +272,28 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .frontier-empty { font-size: 12px; color: #888; padding: 12px; text-align: center; border: 1px dashed #ddd; border-radius: 4px; }
 
+/* Study config panel — lock-2-vary-1 */
+.study-panel { display: flex; flex-direction: column; gap: 8px; border: 1px solid #e4e4e4; border-radius: 6px; padding: 12px; background: #fafafa; }
+.study-panel-intro { font-size: 12px; color: #666; line-height: 1.4; }
+.study-row { border: 1px solid #e8e8e8; border-radius: 5px; background: #fff; padding: 8px 10px; }
+.study-row.varying { border-color: #1f77b4; box-shadow: 0 0 0 1px #1f77b4 inset; }
+.study-row-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.study-dim-name { font-size: 13px; font-weight: 600; color: #333; }
+.study-dim-toggle { flex-shrink: 0; }
+.study-row-body { margin-top: 8px; }
+.study-row:not(.varying) .study-row-body { opacity: 0.92; }
+.study-vary-mode { margin-bottom: 8px; }
+.study-range { display: flex; flex-direction: column; gap: 8px; }
+.study-range-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.study-range-label { font-size: 12px; font-weight: 600; color: #444; min-width: 52px; }
+.study-range-row label,
+.study-field { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #555; }
+.study-field { flex-direction: column; align-items: flex-start; gap: 3px; }
+.study-field select { padding: 3px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+.study-list { display: flex; flex-direction: column; gap: 8px; }
+.study-list-entry { border: 1px solid #ececec; border-radius: 4px; padding: 8px; background: #fcfcfc; }
+.study-list-entry-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 500; color: #444; margin-bottom: 6px; }
+
 .frontier-table-wrap { overflow-x: auto; }
 .frontier-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .frontier-table th, .frontier-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; white-space: nowrap; }

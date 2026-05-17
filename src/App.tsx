@@ -201,7 +201,7 @@ export function App() {
               className={topMode === 'optimize' ? 'active' : ''}
               onClick={() => setTopMode('optimize')}
             >
-              Optimize / frontier
+              Study / optimize
             </button>
             <button
               className={topMode === 'evolve' ? 'active' : ''}
