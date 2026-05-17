@@ -3,7 +3,7 @@ import { CustomScriptEditor } from './CustomScriptEditor';
 import { RuleBuilder } from './RuleBuilder';
 import { WithdrawalCurve } from './WithdrawalCurve';
 
-type Mode = 'curve' | 'floor-upside' | 'rules' | 'script';
+type Mode = 'curve' | 'floor-upside' | 'cape' | 'rules' | 'script';
 
 type Props = {
   horizonYears: number;
@@ -15,6 +15,7 @@ function modeOf(w: WithdrawalStrategy): Mode {
   if (w.type === 'ruleBased') return 'rules';
   if (w.type === 'customSrc' || w.type === 'custom') return 'script';
   if (w.type === 'floorAndUpside') return 'floor-upside';
+  if (w.type === 'capeWithdrawal') return 'cape';
   // 'curve' covers fixedPercent, piecewiseLinear (what the editor emits),
   // and the legacy 'piecewise' (kept as a separate engine type so old
   // saved scenarios still resolve).
@@ -50,6 +51,8 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
         floor: 0.04,
         marginalSpend: 0.02,
       });
+    if (m === 'cape')
+      onChange({ type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20 });
   };
 
   return (
@@ -68,6 +71,16 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
           marginalSpend={withdrawal.marginalSpend}
           onChange={(floor, marginalSpend) =>
             onChange({ type: 'floorAndUpside', floor, marginalSpend })
+          }
+        />
+      )}
+      {mode === 'cape' && withdrawal.type === 'capeWithdrawal' && (
+        <CapeWithdrawalEditor
+          a={withdrawal.a}
+          b={withdrawal.b}
+          fallbackCape={withdrawal.fallbackCape}
+          onChange={(a, b, fallbackCape) =>
+            onChange({ type: 'capeWithdrawal', a, b, fallbackCape })
           }
         />
       )}
@@ -102,6 +115,7 @@ function ModeToggle({
   const modes: Array<{ k: Mode; label: string }> = [
     { k: 'curve', label: 'curve' },
     { k: 'floor-upside', label: 'floor + upside' },
+    { k: 'cape', label: 'CAPE' },
     { k: 'rules', label: 'rules' },
     { k: 'script', label: 'script' },
   ];
@@ -116,6 +130,75 @@ function ModeToggle({
           {m.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+function CapeWithdrawalEditor({
+  a,
+  b,
+  fallbackCape,
+  onChange,
+}: {
+  a: number;
+  b: number;
+  fallbackCape: number;
+  onChange: (a: number, b: number, fallbackCape: number) => void;
+}) {
+  const exampleCape = 20.9;
+  const exampleRate = (a + b / exampleCape) * 100;
+  return (
+    <div className="floor-upside-editor">
+      <div className="floor-upside-hint">
+        Each year: withdraw <strong>rate × current balance</strong>, where{' '}
+        <strong>rate = a + b ÷ CAPE</strong>. At CAPE {exampleCape.toFixed(1)},{' '}
+        rate = {exampleRate.toFixed(2)}%. Adjusts automatically as markets move.
+      </div>
+      <div className="floor-upside-grid">
+        <label>
+          a — base rate (%)
+          <input
+            type="number"
+            min={0}
+            max={10}
+            step={0.05}
+            value={(a * 100).toFixed(2).replace(/\.?0+$/, '')}
+            onChange={(e) =>
+              onChange(
+                Math.max(0, parseFloat(e.target.value) / 100 || 0),
+                b,
+                fallbackCape,
+              )
+            }
+          />
+        </label>
+        <label>
+          b — CAPE sensitivity
+          <input
+            type="number"
+            min={0}
+            max={2}
+            step={0.05}
+            value={b.toFixed(2).replace(/\.?0+$/, '')}
+            onChange={(e) =>
+              onChange(a, Math.max(0, parseFloat(e.target.value) || 0), fallbackCape)
+            }
+          />
+        </label>
+        <label>
+          Fallback CAPE (pre-1881)
+          <input
+            type="number"
+            min={5}
+            max={60}
+            step={1}
+            value={fallbackCape}
+            onChange={(e) =>
+              onChange(a, b, Math.max(5, parseInt(e.target.value) || 20))
+            }
+          />
+        </label>
+      </div>
     </div>
   );
 }
