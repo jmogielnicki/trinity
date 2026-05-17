@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { scaleLinear } from 'd3-scale';
 import { line } from 'd3-shape';
-import type { SimulationResult, YearStateRecord } from '../../engine/types';
+import type { SimulationResult, Sleeves, YearStateRecord } from '../../engine/types';
 
 type Props = {
   sim: SimulationResult;
@@ -17,6 +17,16 @@ function fmt$(n: number): string {
 
 function fmtPct(n: number, decimals = 1): string {
   return `${(n * 100).toFixed(decimals)}%`;
+}
+
+function fmtFlow(n: number): string {
+  if (Math.abs(n) < 1) return '—';
+  const abs = fmt$(Math.abs(n));
+  return n >= 0 ? `+${abs}` : `−${abs}`;
+}
+
+function zeroSleeves(): Sleeves {
+  return { stock: 0, bond: 0, cash: 0 };
 }
 
 export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
@@ -79,11 +89,21 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
   const xTicks = xScale.ticks(Math.min(10, trajectory.length));
   const barW = Math.max(1.5, innerW / Math.max(1, trajectory.length) - 0.5);
 
+  const hasRefill = useMemo(
+    () => trajectory.some((r) => {
+      const f = r.refillFlow;
+      return f && (Math.abs(f.stock) > 1 || Math.abs(f.bond) > 1 || Math.abs(f.cash) > 1);
+    }),
+    [trajectory],
+  );
+
   // Calendar year labels for x-axis: show every ~10 years
   const calStep = Math.ceil(trajectory.length / 8);
   const calTicks = trajectory
     .filter((r) => r.t % calStep === 0 || r.t === trajectory.length - 1)
     .map((r) => ({ t: r.t, label: String(r.calendarYear) }));
+
+  const [detailMode, setDetailMode] = useState(false);
 
   // Hover state: index into trajectory
   const [hoveredT, setHoveredT] = useState<number | null>(null);
@@ -330,37 +350,71 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       </svg>
 
       {/* Year-by-year data table */}
+      <div className="sim-detail-table-header">
+        <span className="sim-detail-table-label">Year-by-year detail</span>
+        <button
+          className={`sim-detail-mode-btn ${detailMode ? 'active' : ''}`}
+          onClick={() => setDetailMode((v) => !v)}
+        >
+          {detailMode ? 'Hide flows' : 'Show flows'}
+        </button>
+      </div>
       <div className="sim-detail-table-wrap">
         <table className="sim-detail-table">
           <thead>
             <tr>
-              <th>Year</th>
-              <th>Calendar</th>
-              <th>Balance</th>
-              <th>Withdrawal</th>
-              <th>W/D (% initial)</th>
-              <th>Return</th>
-              <th>Stocks</th>
-              <th>Bonds</th>
-              <th>Cash</th>
+              {/* Base columns */}
+              <th rowSpan={2}>Yr</th>
+              <th rowSpan={2}>Cal</th>
+              <th rowSpan={2} className="num">Balance</th>
+              <th rowSpan={2} className="num">W/D $</th>
+              <th rowSpan={2} className="num">W/D %</th>
+              <th rowSpan={2} className="num">Return</th>
+              {/* Detail groups */}
+              {detailMode && <th colSpan={3} className="group-header">Start balance</th>}
+              {detailMode && <th colSpan={3} className="group-header">Withdrawn from</th>}
+              {detailMode && <th colSpan={3} className="group-header">Rebalanced (Δ)</th>}
+              {detailMode && hasRefill && <th colSpan={3} className="group-header">Bucket refill (Δ)</th>}
+              {detailMode && <th colSpan={3} className="group-header">Return earned</th>}
+              {/* End sleeves (always shown in detail mode, simplified in basic) */}
+              <th colSpan={3} className="group-header">End balance</th>
+            </tr>
+            <tr>
+              {detailMode && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
+              {detailMode && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
+              {detailMode && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
+              {detailMode && hasRefill && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
+              {detailMode && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
+              <th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th>
             </tr>
           </thead>
           <tbody>
-            {trajectory.map((r) => (
-              <tr key={r.t} className={r.depleted ? 'row-depleted' : ''}>
-                <td>{r.t}</td>
-                <td>{r.calendarYear}</td>
-                <td className="num">{fmt$(r.balance)}</td>
-                <td className="num">{fmt$(r.withdrawal)}</td>
-                <td className="num">{fmtPct(r.withdrawal / initialBalance)}</td>
-                <td className={`num ${r.return != null ? (r.return < 0 ? 'neg' : 'pos') : ''}`}>
-                  {r.return != null ? fmtPct(r.return) : '—'}
-                </td>
-                <td className="num">{fmtPct(r.weights.stock, 0)}</td>
-                <td className="num">{fmtPct(r.weights.bond, 0)}</td>
-                <td className="num">{fmtPct(r.weights.cash, 0)}</td>
-              </tr>
-            ))}
+            {trajectory.map((r) => {
+              const ss = r.sleevesStart ?? zeroSleeves();
+              const wb = r.withdrawalBySleeve ?? zeroSleeves();
+              const rb = r.rebalanceFlow ?? zeroSleeves();
+              const ret = r.returnBySleeve ?? zeroSleeves();
+              const rf = r.refillFlow ?? zeroSleeves();
+              const sl = r.sleeves;
+              return (
+                <tr key={r.t} className={r.depleted ? 'row-depleted' : ''}>
+                  <td>{r.t}</td>
+                  <td>{r.calendarYear}</td>
+                  <td className="num">{fmt$(r.balance)}</td>
+                  <td className="num">{fmt$(r.withdrawal)}</td>
+                  <td className="num">{fmtPct(r.withdrawal / initialBalance)}</td>
+                  <td className={`num ${r.return != null ? (r.return < 0 ? 'neg' : 'pos') : ''}`}>
+                    {r.return != null ? fmtPct(r.return) : '—'}
+                  </td>
+                  {detailMode && <><td className="num">{fmt$(ss.stock)}</td><td className="num">{fmt$(ss.bond)}</td><td className="num">{fmt$(ss.cash)}</td></>}
+                  {detailMode && <><td className="num neg">{wb.stock > 1 ? fmt$(wb.stock) : '—'}</td><td className="num neg">{wb.bond > 1 ? fmt$(wb.bond) : '—'}</td><td className="num neg">{wb.cash > 1 ? fmt$(wb.cash) : '—'}</td></>}
+                  {detailMode && <><td className={`num ${rb.stock > 1 ? 'pos' : rb.stock < -1 ? 'neg' : ''}`}>{fmtFlow(rb.stock)}</td><td className={`num ${rb.bond > 1 ? 'pos' : rb.bond < -1 ? 'neg' : ''}`}>{fmtFlow(rb.bond)}</td><td className={`num ${rb.cash > 1 ? 'pos' : rb.cash < -1 ? 'neg' : ''}`}>{fmtFlow(rb.cash)}</td></>}
+                  {detailMode && hasRefill && <><td className={`num ${rf.stock > 1 ? 'pos' : rf.stock < -1 ? 'neg' : ''}`}>{fmtFlow(rf.stock)}</td><td className={`num ${rf.bond > 1 ? 'pos' : rf.bond < -1 ? 'neg' : ''}`}>{fmtFlow(rf.bond)}</td><td className={`num ${rf.cash > 1 ? 'pos' : rf.cash < -1 ? 'neg' : ''}`}>{fmtFlow(rf.cash)}</td></>}
+                  {detailMode && <><td className={`num ${ret.stock >= 0 ? 'pos' : 'neg'}`}>{fmtFlow(ret.stock)}</td><td className={`num ${ret.bond >= 0 ? 'pos' : 'neg'}`}>{fmtFlow(ret.bond)}</td><td className={`num ${ret.cash >= 0 ? 'pos' : 'neg'}`}>{fmtFlow(ret.cash)}</td></>}
+                  <td className="num">{fmt$(sl.stock)}</td><td className="num">{fmt$(sl.bond)}</td><td className="num">{fmt$(sl.cash)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
