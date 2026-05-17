@@ -200,6 +200,39 @@ export function rebalanceTo(sleeves: Sleeves, weights: Weights): Sleeves {
   };
 }
 
+/**
+ * Apply only the *deliberate* allocation shift between two target-weight
+ * sets — the year-over-year glide step — to the current sleeves, without
+ * correcting accumulated return drift. Used by waterfall/bucket sources,
+ * which intentionally let sleeves drift but should still honor a glide
+ * path the user explicitly asked for. For a static allocation the two
+ * targets are identical, so this is a no-op and the drift is untouched.
+ */
+export function applyGlideStep(
+  sleeves: Sleeves,
+  prevTarget: Weights,
+  curTarget: Weights,
+): Sleeves {
+  const ds = curTarget.stock - prevTarget.stock;
+  const db = curTarget.bond - prevTarget.bond;
+  const dc = curTarget.cash - prevTarget.cash;
+  if (ds === 0 && db === 0 && dc === 0) return sleeves;
+  const total = totalSleeves(sleeves);
+  if (total <= 0) return sleeves;
+  const shifted = {
+    stock: Math.max(0, sleeves.stock / total + ds),
+    bond: Math.max(0, sleeves.bond / total + db),
+    cash: Math.max(0, sleeves.cash / total + dc),
+  };
+  const sum = shifted.stock + shifted.bond + shifted.cash;
+  if (sum <= 0) return sleeves;
+  return {
+    stock: total * (shifted.stock / sum),
+    bond: total * (shifted.bond / sum),
+    cash: total * (shifted.cash / sum),
+  };
+}
+
 export function effectiveReturn(
   before: Sleeves,
   after: Sleeves,

@@ -42,4 +42,30 @@ describe('customSrc strategies', () => {
     });
     expect(result.trajectory[0].weights.stock).toBe(1);
   });
+
+  // A customSrc body can arrive from a shared URL. Network / page-state
+  // globals are shadowed so a malicious strategy cannot exfiltrate.
+  const probe = (src: string): number =>
+    simulate({
+      startYear,
+      initialBalance: 1_000_000,
+      horizonYears: 1,
+      allocation: { type: 'static', weights: { stock: 1, bond: 0, cash: 0 } },
+      withdrawal: { type: 'customSrc', src },
+      returns: returns.slice(0, 1),
+    }).trajectory[0].withdrawal;
+
+  it('shadows network and page-state globals inside a customSrc body', () => {
+    for (const g of ['fetch', 'XMLHttpRequest', 'window', 'document',
+      'globalThis', 'localStorage', 'navigator', 'WebSocket', 'Function']) {
+      // Returns 1 only if the global is undefined inside the sandbox.
+      expect(probe(`return (typeof ${g}) === 'undefined' ? 1 : 999;`)).toBe(1);
+    }
+  });
+
+  it('a direct eval inside customSrc still sees the shadowed globals', () => {
+    expect(probe("return eval('typeof fetch') === 'undefined' ? 1 : 999;")).toBe(
+      1,
+    );
+  });
 });

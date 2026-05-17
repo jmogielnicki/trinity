@@ -4,7 +4,14 @@ import type { Weights, YearState } from './types';
 export type WithdrawalStrategy =
   | { type: 'fixedPercent'; rate: number }
   | { type: 'fixedDollar'; amount: number }
-  | { type: 'percentOfBalance'; rate: number }
+  /**
+   * % of current balance, but never less than `floor × initial` (real $).
+   * The floor is a fixed spending commitment that does NOT shrink with the
+   * portfolio — so a crashed balance can actually be depleted. Without it a
+   * pure % of balance can never reach zero, so it "succeeds" trivially in
+   * every history and its success rate is meaningless.
+   */
+  | { type: 'percentOfBalance'; rate: number; floor: number }
   /**
    * Floor + upside: never withdraw less than `floor × initial` (real $), and
    * for every $1 the portfolio is above its starting balance, spend an extra
@@ -128,13 +135,47 @@ export type AllocationStrategy =
 const wdSrcCache = new Map<string, (state: YearState, initial: number) => number>();
 const allocSrcCache = new Map<string, (state: YearState) => Weights>();
 
+/**
+ * Globals shadowed (passed as `undefined` parameters) when compiling a
+ * customSrc strategy, so a strategy body — which can arrive from a shared
+ * URL — cannot reach the network or page state. This is best-effort
+ * hardening, not a true sandbox: a determined payload can still recover the
+ * Function constructor via reflection (e.g. `({}).constructor.constructor`),
+ * which is why URL-loaded customSrc also passes through an explicit user
+ * confirm gate (see data/urlState.ts). A strategy only needs `state`,
+ * `initial`, and pure helpers like `Math`, so shadowing these costs nothing.
+ *
+ * `eval` is intentionally absent: it is a strict-mode-reserved parameter
+ * name. It needs no shadow anyway — a direct `eval(...)` call resolves
+ * identifiers in this enclosing scope, where the names below are already
+ * shadowed to `undefined`.
+ */
+const BLOCKED_GLOBALS = [
+  'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'importScripts',
+  'Function', 'globalThis', 'self', 'window', 'document', 'parent',
+  'top', 'opener', 'frames', 'localStorage', 'sessionStorage', 'indexedDB',
+  'navigator', 'location', 'caches', 'crypto', 'Worker', 'SharedWorker',
+  'Notification', 'postMessage', 'open',
+];
+
+function compileSandboxed(
+  params: string[],
+  src: string,
+): (...args: unknown[]) => unknown {
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const compiled = new Function(...BLOCKED_GLOBALS, ...params, src) as (
+    ...args: unknown[]
+  ) => unknown;
+  const blanks = BLOCKED_GLOBALS.map(() => undefined);
+  return (...args: unknown[]) => compiled(...blanks, ...args);
+}
+
 function compileWithdrawalSrc(
   src: string,
 ): (state: YearState, initial: number) => number {
   let fn = wdSrcCache.get(src);
   if (!fn) {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    fn = new Function('state', 'initial', src) as (
+    fn = compileSandboxed(['state', 'initial'], src) as (
       state: YearState,
       initial: number,
     ) => number;
@@ -146,8 +187,7 @@ function compileWithdrawalSrc(
 function compileAllocSrc(src: string): (state: YearState) => Weights {
   let fn = allocSrcCache.get(src);
   if (!fn) {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    fn = new Function('state', src) as (state: YearState) => Weights;
+    fn = compileSandboxed(['state'], src) as (state: YearState) => Weights;
     allocSrcCache.set(src, fn);
   }
   return fn;
@@ -165,8 +205,13 @@ export function computeWithdrawal(
       return strat.rate * initial;
     case 'fixedDollar':
       return strat.amount;
-    case 'percentOfBalance':
-      return strat.rate * state.balance;
+    case 'percentOfBalance': {
+      // % of current balance, floored at a fixed real commitment. The floor
+      // is what lets a crashed portfolio actually deplete. `?? 0.03` keeps
+      // pre-floor scenarios from old shared links sane rather than NaN.
+      const floor = Number.isFinite(strat.floor) ? strat.floor : 0.03;
+      return Math.max(floor * initial, strat.rate * state.balance);
+    }
     case 'floorAndUpside': {
       const excess = Math.max(0, state.balance - initial);
       return strat.floor * initial + strat.marginalSpend * excess;
