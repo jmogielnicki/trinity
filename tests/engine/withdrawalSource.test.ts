@@ -515,3 +515,98 @@ describe('proportional without rebalance lets sleeves drift', () => {
     expect(drifted.trajectory[1].return).toBeLessThan(0.05);
   });
 });
+
+describe('allocation strategy under drift-mode withdrawal sources', () => {
+  const stockFrac = (s: { stock: number; bond: number; cash: number }) =>
+    s.stock / (s.stock + s.bond + s.cash);
+
+  it('honors a glide path under waterfall instead of ignoring it', () => {
+    // Flat 0% returns: the only things moving the sleeves are waterfall
+    // drainage and the glide step. A static 90/10 just drifts; a 90→10
+    // glide path must actively move toward its bond-heavy end.
+    const returns = flatReturns(2000, 10, { s: 0, b: 0, c: 0 });
+    const shared = {
+      startYear: 2000,
+      initialBalance: 1_000_000,
+      horizonYears: 10,
+      withdrawal: { type: 'fixedDollar' as const, amount: 20_000 },
+      returns,
+    };
+    const staticRun = simulate({
+      ...shared,
+      allocation: { type: 'static', weights: { stock: 0.9, bond: 0.1, cash: 0 } },
+      withdrawalSource: { type: 'waterfall', order: ['cash', 'bond', 'stock'] },
+    });
+    const glideRun = simulate({
+      ...shared,
+      allocation: {
+        type: 'glidepath',
+        start: { stock: 0.9, bond: 0.1, cash: 0 },
+        end: { stock: 0.1, bond: 0.9, cash: 0 },
+        transitionYears: 9,
+      },
+      withdrawalSource: { type: 'waterfall', order: ['cash', 'bond', 'stock'] },
+    });
+    const staticEnd = stockFrac(staticRun.trajectory[9].sleeves);
+    const glideEnd = stockFrac(glideRun.trajectory[9].sleeves);
+    // Before the fix the glide path was inert and tracked the static run.
+    expect(glideEnd).toBeLessThan(0.5);
+    expect(glideEnd).toBeLessThan(staticEnd - 0.3);
+  });
+
+  it('leaves a static allocation free to drift (glide step is a no-op)', () => {
+    // Equal start, identical returns: static under waterfall vs proportional
+    // rebalance-off. The static glide "step" is zero, so the run is pure
+    // drift — unchanged from the pre-fix behavior.
+    const returns = flatReturns(2000, 5, { s: 0.1, b: 0, c: 0 });
+    const run = simulate({
+      startYear: 2000,
+      initialBalance: 1_000_000,
+      horizonYears: 5,
+      allocation: { type: 'static', weights: { stock: 0.5, bond: 0.5, cash: 0 } },
+      withdrawal: { type: 'fixedDollar', amount: 40_000 },
+      withdrawalSource: { type: 'waterfall', order: ['cash', 'bond', 'stock'] },
+      returns,
+    });
+    // Stocks grew, bonds drained first → stock fraction drifts up past 50%.
+    expect(stockFrac(run.trajectory[4].sleeves)).toBeGreaterThan(0.5);
+  });
+});
+
+describe('percentOfBalance floor', () => {
+  it('honors the floor and can deplete a crashed portfolio', () => {
+    // -15% stocks / -5% bonds every year. With a 4.5%-of-initial floor the
+    // withdrawal stops shrinking with the portfolio and drives it to zero —
+    // a pure % of balance could never deplete.
+    const returns = flatReturns(1966, 30, { s: -0.15, b: -0.05, c: 0 });
+    const result = simulate({
+      startYear: 1966,
+      initialBalance: 1_000_000,
+      horizonYears: 30,
+      allocation: { type: 'static', weights: { stock: 0.6, bond: 0.4, cash: 0 } },
+      withdrawal: { type: 'percentOfBalance', rate: 0.05, floor: 0.045 },
+      returns,
+    });
+    expect(result.success).toBe(false);
+    expect(result.depletedAt).toBeDefined();
+    // Every withdrawal is at least the 4.5%-of-initial floor.
+    for (const rec of result.trajectory) {
+      expect(rec.withdrawal).toBeGreaterThanOrEqual(0.045 * 1_000_000 - 1e-6);
+    }
+  });
+
+  it('takes the percent when it exceeds the floor', () => {
+    // Strong growth: 5% of a rising balance outruns the 3% floor.
+    const returns = flatReturns(2000, 5, { s: 0.2, b: 0.2, c: 0 });
+    const result = simulate({
+      startYear: 2000,
+      initialBalance: 1_000_000,
+      horizonYears: 5,
+      allocation: { type: 'static', weights: { stock: 0.6, bond: 0.4, cash: 0 } },
+      withdrawal: { type: 'percentOfBalance', rate: 0.05, floor: 0.03 },
+      returns,
+    });
+    // Year 0 balance is the full $1M → 5% = $50k, above the $30k floor.
+    expect(result.trajectory[0].withdrawal).toBeCloseTo(50_000, 5);
+  });
+});

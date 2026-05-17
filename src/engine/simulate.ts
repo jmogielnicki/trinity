@@ -13,6 +13,7 @@ import type {
 } from './types';
 import {
   adjustWeightsForData,
+  applyGlideStep,
   applyRefill,
   applyReturns,
   applyWithdrawal,
@@ -89,6 +90,9 @@ export function simulate(input: SimulateInput): SimulationResult {
     sleeves = splitInitial(initialBalance, w0);
   }
   const initialSleeves: Sleeves = { ...sleeves };
+  // Last year's target weights — used to apply only the deliberate glide
+  // step under withdrawal sources that otherwise let sleeves drift.
+  let prevTarget: Weights | null = null;
 
   for (let t = 0; t < effectiveHorizon; t++) {
     const r = returns[t];
@@ -140,16 +144,23 @@ export function simulate(input: SimulateInput): SimulationResult {
       };
     }
 
-    // Rebalance to target before returns, so year-t returns are earned on
-    // year-t's allocation (matches the spec loop). When data forced cash → 0,
-    // rebalance uses the adjusted weights so we don't try to refill a sleeve
-    // we just dropped.
+    // Steer toward the target allocation before returns, so year-t returns
+    // are earned on year-t's allocation (matches the spec loop). When data
+    // forced cash → 0, this uses the adjusted weights so we don't refill a
+    // sleeve we just dropped.
     if (
       withdrawalSource.type === 'proportional' &&
       withdrawalSource.rebalance
     ) {
+      // Full rebalance: snap back to target every year.
       sleeves = rebalanceTo(sleeves, weights);
+    } else if (prevTarget) {
+      // Drift modes (waterfall, bucket, rebalance-off proportional): don't
+      // correct return drift, but still honor a deliberate glide-path shift
+      // — otherwise the allocation strategy is silently ignored after year 0.
+      sleeves = applyGlideStep(sleeves, prevTarget, weights);
     }
+    prevTarget = weights;
 
     const beforeReturns: Sleeves = { ...sleeves };
 
