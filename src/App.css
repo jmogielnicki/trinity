@@ -137,7 +137,10 @@ input[type="number"] { -moz-appearance: textfield; }
   background: #efefef;
   border-radius: 8px;
   padding: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.mode-toggle::-webkit-scrollbar { display: none; }
 .mode-toggle button {
   font-size: 11px;
   padding: 4px 10px;
@@ -150,6 +153,7 @@ input[type="number"] { -moz-appearance: textfield; }
   font-family: inherit;
   transition: background 0.12s, color 0.12s, box-shadow 0.12s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .mode-toggle button:hover:not(.active) {
   background: rgba(255, 255, 255, 0.6);
