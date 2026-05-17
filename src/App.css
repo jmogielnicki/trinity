@@ -32,6 +32,38 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .control-group { display: flex; flex-direction: column; gap: 8px; }
 .control-group label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #555; font-weight: 500; }
 
+.section-heading {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  letter-spacing: 0.01em;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 4px;
+}
+
+.fixed-alloc-editor { display: flex; flex-direction: column; gap: 6px; }
+.fixed-alloc-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; font-weight: 500; }
+.fixed-alloc-label { width: 44px; }
+.fixed-alloc-input-wrap { display: flex; align-items: center; gap: 4px; flex: 1; }
+.fixed-alloc-input-wrap input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #111;
+  background: #fff;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.fixed-alloc-input-wrap input:focus { border-color: #6366f1; }
+.fixed-alloc-pct { font-size: 12px; color: #888; }
+.fixed-alloc-warn { margin: 2px 0 0; font-size: 11px; color: #dc2626; }
+
 /* Shared numeric input style — used by NumericInput component */
 .num-input,
 .control-group input[type="number"],
