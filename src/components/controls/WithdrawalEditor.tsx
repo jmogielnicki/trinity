@@ -1,5 +1,6 @@
 import type { WithdrawalStrategy } from '../../engine/strategies';
 import { CustomScriptEditor } from './CustomScriptEditor';
+import { NumericInput } from './NumericInput';
 import { RuleBuilder } from './RuleBuilder';
 import { WithdrawalCurve } from './WithdrawalCurve';
 
@@ -166,6 +167,12 @@ function CapeWithdrawalEditor({
 }) {
   const exampleCape = 20.9;
   const exampleRate = (a + b / exampleCape) * 100;
+  const pctFmt = (v: number) => (v * 100).toFixed(2).replace(/\.?0+$/, '');
+  const pctParse = (s: string) => {
+    if (s.trim() === '') return null;
+    const n = parseFloat(s);
+    return isNaN(n) ? null : Math.max(0, n / 100);
+  };
   return (
     <div className="floor-upside-editor">
       <div className="floor-upside-hint">
@@ -176,45 +183,43 @@ function CapeWithdrawalEditor({
       <div className="floor-upside-grid">
         <label>
           a — base rate (%)
-          <input
-            type="number"
+          <NumericInput
+            value={a}
+            format={pctFmt}
+            parse={pctParse}
             min={0}
-            max={10}
-            step={0.05}
-            value={(a * 100).toFixed(2).replace(/\.?0+$/, '')}
-            onChange={(e) =>
-              onChange(
-                Math.max(0, parseFloat(e.target.value) / 100 || 0),
-                b,
-                fallbackCape,
-              )
-            }
+            max={0.1}
+            onChange={(v) => onChange(v, b, fallbackCape)}
           />
         </label>
         <label>
           b — CAPE sensitivity
-          <input
-            type="number"
+          <NumericInput
+            value={b}
+            format={(v) => v.toFixed(2).replace(/\.?0+$/, '')}
+            parse={(s) => {
+              if (s.trim() === '') return null;
+              const n = parseFloat(s);
+              return isNaN(n) ? null : Math.max(0, n);
+            }}
             min={0}
             max={2}
-            step={0.05}
-            value={b.toFixed(2).replace(/\.?0+$/, '')}
-            onChange={(e) =>
-              onChange(a, Math.max(0, parseFloat(e.target.value) || 0), fallbackCape)
-            }
+            onChange={(v) => onChange(a, v, fallbackCape)}
           />
         </label>
         <label>
           Fallback CAPE (pre-1881)
-          <input
-            type="number"
+          <NumericInput
+            value={fallbackCape}
+            format={(v) => String(v)}
+            parse={(s) => {
+              if (s.trim() === '') return null;
+              const n = parseInt(s, 10);
+              return isNaN(n) ? null : n;
+            }}
             min={5}
             max={60}
-            step={1}
-            value={fallbackCape}
-            onChange={(e) =>
-              onChange(a, b, Math.max(5, parseInt(e.target.value) || 20))
-            }
+            onChange={(v) => onChange(a, b, v)}
           />
         </label>
       </div>
@@ -234,7 +239,13 @@ function RatchetEditor({
   onChange: (baseRate: number, stepSize: number, stepBoost: number) => void;
 }) {
   const exampleSteps = Math.floor(0.20 / stepSize);
-  const exampleWd = (baseRate * Math.pow(1 + stepBoost, exampleSteps) * 100).toFixed(2);
+  const exampleWd = (baseRate * (1 + stepBoost * exampleSteps) * 100).toFixed(2);
+  const pctFmt = (v: number) => (v * 100).toFixed(2).replace(/\.?0+$/, '');
+  const pctParse = (s: string) => {
+    if (s.trim() === '') return null;
+    const n = parseFloat(s);
+    return isNaN(n) ? null : Math.max(0, n / 100);
+  };
   return (
     <div className="floor-upside-editor">
       <div className="floor-upside-hint">
@@ -247,53 +258,43 @@ function RatchetEditor({
       <div className="floor-upside-grid">
         <label>
           Base rate (% of initial)
-          <input
-            type="number"
+          <NumericInput
+            value={baseRate}
+            format={pctFmt}
+            parse={pctParse}
             min={0}
-            max={20}
-            step={0.1}
-            value={(baseRate * 100).toFixed(2).replace(/\.?0+$/, '')}
-            onChange={(e) =>
-              onChange(
-                Math.max(0, parseFloat(e.target.value) / 100 || 0),
-                stepSize,
-                stepBoost,
-              )
-            }
+            max={0.2}
+            onChange={(v) => onChange(v, stepSize, stepBoost)}
           />
         </label>
         <label>
           Step size (% gain per ratchet click)
-          <input
-            type="number"
-            min={1}
-            max={50}
-            step={1}
-            value={(stepSize * 100).toFixed(0)}
-            onChange={(e) =>
-              onChange(
-                baseRate,
-                Math.max(0.01, parseFloat(e.target.value) / 100 || 0.10),
-                stepBoost,
-              )
-            }
+          <NumericInput
+            value={stepSize}
+            format={(v) => (v * 100).toFixed(0)}
+            parse={(s) => {
+              if (s.trim() === '') return null;
+              const n = parseFloat(s);
+              return isNaN(n) ? null : Math.max(0.01, n / 100);
+            }}
+            min={0.01}
+            max={0.5}
+            onChange={(v) => onChange(baseRate, v, stepBoost)}
           />
         </label>
         <label>
           Boost per step (% spending increase)
-          <input
-            type="number"
+          <NumericInput
+            value={stepBoost}
+            format={(v) => (v * 100).toFixed(1).replace(/\.?0+$/, '')}
+            parse={(s) => {
+              if (s.trim() === '') return null;
+              const n = parseFloat(s);
+              return isNaN(n) ? null : Math.max(0, n / 100);
+            }}
             min={0}
-            max={50}
-            step={0.5}
-            value={(stepBoost * 100).toFixed(1).replace(/\.?0+$/, '')}
-            onChange={(e) =>
-              onChange(
-                baseRate,
-                stepSize,
-                Math.max(0, parseFloat(e.target.value) / 100 || 0),
-              )
-            }
+            max={0.5}
+            onChange={(v) => onChange(baseRate, stepSize, v)}
           />
         </label>
       </div>
@@ -320,34 +321,32 @@ function FloorUpsideEditor({
       <div className="floor-upside-grid">
         <label>
           Floor (% of initial)
-          <input
-            type="number"
+          <NumericInput
+            value={floor}
+            format={(v) => (v * 100).toFixed(2).replace(/\.?0+$/, '')}
+            parse={(s) => {
+              if (s.trim() === '') return null;
+              const n = parseFloat(s);
+              return isNaN(n) ? null : Math.max(0, n / 100);
+            }}
             min={0}
-            max={20}
-            step={0.1}
-            value={(floor * 100).toFixed(2).replace(/\.?0+$/, '')}
-            onChange={(e) =>
-              onChange(
-                Math.max(0, parseFloat(e.target.value) / 100 || 0),
-                marginalSpend,
-              )
-            }
+            max={0.2}
+            onChange={(v) => onChange(v, marginalSpend)}
           />
         </label>
         <label>
           Marginal spend ($k per $1M above initial)
-          <input
-            type="number"
+          <NumericInput
+            value={marginalSpend}
+            format={(v) => (v * 1000).toFixed(2).replace(/\.?0+$/, '')}
+            parse={(s) => {
+              if (s.trim() === '') return null;
+              const n = parseFloat(s);
+              return isNaN(n) ? null : Math.max(0, n / 1000);
+            }}
             min={0}
-            max={500}
-            step={1}
-            value={(marginalSpend * 1000).toFixed(2).replace(/\.?0+$/, '')}
-            onChange={(e) =>
-              onChange(
-                floor,
-                Math.max(0, parseFloat(e.target.value) / 1000 || 0),
-              )
-            }
+            max={0.5}
+            onChange={(v) => onChange(floor, v)}
           />
         </label>
       </div>
