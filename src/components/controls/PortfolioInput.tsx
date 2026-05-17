@@ -1,4 +1,5 @@
 import { useScenarioStore } from '../../store/scenarioStore';
+import { NumericInput } from './NumericInput';
 
 export function PortfolioInput() {
   const { initialBalance, horizonYears, setBalance, setHorizon } =
@@ -7,22 +8,29 @@ export function PortfolioInput() {
     <div className="control-group">
       <label>
         Initial balance ($, real)
-        <input
-          type="number"
-          min={1000}
-          step={10000}
+        <NumericInput
           value={initialBalance}
-          onChange={(e) => setBalance(Number(e.target.value))}
+          onChange={setBalance}
+          min={0}
+          parse={(s) => {
+            if (s.trim() === '') return null;
+            const n = parseFloat(s.replace(/,/g, ''));
+            return isNaN(n) ? null : n;
+          }}
         />
       </label>
       <label>
         Horizon (years)
-        <input
-          type="number"
+        <NumericInput
+          value={horizonYears}
+          onChange={(v) => setHorizon(Math.round(v))}
           min={1}
           max={80}
-          value={horizonYears}
-          onChange={(e) => setHorizon(Number(e.target.value))}
+          parse={(s) => {
+            if (s.trim() === '') return null;
+            const n = parseInt(s, 10);
+            return isNaN(n) ? null : n;
+          }}
         />
       </label>
     </div>
