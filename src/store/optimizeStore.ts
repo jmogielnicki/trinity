@@ -1,16 +1,20 @@
 import { create } from 'zustand';
 import {
   candidateToScenario,
-  generateCandidates,
   metricsFromResult,
   paretoFront,
   type Candidate,
   type CandidateResult,
   type OptimizeConfig,
 } from '../engine/optimize';
+import { DEFAULT_STUDY, generateStudyCandidates, type StudyConfig } from '../engine/study';
 import type { SimPool } from '../worker/pool';
 
 export type OptimizeState = {
+  /** Lock-2-vary-1 study configuration that defines the candidate set. */
+  study: StudyConfig;
+  /** True when the study has changed since the last search — results are stale. */
+  studyDirty: boolean;
   /** All candidates with metrics (unfiltered). */
   results: CandidateResult[];
   /** Pareto front recomputed against the currently-filtered set. */
@@ -21,16 +25,19 @@ export type OptimizeState = {
   running: boolean;
   computeMs: number;
   lastConfig: OptimizeConfig | null;
+  setStudy: (study: StudyConfig) => void;
   run: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
   toggleSelected: (id: string) => void;
   setSelected: (ids: string[]) => void;
   selectAllFrontier: () => void;
+  selectAll: () => void;
   clearSelection: () => void;
   setMinSuccessRate: (v: number) => void;
   reset: () => void;
 };
 
-const FRONTIER_PRESELECT = 10;
+/** Cap on how many candidates are auto-selected into the comparison. */
+const AUTO_SELECT_CAP = 24;
 
 function filterAndFront(
   results: CandidateResult[],
@@ -45,6 +52,8 @@ function filterAndFront(
 export const useOptimizeStore = create<OptimizeState>((set, get) => {
   let pendingId = 0;
   return {
+    study: DEFAULT_STUDY,
+    studyDirty: false,
     results: [],
     frontier: [],
     selectedIds: [],
@@ -53,11 +62,15 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     computeMs: 0,
     lastConfig: null,
 
+    setStudy(study) {
+      set({ study, studyDirty: true });
+    },
+
     async run(cfg, pool) {
       const myId = ++pendingId;
       set({ running: true });
       const t0 = performance.now();
-      const candidates: Candidate[] = generateCandidates();
+      const candidates: Candidate[] = generateStudyCandidates(get().study);
       const scenarios = candidates.map((c) => candidateToScenario(c, cfg));
       const scenarioResults = await pool.runMany(scenarios);
       if (myId !== pendingId) return;
@@ -67,17 +80,17 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       }));
       const minSuccessRate = get().minSuccessRate;
       const frontier = filterAndFront(results, minSuccessRate);
-      // Pre-select up to ~10 frontier strategies, spread across it.
-      const step = Math.max(1, Math.ceil(frontier.length / FRONTIER_PRESELECT));
-      const initialSelected: string[] = [];
-      for (let i = 0; i < frontier.length && initialSelected.length < FRONTIER_PRESELECT; i += step) {
-        initialSelected.push(frontier[i].candidate.id);
-      }
+      // The point of a study is to compare every variant tried, so pre-select
+      // them all (capped) rather than just the frontier subset.
+      const initialSelected = results
+        .slice(0, AUTO_SELECT_CAP)
+        .map((r) => r.candidate.id);
       set({
         results,
         frontier,
         selectedIds: initialSelected,
         running: false,
+        studyDirty: false,
         computeMs: performance.now() - t0,
         lastConfig: cfg,
       });
@@ -101,6 +114,10 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       set({ selectedIds: frontier.map((r) => r.candidate.id) });
     },
 
+    selectAll() {
+      set({ selectedIds: get().results.map((r) => r.candidate.id) });
+    },
+
     clearSelection() {
       set({ selectedIds: [] });
     },
@@ -115,6 +132,8 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     reset() {
       pendingId++;
       set({
+        study: DEFAULT_STUDY,
+        studyDirty: false,
         results: [],
         frontier: [],
         selectedIds: [],

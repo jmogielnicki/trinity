@@ -3,6 +3,7 @@ import type {
   AllocationStrategy,
   WithdrawalStrategy,
 } from './strategies';
+import type { WithdrawalSource } from './withdrawalSource';
 import type { ScenarioResult, SimulationResult } from './types';
 import { minBalanceReached, weightedQuantile, type WeightedSample } from './stats';
 
@@ -47,6 +48,8 @@ export type CandidateNumericParams = {
   floor?: number;
   /** Marginal-spend coefficient for `floorAndUpside`. */
   marginalSpend?: number;
+  /** Value of the swept parameter in a lock-2-vary-1 study. */
+  varyValue?: number;
 };
 
 export type Candidate = {
@@ -54,10 +57,12 @@ export type Candidate = {
   label: string;
   allocation: AllocationStrategy;
   withdrawal: WithdrawalStrategy;
+  withdrawalSource?: WithdrawalSource;
   /** Short human-readable parameter descriptor for the comparison table. */
   params: {
     withdrawal: string;
     allocation: string;
+    source?: string;
   };
   /** Numeric parameter values pulled out for axis/color coding. */
   numericParams: CandidateNumericParams;
@@ -76,129 +81,6 @@ export type OptimizeConfig = {
   tailMethod?: TailMethod;
 };
 
-const WITHDRAWAL_RATES_FIXED = [
-  0.03, 0.0325, 0.035, 0.0375, 0.04, 0.0425, 0.045, 0.0475, 0.05, 0.055, 0.06,
-];
-type FloorUpsideSpec = {
-  floor: number;
-  /** Extra real $ withdrawn per real $ of portfolio above initial. */
-  marginalSpend: number;
-};
-
-/**
- * Floor + upside variants: a sticky real-$ floor plus a single
- * "marginal spend" coefficient — for each $1 the balance is above initial,
- * withdraw an extra `marginalSpend` cents.
- *
- * Floors span 3–5%; marginal-spend rates span 0.5–3¢ per excess dollar
- * (so an extra $1M of portfolio over initial buys $5k–$30k of extra
- * annual spending — within realistic lifestyle-bump range).
- */
-const FLOOR_UPSIDE_FLOORS = [0.03, 0.035, 0.04, 0.045, 0.05];
-const FLOOR_UPSIDE_MARGINAL = [0.005, 0.01, 0.02, 0.03];
-
-const FLOOR_UPSIDE_SPECS: FloorUpsideSpec[] = FLOOR_UPSIDE_FLOORS.flatMap(
-  (floor) => FLOOR_UPSIDE_MARGINAL.map((marginalSpend) => ({ floor, marginalSpend })),
-);
-const STATIC_STOCK_PCTS = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-
-type GlidePathSpec = {
-  startStock: number;
-  endStock: number;
-  transitionYears: number;
-};
-
-const GLIDE_PATHS: GlidePathSpec[] = [
-  { startStock: 0.8, endStock: 0.4, transitionYears: 20 },
-  { startStock: 0.7, endStock: 0.5, transitionYears: 20 },
-  { startStock: 0.6, endStock: 0.3, transitionYears: 15 },
-  { startStock: 0.5, endStock: 0.8, transitionYears: 20 }, // rising equity
-];
-
-function pct(n: number): string {
-  return `${(n * 100).toFixed(2).replace(/\.?0+$/, '')}%`;
-}
-
-function staticAllocation(stockPct: number): {
-  alloc: AllocationStrategy;
-  label: string;
-  stockPct: number;
-} {
-  return {
-    alloc: {
-      type: 'static',
-      weights: { stock: stockPct, bond: 1 - stockPct, cash: 0 },
-    },
-    label: `${Math.round(stockPct * 100)}/${Math.round((1 - stockPct) * 100)}/0`,
-    stockPct,
-  };
-}
-
-function glideAllocation(g: GlidePathSpec): {
-  alloc: AllocationStrategy;
-  label: string;
-  stockPct: number;
-} {
-  return {
-    alloc: {
-      type: 'glidepath',
-      start: { stock: g.startStock, bond: 1 - g.startStock, cash: 0 },
-      end: { stock: g.endStock, bond: 1 - g.endStock, cash: 0 },
-      transitionYears: g.transitionYears,
-    },
-    label: `glide ${Math.round(g.startStock * 100)}→${Math.round(g.endStock * 100)}% stk / ${g.transitionYears}y`,
-    // Representative stock %: avg of endpoints. Used for color/axis coding.
-    stockPct: (g.startStock + g.endStock) / 2,
-  };
-}
-
-/** Cartesian product over the built-in search space. */
-export function generateCandidates(): Candidate[] {
-  const allocs = [
-    ...STATIC_STOCK_PCTS.map(staticAllocation),
-    ...GLIDE_PATHS.map(glideAllocation),
-  ];
-
-  const withdrawals: Array<{
-    wd: WithdrawalStrategy;
-    label: string;
-    short: string;
-    numeric: CandidateNumericParams;
-  }> = [
-    ...WITHDRAWAL_RATES_FIXED.map((r) => ({
-      wd: { type: 'fixedPercent', rate: r } as WithdrawalStrategy,
-      label: `fixed ${pct(r)}`,
-      short: `${pct(r)} fixed`,
-      numeric: { withdrawalRate: r },
-    })),
-    ...FLOOR_UPSIDE_SPECS.map((s) => ({
-      wd: {
-        type: 'floorAndUpside',
-        floor: s.floor,
-        marginalSpend: s.marginalSpend,
-      } as WithdrawalStrategy,
-      label: `floor ${pct(s.floor)} + $${Math.round(s.marginalSpend * 1000)}k/$1M upside`,
-      short: `${pct(s.floor)} floor +$${Math.round(s.marginalSpend * 1000)}k/$1M`,
-      numeric: { floor: s.floor, marginalSpend: s.marginalSpend },
-    })),
-  ];
-
-  const out: Candidate[] = [];
-  for (const a of allocs) {
-    for (const w of withdrawals) {
-      out.push({
-        id: `${w.label}|${a.label}`,
-        label: `${w.short} · ${a.label}`,
-        allocation: a.alloc,
-        withdrawal: w.wd,
-        params: { withdrawal: w.short, allocation: a.label },
-        numericParams: { ...w.numeric, stockPct: a.stockPct },
-      });
-    }
-  }
-  return out;
-}
-
 export function candidateToScenario(
   c: Candidate,
   cfg: OptimizeConfig,
@@ -208,6 +90,7 @@ export function candidateToScenario(
     horizonYears: cfg.horizonYears,
     allocation: c.allocation,
     withdrawal: c.withdrawal,
+    withdrawalSource: c.withdrawalSource,
     tailMethod: cfg.tailMethod ?? { type: 'truncate' },
   };
 }

@@ -32,13 +32,23 @@ const DEFAULT_REFILL_CHAIN: RefillRule[] = [
   },
 ];
 
-export function WithdrawalSourceInput() {
-  const { withdrawalSource, setWithdrawalSource } = useScenarioStore();
+type Props = {
+  /** Controlled value. Omit to bind to the single-scenario store. */
+  value?: WithdrawalSource;
+  onChange?: (s: WithdrawalSource) => void;
+  /** Hide the "Withdrawal source" heading (for embedded use). */
+  hideLabel?: boolean;
+};
+
+export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}) {
+  const store = useScenarioStore();
+  const withdrawalSource = value ?? store.withdrawalSource;
+  const setWithdrawalSource = onChange ?? store.setWithdrawalSource;
   const mode = withdrawalSource.type;
 
   return (
     <div className="control-group">
-      <div className="control-label">Withdrawal source</div>
+      {!hideLabel && <div className="control-label">Withdrawal source</div>}
       <div className="mode-toggle">
         <button
           className={mode === 'proportional' ? 'active' : ''}

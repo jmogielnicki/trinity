@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  generateCandidates,
   metricsFromResult,
   paretoFront,
   type CandidateResult,
 } from '../../src/engine/optimize';
+import {
+  DEFAULT_STUDY,
+  generateStudyCandidates,
+  type StudyConfig,
+} from '../../src/engine/study';
 import type { ScenarioResult, SimulationResult } from '../../src/engine/types';
 
 function mkResult(
@@ -62,12 +66,60 @@ describe('paretoFront', () => {
   });
 });
 
-describe('generateCandidates', () => {
-  it('produces a non-trivial candidate space with unique ids', () => {
-    const cands = generateCandidates();
-    expect(cands.length).toBeGreaterThan(50);
+describe('generateStudyCandidates', () => {
+  it('sweeps the allocation range with the other dimensions pinned', () => {
+    const cands = generateStudyCandidates(DEFAULT_STUDY);
+    // 40%→100% stock, step 10% → 7 variants.
+    expect(cands.length).toBe(7);
     const ids = new Set(cands.map((c) => c.id));
     expect(ids.size).toBe(cands.length);
+    // Locked dimensions are identical across every variant.
+    for (const c of cands) {
+      expect(c.withdrawal).toEqual(DEFAULT_STUDY.lockedWithdrawal);
+      expect(c.withdrawalSource).toEqual(DEFAULT_STUDY.lockedSource);
+    }
+    // The varying dimension actually differs.
+    const stockPcts = cands.map((c) => c.numericParams.stockPct);
+    expect(new Set(stockPcts).size).toBe(7);
+  });
+
+  it('sweeps a withdrawal family while pinning a floor', () => {
+    const study: StudyConfig = {
+      ...DEFAULT_STUDY,
+      varying: 'withdrawal',
+      varyMode: 'range',
+      withdrawalRange: {
+        family: 'percentOfBalance',
+        floor: 0.0325,
+        from: 0.03,
+        to: 0.05,
+        step: 0.005,
+      },
+    };
+    const cands = generateStudyCandidates(study);
+    expect(cands.length).toBe(5);
+    for (const c of cands) {
+      expect(c.withdrawal.type).toBe('percentOfBalance');
+      if (c.withdrawal.type === 'percentOfBalance') {
+        expect(c.withdrawal.floor).toBe(0.0325);
+      }
+    }
+  });
+
+  it('races the selected withdrawal-source presets', () => {
+    const study: StudyConfig = {
+      ...DEFAULT_STUDY,
+      varying: 'source',
+      varyMode: 'range',
+      sourcePresetIds: ['prop-rebal', 'waterfall', 'bucket'],
+    };
+    const cands = generateStudyCandidates(study);
+    expect(cands.length).toBe(3);
+    expect(cands.map((c) => c.withdrawalSource?.type)).toEqual([
+      'proportional',
+      'waterfall',
+      'bucket',
+    ]);
   });
 });
 

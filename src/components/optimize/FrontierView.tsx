@@ -13,6 +13,8 @@ import { useOptimizeStore } from '../../store/optimizeStore';
 import { useResultsStore } from '../../store/resultsStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { NEAR_DEPLETION_FRACTION, type CandidateResult } from '../../engine/optimize';
+import { varyLabel } from '../../engine/study';
+import { StudyConfigPanel } from './StudyConfigPanel';
 
 type Axis =
   | 'successRate'
@@ -42,6 +44,7 @@ const AXIS_OPTIONS: Axis[] = [
 
 type ColorBy =
   | 'frontier'
+  | 'varyValue'
   | 'stockPct'
   | 'withdrawalRate'
   | 'floor'
@@ -51,6 +54,7 @@ type ColorBy =
 
 const COLOR_BY_LABELS: Record<ColorBy, string> = {
   frontier: 'Pareto frontier',
+  varyValue: 'Swept parameter',
   stockPct: 'Stock %',
   withdrawalRate: 'Withdrawal rate (fixed)',
   floor: 'Floor % (floor+upside)',
@@ -63,6 +67,8 @@ function colorValue(r: CandidateResult, c: ColorBy): number | undefined {
   switch (c) {
     case 'frontier':
       return undefined;
+    case 'varyValue':
+      return r.candidate.numericParams.varyValue;
     case 'stockPct':
       return r.candidate.numericParams.stockPct;
     case 'withdrawalRate':
@@ -91,6 +97,10 @@ function formatColorValue(c: ColorBy, v: number): string {
       return `$${Math.round(v * 1000)}k`;
     case 'avgYearsNearDepletion':
       return v.toFixed(1);
+    case 'varyValue':
+      return v <= 1 && v > 0
+        ? `${(v * 100).toFixed(2).replace(/\.?0+$/, '')}%`
+        : v.toFixed(2).replace(/\.?0+$/, '');
     case 'frontier':
       return '';
   }
@@ -110,6 +120,8 @@ export function FrontierView({ onApplied }: Props) {
   const pool = useResultsStore((s) => s.pool);
   const data = useResultsStore((s) => s.data);
   const {
+    study,
+    studyDirty,
     results,
     frontier,
     selectedIds,
@@ -121,13 +133,14 @@ export function FrontierView({ onApplied }: Props) {
     toggleSelected,
     setSelected,
     selectAllFrontier,
+    selectAll,
     clearSelection,
     setMinSuccessRate,
   } = useOptimizeStore();
 
   const [xAxis, setXAxis] = useState<Axis>('successRate');
   const [yAxis, setYAxis] = useState<Axis>('avgAnnualWithdrawal');
-  const [colorBy, setColorBy] = useState<ColorBy>('stockPct');
+  const [colorBy, setColorBy] = useState<ColorBy>('varyValue');
 
   const runSearch = () => {
     if (!pool || !data) return;
@@ -167,6 +180,8 @@ export function FrontierView({ onApplied }: Props) {
   const applyStrategy = (r: CandidateResult) => {
     scenario.setAllocation(r.candidate.allocation);
     scenario.setWithdrawal(r.candidate.withdrawal);
+    if (r.candidate.withdrawalSource)
+      scenario.setWithdrawalSource(r.candidate.withdrawalSource);
     onApplied?.();
   };
 
@@ -174,33 +189,42 @@ export function FrontierView({ onApplied }: Props) {
     <div className="frontier-view">
       <div className="frontier-header">
         <div>
-          <strong>Strategy frontier</strong> — searches{' '}
-          {results.length || '…'} candidate strategies, highlights the Pareto-
-          optimal set on success rate, avg annual withdrawal, median final, and
-          95th-pct final. Uses current horizon ({scenario.horizonYears}y),
-          starting balance, and tail method.
+          <strong>Strategy study</strong> — pin two of {`{`}holdings mix,
+          withdrawal rate, withdrawal source{`}`} and sweep the third. Every
+          variant runs against all historical start years; the Pareto-optimal
+          set is highlighted on success rate, avg annual withdrawal, median
+          final, and 95th-pct final. Uses the current horizon (
+          {scenario.horizonYears}y), starting balance, and tail method.
         </div>
         <div className="frontier-actions">
           <button onClick={runSearch} disabled={running || !pool || !data}>
-            {running ? 'Searching…' : results.length ? 'Re-run search' : 'Run search'}
+            {running
+              ? 'Running…'
+              : results.length
+                ? 'Re-run study'
+                : 'Run study'}
           </button>
-          {!!frontier.length && (
+          {!!results.length && (
             <>
+              <button onClick={selectAll}>Select all</button>
               <button onClick={selectAllFrontier}>Select frontier</button>
               <button onClick={clearSelection}>Clear</button>
             </>
           )}
         </div>
       </div>
+      <StudyConfigPanel />
       {!!results.length && (
         <div className="frontier-meta">
-          {filteredResults.length}/{results.length} candidates passing ·{' '}
+          {filteredResults.length}/{results.length} variants passing ·{' '}
           {frontier.length} on Pareto frontier · compute {computeMs.toFixed(0)} ms ·{' '}
           {selectedIds.length} selected
-          {lastConfig && lastConfig.horizonYears !== scenario.horizonYears && (
+          {(studyDirty ||
+            (lastConfig &&
+              lastConfig.horizonYears !== scenario.horizonYears)) && (
             <span className="frontier-stale">
               {' '}
-              · horizon changed since last search — re-run to refresh
+              · config changed — re-run to refresh
             </span>
           )}
         </div>
@@ -243,7 +267,9 @@ export function FrontierView({ onApplied }: Props) {
               >
                 {(Object.keys(COLOR_BY_LABELS) as ColorBy[]).map((c) => (
                   <option key={c} value={c}>
-                    {COLOR_BY_LABELS[c]}
+                    {c === 'varyValue'
+                      ? `${varyLabel(study)} (swept)`
+                      : COLOR_BY_LABELS[c]}
                   </option>
                 ))}
               </select>
@@ -660,6 +686,7 @@ function ComparisonTable({
             <th>Strategy</th>
             <th>Withdrawal</th>
             <th>Allocation</th>
+            <th>Source</th>
             <th>Success</th>
             <th>Avg wd/yr</th>
             <th>P5 final</th>
@@ -685,6 +712,7 @@ function ComparisonTable({
               <td>{r.candidate.label}</td>
               <td>{r.candidate.params.withdrawal}</td>
               <td>{r.candidate.params.allocation}</td>
+              <td>{r.candidate.params.source ?? '—'}</td>
               <td>
                 {Number.isFinite(r.metrics.successRate)
                   ? `${(r.metrics.successRate * 100).toFixed(1)}%`
