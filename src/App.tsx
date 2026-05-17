@@ -21,6 +21,7 @@ import { WhereAmI } from './components/results/WhereAmI';
 import { FrontierView } from './components/optimize/FrontierView';
 import { EvolveView } from './components/evolve/EvolveView';
 import { CompareScenariosView } from './components/compare/CompareScenariosView';
+import { AboutPanel } from './components/AboutPanel';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, serialize, tryDeserialize } from './data/urlState';
 import { useCompareStore } from './store/compareStore';
@@ -31,7 +32,7 @@ import { createPool } from './worker/pool';
 import './App.css';
 
 type View = 'spaghetti' | 'calendar' | 'whereami' | 'sleeves';
-type TopMode = 'single' | 'optimize' | 'evolve' | 'compare';
+type TopMode = 'single' | 'optimize' | 'evolve' | 'compare' | 'about';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -214,12 +215,19 @@ export function App() {
             >
               Compare scenarios
             </button>
+            <button
+              className={topMode === 'about' ? 'active' : ''}
+              onClick={() => setTopMode('about')}
+            >
+              About
+            </button>
           </div>
           {topMode === 'optimize' && (
             <FrontierView onApplied={() => setTopMode('single')} />
           )}
           {topMode === 'evolve' && <EvolveView />}
           {topMode === 'compare' && <CompareScenariosView />}
+          {topMode === 'about' && <AboutPanel />}
           {topMode === 'single' && <>
           {!data && <div className="loading">Loading historical data…</div>}
           {data && (

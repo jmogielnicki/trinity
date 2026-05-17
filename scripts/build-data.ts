@@ -243,13 +243,29 @@ function buildAnnual(
 
 /**
  * Guard against a column mix-up: ratioing a nominal index where a real one
- * is expected (or the reverse) silently shifts every return by inflation.
- * Real total returns over 1871+ run ~7%/yr for stocks and ~2.5%/yr for
- * bonds; wide bands here catch a gross misread without tripping on normal
- * data revisions.
+ * is expected silently shifts every return up by inflation (~2%/yr over the
+ * full record), and nothing downstream would catch it.
+ *
+ * The bands below are deliberately narrow enough to *exclude* the nominal
+ * CAGRs. Over 1872+ the realized figures are roughly:
+ *   stock real ~7.1%, nominal ~9.3%
+ *   bond  real ~2.4%, nominal ~4.6%
+ * So a nominal series misread as real would land at ~9.3% / ~4.6%, both
+ * outside the bands. (The prior [4%,10%] / [0%,5%] bands were too wide —
+ * they admitted the nominal CAGRs and so caught nothing.) The margin to
+ * the real figures still leaves ample room for ordinary data revisions
+ * and different date ranges.
+ *
+ * The separate nominal>real check confirms the CPI reconstruction actually
+ * ran: if it were skipped, nominal would equal real exactly.
  */
 function assertSaneReturns(
-  annual: { stock_return_real: number; bond_return_real: number }[],
+  annual: {
+    stock_return_real: number;
+    bond_return_real: number;
+    stock_return_nominal: number;
+    bond_return_nominal: number;
+  }[],
 ): void {
   if (annual.length === 0) throw new Error('No annual rows produced.');
   const cagr = (pick: (r: (typeof annual)[number]) => number): number => {
@@ -259,17 +275,26 @@ function assertSaneReturns(
   };
   const stock = cagr((r) => r.stock_return_real);
   const bond = cagr((r) => r.bond_return_real);
-  if (stock < 0.04 || stock > 0.1) {
+  const stockNom = cagr((r) => r.stock_return_nominal);
+  const bondNom = cagr((r) => r.bond_return_nominal);
+  if (stock < 0.055 || stock > 0.085) {
     throw new Error(
       `Stock real CAGR ${(stock * 100).toFixed(2)}% is outside the sane ` +
-        `[4%, 10%] band — likely a Shiller column mix-up (a nominal index ` +
-        `read as real?).`,
+        `[5.5%, 8.5%] band — likely a Shiller column mix-up (a nominal ` +
+        `index read as real?).`,
     );
   }
-  if (bond < 0 || bond > 0.05) {
+  if (bond < 0.01 || bond > 0.035) {
     throw new Error(
       `Bond real CAGR ${(bond * 100).toFixed(2)}% is outside the sane ` +
-        `[0%, 5%] band — likely a Shiller column mix-up.`,
+        `[1%, 3.5%] band — likely a Shiller column mix-up.`,
+    );
+  }
+  if (stockNom <= stock || bondNom <= bond) {
+    throw new Error(
+      `Nominal CAGR is not above real (stock ${(stockNom * 100).toFixed(2)}% ` +
+        `vs ${(stock * 100).toFixed(2)}%, bond ${(bondNom * 100).toFixed(2)}% ` +
+        `vs ${(bond * 100).toFixed(2)}%) — the CPI reconstruction looks wrong.`,
     );
   }
 }
