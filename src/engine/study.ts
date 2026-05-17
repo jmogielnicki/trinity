@@ -18,11 +18,18 @@ import {
 export type StudyDimension = 'allocation' | 'withdrawal' | 'source';
 export type VaryMode = 'range' | 'list';
 
-/** Static stock-allocation sweep. cash is held at 0; bonds take the rest. */
+/**
+ * Static-allocation sweep over two independent axes: stock % and bond %.
+ * Every (stock, bond) combination is tried; cash fills whatever is left.
+ * Combinations where stock + bond exceeds 100% are dropped.
+ */
 export type AllocationRangeSpec = {
   fromStock: number;
   toStock: number;
-  step: number;
+  stepStock: number;
+  fromBond: number;
+  toBond: number;
+  stepBond: number;
 };
 
 export type WithdrawalFamily =
@@ -144,7 +151,14 @@ export const DEFAULT_STUDY: StudyConfig = {
   },
   lockedWithdrawal: { type: 'fixedPercent', rate: 0.04 },
   lockedSource: { type: 'proportional', rebalance: true },
-  allocationRange: { fromStock: 0.4, toStock: 1.0, step: 0.1 },
+  allocationRange: {
+    fromStock: 0.4,
+    toStock: 1.0,
+    stepStock: 0.1,
+    fromBond: 0.0,
+    toBond: 0.4,
+    stepBond: 0.1,
+  },
   withdrawalRange: { family: 'fixedPercent', from: 0.03, to: 0.06, step: 0.0025 },
   sourcePresetIds: ['prop-rebal', 'waterfall', 'bucket'],
   allocationList: [
@@ -273,16 +287,38 @@ type ResolvedVariant = {
   numeric: CandidateNumericParams;
 };
 
+/** Cap on the number of (stock, bond) combinations a 2D sweep produces. */
+const MAX_ALLOC_COMBOS = 150;
+
+/**
+ * Cartesian product of the stock and bond axes. cash = 1 − stock − bond;
+ * combinations that would need negative cash are dropped.
+ */
+export function allocationRangeVariants(
+  spec: AllocationRangeSpec,
+): AllocationStrategy[] {
+  const stocks = rangeValues(spec.fromStock, spec.toStock, spec.stepStock);
+  const bonds = rangeValues(spec.fromBond, spec.toBond, spec.stepBond);
+  const out: AllocationStrategy[] = [];
+  for (const rawStock of stocks) {
+    for (const rawBond of bonds) {
+      const stock = Math.max(0, Math.min(1, rawStock));
+      const bond = Math.max(0, Math.min(1, rawBond));
+      const cash = round6(1 - stock - bond);
+      if (cash < -1e-6) continue; // stock + bond > 100%
+      out.push({
+        type: 'static',
+        weights: { stock, bond, cash: Math.max(0, cash) },
+      });
+      if (out.length >= MAX_ALLOC_COMBOS) return out;
+    }
+  }
+  return out;
+}
+
 function allocationVariants(study: StudyConfig): AllocationStrategy[] {
   if (study.varyMode === 'list') return study.allocationList;
-  const { fromStock, toStock, step } = study.allocationRange;
-  return rangeValues(fromStock, toStock, step).map((stock) => {
-    const s = Math.max(0, Math.min(1, stock));
-    return {
-      type: 'static',
-      weights: { stock: s, bond: 1 - s, cash: 0 },
-    } as AllocationStrategy;
-  });
+  return allocationRangeVariants(study.allocationRange);
 }
 
 function withdrawalVariants(

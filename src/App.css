@@ -284,7 +284,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .study-row:not(.varying) .study-row-body { opacity: 0.92; }
 .study-vary-mode { margin-bottom: 8px; }
 .study-range { display: flex; flex-direction: column; gap: 8px; }
-.study-range-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.study-range-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.study-range-label { font-size: 12px; font-weight: 600; color: #444; min-width: 52px; }
 .study-range-row label,
 .study-field { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #555; }
 .study-field { flex-direction: column; align-items: flex-start; gap: 3px; }

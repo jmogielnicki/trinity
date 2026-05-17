@@ -67,20 +67,36 @@ describe('paretoFront', () => {
 });
 
 describe('generateStudyCandidates', () => {
-  it('sweeps the allocation range with the other dimensions pinned', () => {
+  it('sweeps the 2D allocation range with the other dimensions pinned', () => {
     const cands = generateStudyCandidates(DEFAULT_STUDY);
-    // 40%→100% stock, step 10% → 7 variants.
-    expect(cands.length).toBe(7);
+    // stock 40-100% × bond 0-40%, step 10%, dropping combos over 100%.
+    expect(cands.length).toBe(25);
     const ids = new Set(cands.map((c) => c.id));
     expect(ids.size).toBe(cands.length);
     // Locked dimensions are identical across every variant.
     for (const c of cands) {
       expect(c.withdrawal).toEqual(DEFAULT_STUDY.lockedWithdrawal);
       expect(c.withdrawalSource).toEqual(DEFAULT_STUDY.lockedSource);
+      // cash fills whatever stock + bond leaves; weights always sum to 1.
+      if (c.allocation.type === 'static') {
+        const w = c.allocation.weights;
+        expect(w.stock + w.bond + w.cash).toBeCloseTo(1, 6);
+        expect(w.cash).toBeGreaterThanOrEqual(0);
+      }
     }
-    // The varying dimension actually differs.
-    const stockPcts = cands.map((c) => c.numericParams.stockPct);
-    expect(new Set(stockPcts).size).toBe(7);
+    // Both axes actually vary.
+    const stockLevels = new Set(
+      cands.map((c) => Math.round((c.numericParams.stockPct ?? 0) * 100)),
+    );
+    expect(stockLevels.size).toBe(7);
+    const bondLevels = new Set(
+      cands.map((c) =>
+        c.allocation.type === 'static'
+          ? Math.round(c.allocation.weights.bond * 100)
+          : -1,
+      ),
+    );
+    expect(bondLevels.size).toBe(5);
   });
 
   it('sweeps a withdrawal family while pinning a floor', () => {

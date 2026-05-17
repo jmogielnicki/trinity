@@ -3,10 +3,12 @@ import type { AllocationStrategy, WithdrawalStrategy } from '../../engine/strate
 import type { WithdrawalSource } from '../../engine/withdrawalSource';
 import {
   SOURCE_PRESETS,
+  allocationRangeVariants,
   describeAllocation,
   describeSource,
   describeWithdrawal,
   rangeValues,
+  type AllocationRangeSpec,
   type StudyConfig,
   type StudyDimension,
   type WithdrawalFamily,
@@ -211,8 +213,7 @@ function VariantCount({ study }: { study: StudyConfig }) {
           ? study.withdrawalList.length
           : study.sourceList.length;
   } else if (study.varying === 'allocation') {
-    const r = study.allocationRange;
-    n = rangeValues(r.fromStock, r.toStock, r.step).length;
+    n = allocationRangeVariants(study.allocationRange).length;
   } else if (study.varying === 'withdrawal') {
     const r = study.withdrawalRange;
     n = rangeValues(r.from, r.to, r.step).length;
@@ -235,15 +236,30 @@ function RangeEditor({
 }) {
   if (study.varying === 'allocation') {
     const r = study.allocationRange;
+    const set = (patch: Partial<AllocationRangeSpec>) =>
+      update({ allocationRange: { ...r, ...patch } });
     return (
       <div className="study-range">
-        <div className="rule-hint">Static stock allocation; bonds take the rest.</div>
+        <div className="rule-hint">
+          Sweeps every stock × bond combination; cash fills the remainder.
+          Combinations over 100% are skipped.
+        </div>
         <PctRange
+          label="Stocks"
           from={r.fromStock}
           to={r.toStock}
-          step={r.step}
-          onChange={(fromStock, toStock, step) =>
-            update({ allocationRange: { fromStock, toStock, step } })
+          step={r.stepStock}
+          onChange={(fromStock, toStock, stepStock) =>
+            set({ fromStock, toStock, stepStock })
+          }
+        />
+        <PctRange
+          label="Bonds"
+          from={r.fromBond}
+          to={r.toBond}
+          step={r.stepBond}
+          onChange={(fromBond, toBond, stepBond) =>
+            set({ fromBond, toBond, stepBond })
           }
         />
       </div>
@@ -547,11 +563,13 @@ function EntryList<T extends AllocationStrategy | WithdrawalStrategy | Withdrawa
 // ---------------------------------------------------------------------------
 
 function PctRange({
+  label,
   from,
   to,
   step,
   onChange,
 }: {
+  label?: string;
   from: number;
   to: number;
   step: number;
@@ -559,6 +577,7 @@ function PctRange({
 }) {
   return (
     <div className="study-range-row">
+      {label && <span className="study-range-label">{label}</span>}
       <label>
         from
         <input
