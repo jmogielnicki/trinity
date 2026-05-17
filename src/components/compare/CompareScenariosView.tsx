@@ -710,6 +710,10 @@ function describeWithdrawal(w: WithdrawalStrategy): string {
       return `CAPE (a=${pct(w.a)}, b=${w.b})`;
     case 'ratchet':
       return `ratchet ${pct(w.baseRate)} +${pct(w.stepBoost)}/${pct(w.stepSize)}`;
+    case 'endowment':
+      return `endowment ${pct(w.rate)} / ${w.lookbackYears}yr avg`;
+    case 'vanguardDynamic':
+      return `Vanguard dynamic ${pct(w.rate)}`;
     case 'custom':
     case 'customSrc':
       return 'custom';
