@@ -3,7 +3,7 @@ import { CustomScriptEditor } from './CustomScriptEditor';
 import { RuleBuilder } from './RuleBuilder';
 import { WithdrawalCurve } from './WithdrawalCurve';
 
-type Mode = 'curve' | 'floor-upside' | 'cape' | 'rules' | 'script';
+type Mode = 'curve' | 'floor-upside' | 'ratchet' | 'cape' | 'rules' | 'script';
 
 type Props = {
   horizonYears: number;
@@ -15,6 +15,7 @@ function modeOf(w: WithdrawalStrategy): Mode {
   if (w.type === 'ruleBased') return 'rules';
   if (w.type === 'customSrc' || w.type === 'custom') return 'script';
   if (w.type === 'floorAndUpside') return 'floor-upside';
+  if (w.type === 'ratchet') return 'ratchet';
   if (w.type === 'capeWithdrawal') return 'cape';
   // 'curve' covers fixedPercent, piecewiseLinear (what the editor emits),
   // and the legacy 'piecewise' (kept as a separate engine type so old
@@ -51,6 +52,13 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
         floor: 0.04,
         marginalSpend: 0.02,
       });
+    if (m === 'ratchet')
+      onChange({
+        type: 'ratchet',
+        baseRate: 0.04,
+        stepSize: 0.10,
+        stepBoost: 0.05,
+      });
     if (m === 'cape')
       onChange({ type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20 });
   };
@@ -63,6 +71,16 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
           horizonYears={horizonYears}
           withdrawal={withdrawal}
           onChange={onChange}
+        />
+      )}
+      {mode === 'ratchet' && withdrawal.type === 'ratchet' && (
+        <RatchetEditor
+          baseRate={withdrawal.baseRate}
+          stepSize={withdrawal.stepSize}
+          stepBoost={withdrawal.stepBoost}
+          onChange={(baseRate, stepSize, stepBoost) =>
+            onChange({ type: 'ratchet', baseRate, stepSize, stepBoost })
+          }
         />
       )}
       {mode === 'floor-upside' && withdrawal.type === 'floorAndUpside' && (
@@ -115,6 +133,7 @@ function ModeToggle({
   const modes: Array<{ k: Mode; label: string }> = [
     { k: 'curve', label: 'curve' },
     { k: 'floor-upside', label: 'floor + upside' },
+    { k: 'ratchet', label: 'ratchet' },
     { k: 'cape', label: 'CAPE' },
     { k: 'rules', label: 'rules' },
     { k: 'script', label: 'script' },
@@ -195,6 +214,85 @@ function CapeWithdrawalEditor({
             value={fallbackCape}
             onChange={(e) =>
               onChange(a, b, Math.max(5, parseInt(e.target.value) || 20))
+            }
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function RatchetEditor({
+  baseRate,
+  stepSize,
+  stepBoost,
+  onChange,
+}: {
+  baseRate: number;
+  stepSize: number;
+  stepBoost: number;
+  onChange: (baseRate: number, stepSize: number, stepBoost: number) => void;
+}) {
+  const exampleSteps = Math.floor(0.20 / stepSize);
+  const exampleWd = (baseRate * Math.pow(1 + stepBoost, exampleSteps) * 100).toFixed(2);
+  return (
+    <div className="floor-upside-editor">
+      <div className="floor-upside-hint">
+        Start at <strong>base rate</strong>. Each time the portfolio's
+        all-time high clears another <strong>step %</strong> above initial,
+        permanently boost spending by <strong>boost %</strong> — even if the
+        portfolio later falls back. At +20%: {exampleSteps} step{exampleSteps !== 1 ? 's' : ''},{' '}
+        withdrawal = {exampleWd}% of initial.
+      </div>
+      <div className="floor-upside-grid">
+        <label>
+          Base rate (% of initial)
+          <input
+            type="number"
+            min={0}
+            max={20}
+            step={0.1}
+            value={(baseRate * 100).toFixed(2).replace(/\.?0+$/, '')}
+            onChange={(e) =>
+              onChange(
+                Math.max(0, parseFloat(e.target.value) / 100 || 0),
+                stepSize,
+                stepBoost,
+              )
+            }
+          />
+        </label>
+        <label>
+          Step size (% gain per ratchet click)
+          <input
+            type="number"
+            min={1}
+            max={50}
+            step={1}
+            value={(stepSize * 100).toFixed(0)}
+            onChange={(e) =>
+              onChange(
+                baseRate,
+                Math.max(0.01, parseFloat(e.target.value) / 100 || 0.10),
+                stepBoost,
+              )
+            }
+          />
+        </label>
+        <label>
+          Boost per step (% spending increase)
+          <input
+            type="number"
+            min={0}
+            max={50}
+            step={0.5}
+            value={(stepBoost * 100).toFixed(1).replace(/\.?0+$/, '')}
+            onChange={(e) =>
+              onChange(
+                baseRate,
+                stepSize,
+                Math.max(0, parseFloat(e.target.value) / 100 || 0),
+              )
             }
           />
         </label>
