@@ -29,7 +29,7 @@ export function PresetPicker() {
     if (p) apply(p.state);
   };
 
-  const description = PRESETS.find((p) => p.id === picked)?.description;
+  const active = PRESETS.find((p) => p.id === picked);
 
   return (
     <div className="control-group">
@@ -46,7 +46,12 @@ export function PresetPicker() {
           </option>
         ))}
       </select>
-      {description && <div className="rule-hint">{description}</div>}
+      {active && (
+        <div className="preset-description">
+          <div className="preset-description-name">{active.name}</div>
+          <div className="preset-description-text">{active.description}</div>
+        </div>
+      )}
     </div>
   );
 }
