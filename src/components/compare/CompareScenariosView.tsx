@@ -708,6 +708,8 @@ function describeWithdrawal(w: WithdrawalStrategy): string {
       return `rule-based ${pct(w.base)}`;
     case 'capeWithdrawal':
       return `CAPE (a=${pct(w.a)}, b=${w.b})`;
+    case 'ratchet':
+      return `ratchet ${pct(w.baseRate)} +${pct(w.stepBoost)}/${pct(w.stepSize)}`;
     case 'custom':
     case 'customSrc':
       return 'custom';
