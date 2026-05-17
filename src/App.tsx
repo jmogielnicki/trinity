@@ -173,16 +173,19 @@ export function App() {
         <aside className="controls">
           <PresetPicker />
           <PortfolioInput />
+          <h3 className="section-heading">Holdings mix</h3>
           <AllocationEditor
             horizonYears={scenario.horizonYears}
             allocation={scenario.allocation}
             onChange={scenario.setAllocation}
           />
+          <h3 className="section-heading">Withdrawal strategy</h3>
           <WithdrawalEditor
             horizonYears={scenario.horizonYears}
             withdrawal={scenario.withdrawal}
             onChange={scenario.setWithdrawal}
           />
+          <h3 className="section-heading">Withdrawal source</h3>
           <WithdrawalSourceInput />
           <TailMethodInput />
           <SweepSelector />
