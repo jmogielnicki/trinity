@@ -50,6 +50,23 @@ export type WithdrawalStrategy =
    * When CAPE is unavailable (pre-1881), falls back to rate = a + b / fallbackCape.
    */
   | { type: 'capeWithdrawal'; a: number; b: number; fallbackCape: number }
+  /**
+   * Ratchet: spending permanently steps up each time the portfolio's
+   * all-time-high crosses a new multiple of `stepSize` above `initial`.
+   *
+   *   steps = floor(peakGain / stepSize)
+   *   wd    = baseRate × initial × (1 + stepBoost)^steps
+   *
+   * Unlike floorAndUpside the increase is locked in — a subsequent drop
+   * below the threshold does not reduce spending. Peak is tracked via the
+   * trajectory so no extra state is needed outside the sim loop.
+   */
+  | {
+      type: 'ratchet';
+      baseRate: number;   // e.g. 0.04
+      stepSize: number;   // gain fraction per step, e.g. 0.10 (every 10%)
+      stepBoost: number;  // spending multiplier per step, e.g. 0.05 (5% more)
+    }
   | { type: 'custom'; fn: (state: YearState, initial: number) => number }
   /**
    * Source-string variant of `custom`. Body is the function body of
@@ -179,6 +196,15 @@ export function computeWithdrawal(
       const cape = state.cape ?? strat.fallbackCape;
       const rate = strat.a + strat.b / cape;
       return rate * state.balance;
+    }
+    case 'ratchet': {
+      const peakBalance = state.trajectory.reduce(
+        (max, r) => Math.max(max, r.balance),
+        state.balance,
+      );
+      const gainFraction = Math.max(0, peakBalance / initial - 1);
+      const steps = Math.floor(gainFraction / strat.stepSize);
+      return strat.baseRate * initial * Math.pow(1 + strat.stepBoost, steps);
     }
     case 'custom':
       return strat.fn(state, initial);
