@@ -416,8 +416,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .frontier-axes label { display: flex; gap: 6px; align-items: center; }
 .frontier-axes select { padding: 3px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
 
-.frontier-scatter-wrap { border: 1px solid #eee; border-radius: 4px; padding: 8px; background: #fafafa; }
-.frontier-scatter { background: #fff; border-radius: 3px; display: block; }
+.frontier-scatter-wrap { border: 1px solid #eee; border-radius: 4px; padding: 8px; background: #fafafa; overflow: hidden; }
+.frontier-scatter { background: #fff; border-radius: 3px; display: block; max-width: 100%; }
 .frontier-legend { display: flex; gap: 16px; font-size: 11px; color: #555; margin-top: 6px; padding: 0 6px; }
 .frontier-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
 .frontier-legend .dot-frontier { background: #d62728; }

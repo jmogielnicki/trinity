@@ -406,6 +406,7 @@ function ScatterPlot({
 }) {
   const [hover, setHover] = useState<CandidateResult | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const [marquee, setMarquee] = useState<{
     x0: number; y0: number; x1: number; y1: number;
   } | null>(null);
@@ -414,8 +415,22 @@ function ScatterPlot({
     moved: boolean;
   } | null>(null);
 
-  const W = 720;
-  const H = 360;
+  // Track container width so the SVG dimensions exactly match the viewBox —
+  // no preserveAspectRatio distortion, no squashed circles.
+  const [containerW, setContainerW] = useState(800);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setContainerW(Math.floor(w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const W = containerW;
+  const H = Math.round(W * 0.48); // ~2.1:1 aspect ratio — tall enough to spread points out
   const padL = 70;
   const padR = 16;
   const padT = 12;
@@ -541,13 +556,12 @@ function ScatterPlot({
   };
 
   return (
-    <div className="frontier-scatter-wrap">
+    <div ref={wrapRef} className="frontier-scatter-wrap">
       <svg
         ref={svgRef}
         className="frontier-scatter"
         viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        width="100%"
+        width={W}
         height={H}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
