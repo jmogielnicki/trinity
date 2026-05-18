@@ -55,16 +55,10 @@ function handlesToStrategy(
   handles: Handle[],
   horizonYears: number,
 ): WithdrawalStrategy {
-  const allEqual = handles.every((h) => h.rate === handles[0].rate);
-  if (allEqual) return { type: 'fixedPercent', rate: handles[0].rate };
-  // Linear interpolation between handles. Year index for each handle uses
-  // a 0..(horizon-1) span, so dragging a handle at tFrac=0 controls year 0
-  // and tFrac=1 controls the final year — what the user sees on the chart.
+  // Always emit piecewiseLinear so modeOf can distinguish the curve editor
+  // from the fixed-rate slider (which emits fixedPercent directly).
   const lastT = Math.max(0, horizonYears - 1);
-  const points = handles.map((h) => ({
-    t: h.tFrac * lastT,
-    rate: h.rate,
-  }));
+  const points = handles.map((h) => ({ t: h.tFrac * lastT, rate: h.rate }));
   return { type: 'piecewiseLinear', points };
 }
 
