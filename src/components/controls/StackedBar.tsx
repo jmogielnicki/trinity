@@ -141,9 +141,9 @@ export function StackedBar({
 
   useEffect(() => {
     const svg = select(svgRef.current);
-    svg.selectAll<SVGCircleElement, HandleKey>('.sb-handle').call(
-      drag<SVGCircleElement, HandleKey>().on('drag', function (event) {
-        const key = (this as SVGCircleElement).dataset.key as HandleKey;
+    svg.selectAll<SVGGElement, HandleKey>('.sb-handle').call(
+      drag<SVGGElement, HandleKey>().on('drag', function (event) {
+        const key = (this as SVGGElement).dataset.key as HandleKey;
         const [colPart, boundary] = key.split('_');
         const ci = parseInt(colPart.replace('col', ''));
         const yPx = Math.max(0, Math.min(innerH, event.y - margin.top));
@@ -167,16 +167,20 @@ export function StackedBar({
     );
   }, [innerH, margin.top, onChange]);
 
+  const handleStyle: React.CSSProperties = { touchAction: 'none', cursor: 'ns-resize' };
+
   const renderHandles = () => local.flatMap((_w, i) => {
     const { cashTop, bondTop } = pixels[i];
     const hx = handleX(i);
     return [
-      <circle key={`col${i}_bondTop`} className="sb-handle" data-key={`col${i}_bondTop`}
-        cx={hx} cy={margin.top + bondTop} r={6} fill="#fff" stroke="#222" strokeWidth={2} cursor="ns-resize" />,
-      (
-        <circle key={`col${i}_cashTop`} className="sb-handle" data-key={`col${i}_cashTop`}
-          cx={hx} cy={margin.top + cashTop} r={6} fill="#fff" stroke="#222" strokeWidth={2} cursor="ns-resize" />
-      ),
+      <g key={`col${i}_bondTop`} className="sb-handle" data-key={`col${i}_bondTop`} style={handleStyle}>
+        <circle cx={hx} cy={margin.top + bondTop} r={18} fill="transparent" />
+        <circle cx={hx} cy={margin.top + bondTop} r={6} fill="#fff" stroke="#222" strokeWidth={2} />
+      </g>,
+      <g key={`col${i}_cashTop`} className="sb-handle" data-key={`col${i}_cashTop`} style={handleStyle}>
+        <circle cx={hx} cy={margin.top + cashTop} r={18} fill="transparent" />
+        <circle cx={hx} cy={margin.top + cashTop} r={6} fill="#fff" stroke="#222" strokeWidth={2} />
+      </g>,
     ];
   });
 
