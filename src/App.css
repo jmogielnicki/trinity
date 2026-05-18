@@ -750,6 +750,12 @@ input[type="number"] { -moz-appearance: textfield; }
   margin-bottom: 4px;
 }
 .sim-detail-table-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.04em; }
+.sim-detail-chart-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 .sim-detail-mode-btn {
   font-size: 11px;
   padding: 2px 9px;
