@@ -156,28 +156,31 @@ export function simulate(input: SimulateInput): SimulationResult {
     }
 
     // Steer toward the target allocation before returns, so year-t returns
-    // are earned on year-t's allocation (matches the spec loop). When data
-    // forced cash → 0, this uses the adjusted weights so we don't refill a
-    // sleeve we just dropped.
+    // are earned on year-t's allocation (matches the spec loop).
     const sleevesAfterWithdrawal: Sleeves = { ...sleeves };
     if (
       withdrawalSource.type === 'proportional' &&
       withdrawalSource.rebalance
     ) {
-      // Full rebalance: snap back to target every year.
+      // Full rebalance: snap back to target every year. Uses the data-adjusted
+      // weights so we don't rebalance into a cash sleeve with no return data.
       sleeves = rebalanceTo(sleeves, weights);
     } else if (prevTarget) {
       // Drift modes (waterfall, bucket, rebalance-off proportional): don't
       // correct return drift, but still honor a deliberate glide-path shift
       // — otherwise the allocation strategy is silently ignored after year 0.
-      sleeves = applyGlideStep(sleeves, prevTarget, weights);
+      // The glide step is computed from *raw* (un-data-adjusted) weights so a
+      // change in cash-data availability — e.g. cash returns starting in 1934
+      // — isn't mistaken for an intentional allocation shift. A static
+      // allocation therefore produces no glide step at all.
+      sleeves = applyGlideStep(sleeves, prevTarget, weightsRaw);
     }
     const rebalanceFlow: Sleeves = {
       stock: sleeves.stock - sleevesAfterWithdrawal.stock,
       bond: sleeves.bond - sleevesAfterWithdrawal.bond,
       cash: sleeves.cash - sleevesAfterWithdrawal.cash,
     };
-    prevTarget = weights;
+    prevTarget = weightsRaw;
 
     const beforeReturns: Sleeves = { ...sleeves };
 
