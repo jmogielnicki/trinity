@@ -12,7 +12,6 @@ import { Legend } from './components/results/Legend';
 import { OutcomeStrip } from './components/results/OutcomeStrip';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
-import { SuccessBar } from './components/results/SuccessBar';
 import { WhereAmI } from './components/results/WhereAmI';
 import { FrontierView } from './components/optimize/FrontierView';
 import { EvolveView } from './components/evolve/EvolveView';
@@ -281,7 +280,6 @@ export function App() {
               {view !== 'whereami' && (
                 <StatPanel
                   result={result}
-                  showSuccess={view === 'calendar'}
                 />
               )}
               {view === 'spaghetti' && (
@@ -308,7 +306,6 @@ export function App() {
                       onToggle={toggleYear}
                       onMarquee={marqueeYears}
                     />
-                    <SuccessBar result={result} />
                   </div>
                   <OutcomeStrip
                     result={result}
