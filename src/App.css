@@ -206,13 +206,15 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 }
 .num-input:focus,
 .control-group input[type="number"]:focus,
-.floor-upside-grid input:focus {
+.floor-upside-grid input:focus,
+.axis-num:focus {
   border-color: #335577;
   box-shadow: 0 0 0 3px rgba(51, 85, 119, 0.12);
 }
 .num-input:hover:not(:focus),
 .control-group input[type="number"]:hover:not(:focus),
-.floor-upside-grid input:hover:not(:focus) {
+.floor-upside-grid input:hover:not(:focus),
+.axis-num:hover:not(:focus) {
   border-color: #aab4bf;
 }
 
@@ -263,7 +265,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .axis-sweeping .axis-toggle { background: #e0eaff; border-color: #6b8cce; }
 .axis-name { min-width: 110px; color: #444; }
 .axis-range { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.axis-num { width: 56px; padding: 3px 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+.axis-num { width: 56px; padding: 7px 8px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; background: #fff; outline: none; box-sizing: border-box; transition: border-color 0.15s, box-shadow 0.15s; }
 .axis-count { color: #888; font-size: 11px; }
 
 .heatmap-wrap { margin-top: 12px; }
@@ -328,8 +330,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .apply-btn { font-size: 12px; padding: 4px 8px; border: 1px solid #ccc; background: #fff; border-radius: 3px; cursor: pointer; align-self: flex-start; }
 
 .rule-row { border: 1px solid #eee; border-radius: 4px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
-.rule-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
-.rule-line select, .rule-line input { font-size: 12px; padding: 2px 4px; }
+.rule-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.rule-line select { font-size: 13px; padding: 6px 6px; border: 1.5px solid #d1d5db; border-radius: 6px; font-family: inherit; color: #111; background: #fff; outline: none; }
 .x-btn { margin-left: auto; border: none; background: transparent; color: #999; font-size: 16px; line-height: 1; cursor: pointer; padding: 0 4px; }
 .x-btn:hover { color: #c33; }
 

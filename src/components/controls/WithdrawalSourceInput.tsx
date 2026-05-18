@@ -5,6 +5,7 @@ import {
 } from '../../engine/withdrawalSource';
 import type { Sleeve } from '../../engine/types';
 import { useScenarioStore } from '../../store/scenarioStore';
+import { NumericInput } from './NumericInput';
 
 const SLEEVE_LABELS: Record<Sleeve, string> = {
   cash: 'cash',
@@ -303,28 +304,32 @@ function RefillRuleEditor({
           ))}
         </select>
         <span>when below</span>
-        <input
-          type="number"
+        <NumericInput
+          key={`floor-${isYears ? 'y' : 'f'}`}
           className="axis-num"
-          step={isYears ? 0.5 : 1}
-          min={0}
-          max={isYears ? 30 : 100}
-          value={isYears ? rule.floor : (rule.floor * 100).toFixed(1)}
-          onChange={(e) =>
-            onChange({ floor: isYears ? +e.target.value : +e.target.value / 100 })
+          value={rule.floor}
+          format={isYears ? (v) => v.toFixed(1) : (v) => (v * 100).toFixed(1)}
+          parse={isYears
+            ? (s) => { const n = parseFloat(s); return isNaN(n) ? null : n; }
+            : (s) => { const n = parseFloat(s); return isNaN(n) ? null : n / 100; }
           }
+          min={0}
+          max={isYears ? 30 : 1}
+          onChange={(v) => onChange({ floor: v })}
         />
         <span>{isYears ? 'yrs, up to' : '%, up to'}</span>
-        <input
-          type="number"
+        <NumericInput
+          key={`ceiling-${isYears ? 'y' : 'f'}`}
           className="axis-num"
-          step={isYears ? 0.5 : 1}
-          min={0}
-          max={isYears ? 30 : 100}
-          value={isYears ? rule.ceiling : (rule.ceiling * 100).toFixed(1)}
-          onChange={(e) =>
-            onChange({ ceiling: isYears ? +e.target.value : +e.target.value / 100 })
+          value={rule.ceiling}
+          format={isYears ? (v) => v.toFixed(1) : (v) => (v * 100).toFixed(1)}
+          parse={isYears
+            ? (s) => { const n = parseFloat(s); return isNaN(n) ? null : n; }
+            : (s) => { const n = parseFloat(s); return isNaN(n) ? null : n / 100; }
           }
+          min={0}
+          max={isYears ? 30 : 1}
+          onChange={(v) => onChange({ ceiling: v })}
         />
         <span>{isYears ? 'yrs' : '%'}</span>
       </div>
@@ -353,13 +358,13 @@ function RefillRuleEditor({
           }
         />
         only when source return &gt;
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
           disabled={!hasReturnGate}
-          step={0.5}
-          value={hasReturnGate ? Math.round((rule.sourceReturnGate ?? 0) * 100) : 0}
-          onChange={(e) => onChange({ sourceReturnGate: +e.target.value / 100 })}
+          value={rule.sourceReturnGate ?? 0}
+          format={(v) => String(Math.round(v * 100))}
+          parse={(s) => { const n = parseFloat(s); return isNaN(n) ? null : n / 100; }}
+          onChange={(v) => onChange({ sourceReturnGate: v })}
         />
         <span>% this year</span>
       </label>
@@ -374,13 +379,13 @@ function RefillRuleEditor({
           }
         />
         only when source ≥
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
           disabled={!hasRatioGate}
-          step={5}
-          value={hasRatioGate ? Math.round((rule.sourceMinRatio ?? 1) * 100) : 100}
-          onChange={(e) => onChange({ sourceMinRatio: +e.target.value / 100 })}
+          value={rule.sourceMinRatio ?? 1}
+          format={(v) => String(Math.round(v * 100))}
+          parse={(s) => { const n = parseFloat(s); return isNaN(n) ? null : n / 100; }}
+          onChange={(v) => onChange({ sourceMinRatio: v })}
         />
         <span>% of its initial value</span>
       </label>

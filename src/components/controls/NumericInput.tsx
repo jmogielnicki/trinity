@@ -9,6 +9,7 @@ interface Props {
   max?: number;
   className?: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 function defaultFormat(v: number): string {
@@ -30,6 +31,7 @@ export function NumericInput({
   max,
   className = 'num-input',
   placeholder,
+  disabled,
 }: Props) {
   const [text, setText] = useState(() => format(value));
   const focused = useRef(false);
@@ -54,6 +56,7 @@ export function NumericInput({
       value={text}
       placeholder={placeholder}
       className={className}
+      disabled={disabled}
       onFocus={() => {
         focused.current = true;
       }}

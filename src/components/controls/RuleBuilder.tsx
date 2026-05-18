@@ -1,4 +1,5 @@
 import type { Action, Condition, Rule } from '../../engine/rules';
+import { NumericInput } from './NumericInput';
 
 type Props = {
   base: number;
@@ -20,6 +21,12 @@ function defaultRule(): Rule {
   };
 }
 
+const fmtPct2 = (v: number) => (v * 100).toFixed(2);
+const fmtPct0 = (v: number) => (v * 100).toFixed(0);
+const parsePct = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n / 100; };
+const fmtInt = (v: number) => String(Math.round(v));
+const parseIntFn = (s: string) => { const n = parseInt(s, 10); return isNaN(n) ? null : n; };
+
 /**
  * Visual builder for a withdrawal ruleBased strategy. Rules execute in
  * order; each matching one overwrites the rate. The `base` is the default
@@ -32,12 +39,12 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
     <div className="control-group">
       <div className="control-label">
         Base rate{' '}
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          step={0.0025}
-          value={(base * 100).toFixed(2)}
-          onChange={(e) => onChange(Number(e.target.value) / 100, rules)}
+          value={base}
+          format={fmtPct2}
+          parse={parsePct}
+          onChange={(v) => onChange(v, rules)}
         />
         % — applied when no rule matches.
       </div>
@@ -103,15 +110,15 @@ function RuleRow({
       </div>
       <div className="rule-line">
         <span>then withdraw</span>
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          step={0.25}
-          value={(action.rate * 100).toFixed(2)}
-          onChange={(e) =>
+          value={action.rate}
+          format={fmtPct2}
+          parse={parsePct}
+          onChange={(v) =>
             onChange({
               ...rule,
-              then: { type: 'setWithdrawal', rate: Number(e.target.value) / 100 },
+              then: { type: 'setWithdrawal', rate: v },
             })
           }
         />
@@ -136,18 +143,20 @@ function CondInputs({
       return (
         <>
           <span>year</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
             value={cond.from}
-            onChange={(e) => onChange({ ...cond, from: +e.target.value })}
+            format={fmtInt}
+            parse={parseIntFn}
+            onChange={(v) => onChange({ ...cond, from: v })}
           />
           <span>–</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
             value={cond.to}
-            onChange={(e) => onChange({ ...cond, to: +e.target.value })}
+            format={fmtInt}
+            parse={parseIntFn}
+            onChange={(v) => onChange({ ...cond, to: v })}
           />
         </>
       );
@@ -155,21 +164,20 @@ function CondInputs({
       return (
         <>
           <span>last</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
             value={cond.lookback}
-            onChange={(e) => onChange({ ...cond, lookback: +e.target.value })}
+            format={fmtInt}
+            parse={parseIntFn}
+            onChange={(v) => onChange({ ...cond, lookback: v })}
           />
           <span>y ret &gt;</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
-            step={1}
-            value={(cond.threshold * 100).toFixed(0)}
-            onChange={(e) =>
-              onChange({ ...cond, threshold: Number(e.target.value) / 100 })
-            }
+            value={cond.threshold}
+            format={fmtPct0}
+            parse={parsePct}
+            onChange={(v) => onChange({ ...cond, threshold: v })}
           />
           <span>%</span>
         </>
@@ -187,12 +195,10 @@ function CondInputs({
             <option value=">">&gt;</option>
             <option value="<">&lt;</option>
           </select>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
-            step={0.1}
             value={cond.ratio}
-            onChange={(e) => onChange({ ...cond, ratio: +e.target.value })}
+            onChange={(v) => onChange({ ...cond, ratio: v })}
           />
         </>
       );
@@ -200,14 +206,12 @@ function CondInputs({
       return (
         <>
           <span>inflation &gt;</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
-            step={1}
-            value={(cond.threshold * 100).toFixed(0)}
-            onChange={(e) =>
-              onChange({ ...cond, threshold: Number(e.target.value) / 100 })
-            }
+            value={cond.threshold}
+            format={fmtPct0}
+            parse={parsePct}
+            onChange={(v) => onChange({ ...cond, threshold: v })}
           />
           <span>%</span>
         </>
