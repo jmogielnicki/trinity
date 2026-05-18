@@ -10,8 +10,6 @@ export function PresetPicker() {
   const [picked, setPicked] = useState('');
 
   const apply = (state: SerializedState) => {
-    scenario.setBalance(state.initialBalance);
-    scenario.setHorizon(state.horizonYears);
     scenario.setAllocation(state.allocation);
     scenario.setWithdrawal(state.withdrawal);
     if (state.tailMethod) scenario.setTailMethod(state.tailMethod);
