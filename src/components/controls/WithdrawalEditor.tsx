@@ -185,7 +185,7 @@ function ModeToggle({
 
 const FIXED_MIN = 0.02;
 const FIXED_MAX = 0.10;
-const FIXED_STEP = 0.005;
+const FIXED_STEP = 0.0025;
 
 function FixedWithdrawalSlider({
   rate,
