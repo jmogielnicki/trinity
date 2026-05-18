@@ -103,8 +103,9 @@ export function OutcomeStrip({
     <div className="outcome-strip-wrap">
       <svg
         ref={svgRef}
-        width={width}
-        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        preserveAspectRatio="xMinYMin meet"
         className="outcome-strip"
         onMouseDown={onSvgMouseDown}
         style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}

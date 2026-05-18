@@ -148,7 +148,7 @@ export function SpaghettiChart({
       ref={svgRef}
       viewBox={`0 0 ${width} ${height}`}
       width="100%"
-      height={height}
+      preserveAspectRatio="xMinYMin meet"
       className="spaghetti"
       onMouseDown={onSvgMouseDown}
       style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
