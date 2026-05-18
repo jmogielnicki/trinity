@@ -503,96 +503,71 @@ function ScatterPlot({
   const seriesData = useMemo(() => {
     return results
       .filter((r) => Number.isFinite(r.metrics[xAxis]) && Number.isFinite(r.metrics[yAxis]))
-      .map((r) => {
-        const isSel = selectedIds.has(r.candidate.id);
-        const color = colorFor(r);
-        return {
-          x: r.metrics[xAxis],
-          y: r.metrics[yAxis],
-          color,
-          custom: { id: r.candidate.id, result: r },
-          marker: {
-            radius: isSel ? 6 : 4,
-            lineColor: isSel ? '#000' : '#fff',
-            lineWidth: isSel ? 2 : 0.5,
-            fillColor: color,
-            fillOpacity: isSel ? 1 : 0.7,
-          },
-        };
-      });
-  }, [results, xAxis, yAxis, selectedIds, colorFor]);
+      .map((r) => ({
+        x: r.metrics[xAxis],
+        y: r.metrics[yAxis],
+        color: colorFor(r),
+        custom: { id: r.candidate.id, result: r },
+      }));
+  }, [results, xAxis, yAxis, colorFor]);
 
-  const options: Options = useMemo(() => {
-    const xMin = xVals.length ? (xAxis === 'successRate' ? Math.min(0, Math.min(...xVals)) : Math.min(0, Math.min(...xVals))) : 0;
-    const yMin = yVals.length ? (yAxis === 'successRate' ? Math.min(0, Math.min(...yVals)) : Math.min(0, Math.min(...yVals))) : 0;
+  // Sync Highcharts native selection state whenever series or selection changes.
+  useEffect(() => {
+    const chart = chartRef.current?.chart;
+    if (!chart?.series[0]) return;
+    const ids = selectedIdsRef.current;
+    chart.series[0].points.forEach((p) => {
+      const id = (p.options as any).custom?.id as string | undefined;
+      if (id && p.selected !== ids.has(id)) p.select(ids.has(id), true);
+    });
+  }, [seriesData, selectedIds]);
 
-    return {
-      chart: {
-        type: 'scatter',
-        width: null as any,
-        height: 360,
-        margin: [16, 20, 48, 80],
-        zooming: { type: 'xy' } as any,
-        events: {
-          click: clickHandler,
-          selection: selectionHandler,
-        },
+  const options: Options = useMemo(() => ({
+    chart: {
+      type: 'scatter',
+      width: null as any,
+      height: 360,
+      margin: [16, 20, 48, 80],
+      zooming: { type: 'xy' } as any,
+      events: {
+        click: clickHandler,
+        selection: selectionHandler,
       },
-      xAxis: {
-        min: xMin,
-        title: { text: AXIS_LABELS[xAxis] },
-        labels: {
-          formatter() {
-            return fmtAxis(xAxis, this.value as number);
-          },
-        },
+    },
+    xAxis: {
+      title: { text: AXIS_LABELS[xAxis] },
+      labels: { formatter() { return fmtAxis(xAxis, this.value as number); } },
+    },
+    yAxis: {
+      title: { text: AXIS_LABELS[yAxis] },
+      labels: { formatter() { return fmtAxis(yAxis, this.value as number); } },
+    },
+    tooltip: {
+      snap: 20,
+      formatter() {
+        const ctx = this as any;
+        const r = ctx.point?.options?.custom?.result as CandidateResult | undefined;
+        if (!r) return false;
+        const m = r.metrics;
+        return `<span style="font-size:11px">
+          <b>${r.candidate.label}</b><br/>
+          success ${(m.successRate * 100).toFixed(1)}% · avg wd ${fmtMoney(m.avgAnnualWithdrawal)}/y<br/>
+          p50 ${fmtMoney(m.p50Final)} · p95 ${fmtMoney(m.p95Final)}<br/>
+          near-depletion years: ${m.avgYearsNearDepletion.toFixed(1)}
+        </span>`;
       },
-      yAxis: {
-        min: yMin,
-        title: { text: AXIS_LABELS[yAxis] },
-        labels: {
-          formatter() {
-            return fmtAxis(yAxis, this.value as number);
-          },
-        },
+    },
+    plotOptions: {
+      scatter: {
+        allowPointSelect: true,
+        stickyTracking: false,
+        cursor: 'pointer',
+        point: { events: { click: pointClickHandler } },
+        marker: { symbol: 'circle', radius: 5 },
       },
-      tooltip: {
-        formatter() {
-          const ctx = this as any;
-          const r = ctx.point?.options?.custom?.result as CandidateResult | undefined;
-          if (!r) return false;
-          const m = r.metrics;
-          return `<span style="font-size:11px">
-            <b>${r.candidate.label}</b><br/>
-            success ${(m.successRate * 100).toFixed(1)}% · avg wd ${fmtMoney(m.avgAnnualWithdrawal)}/y<br/>
-            p50 ${fmtMoney(m.p50Final)} · p95 ${fmtMoney(m.p95Final)}<br/>
-            near-depletion years: ${m.avgYearsNearDepletion.toFixed(1)}
-          </span>`;
-        },
-      },
-      plotOptions: {
-        scatter: {
-          allowPointSelect: false,
-          cursor: 'pointer',
-          point: {
-            events: {
-              click: pointClickHandler,
-            },
-          },
-          marker: {
-            symbol: 'circle',
-          },
-        },
-      },
-      series: [
-        {
-          type: 'scatter',
-          data: seriesData,
-          turboThreshold: 0,
-        } as any,
-      ],
-    };
-  }, [xAxis, yAxis, xVals, yVals, seriesData, clickHandler, selectionHandler, pointClickHandler]); // eslint-disable-line react-hooks/exhaustive-deps
+    },
+    series: [{ type: 'scatter', data: seriesData, turboThreshold: 0 } as any],
+  }), [xAxis, yAxis, seriesData, clickHandler, selectionHandler, pointClickHandler]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (xVals.length === 0 || yVals.length === 0) return null;
 
@@ -613,7 +588,6 @@ function ScatterPlot({
         ) : (
           <ColorBar colorBy={colorBy} cMin={cMin} cMax={cMax} />
         )}
-        <span><span className="dot dot-selected" /> selected</span>
         <span className="frontier-tip">
           drag = marquee select · click = toggle · click empty = clear
         </span>
