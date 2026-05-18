@@ -116,6 +116,25 @@ export function minBalanceReached(sims: SimulationResult[]): number {
   return Number.isFinite(min) ? min : NaN;
 }
 
+/**
+ * Median of per-sim mean annual withdrawals, computed over completed observed
+ * sims only. Bootstrap samples are excluded (each start year would otherwise
+ * be counted samplesPerPrefix times). In-progress sims are excluded because
+ * their trajectories are truncated and would understate the average.
+ */
+export function avgAnnualWithdrawal(sims: SimulationResult[]): number {
+  const means: number[] = [];
+  for (const s of sims) {
+    if (s.bootstrapped || s.inProgress) continue;
+    if (s.trajectory.length === 0) continue;
+    const sum = s.trajectory.reduce((acc, r) => acc + r.withdrawal, 0);
+    means.push(sum / s.trajectory.length);
+  }
+  if (means.length === 0) return NaN;
+  means.sort((a, b) => a - b);
+  return quantile(means, 0.5);
+}
+
 export type SuccessStats = {
   /** Rate over fully-observed completed cohorts. NaN if there are none. */
   observedRate: number;

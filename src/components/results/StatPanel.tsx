@@ -1,4 +1,4 @@
-import { minBalanceReached } from '../../engine/stats';
+import { avgAnnualWithdrawal, minBalanceReached } from '../../engine/stats';
 import type { ScenarioResult } from '../../engine/types';
 
 type Props = {
@@ -15,6 +15,7 @@ export function StatPanel({ result }: Props) {
       ? result.percentiles[result.percentiles.length - 1].values.p5
       : NaN;
   const minBalance = minBalanceReached(result.sims);
+  const avgWithdrawal = avgAnnualWithdrawal(result.sims);
 
   const hasProjection = result.projectedSuccessRate != null;
 
@@ -41,6 +42,10 @@ export function StatPanel({ result }: Props) {
       <Stat
         label="5th-pct final balance"
         value={Number.isFinite(finalP5) ? fmt(finalP5) : '—'}
+      />
+      <Stat
+        label="Avg annual withdrawal"
+        value={Number.isFinite(avgWithdrawal) ? fmt(avgWithdrawal) : '—'}
       />
       <Stat
         label="Min balance reached"
