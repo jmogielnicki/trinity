@@ -34,17 +34,6 @@ export function StatPanel({ result }: Props) {
           value={`${(result.projectedSuccessRate! * 100).toFixed(1)}%`}
         />
       )}
-      <Stat label="Cohorts (observed)" value={`${result.completedCount}`} />
-      <Stat
-        label={
-          hasProjection ? 'Cohorts (projected)' : 'Cohorts (in-progress)'
-        }
-        value={`${
-          hasProjection
-            ? result.projectedCohortCount ?? 0
-            : result.inProgressCount
-        }`}
-      />
       <Stat
         label="Median final balance"
         value={Number.isFinite(finalP50) ? fmt(finalP50) : '—'}

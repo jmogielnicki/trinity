@@ -143,7 +143,8 @@ export function SpaghettiChart({
   return (
     <svg
       ref={svgRef}
-      width={width}
+      viewBox={`0 0 ${width} ${height}`}
+      width="100%"
       height={height}
       className="spaghetti"
       onMouseDown={onSvgMouseDown}
