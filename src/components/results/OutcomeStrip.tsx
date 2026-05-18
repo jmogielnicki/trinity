@@ -8,7 +8,6 @@ type Props = {
   selectedYears?: Set<number>;
   onToggle?: (year: number, e: React.MouseEvent) => void;
   onMarquee?: (years: number[], e: { shiftKey: boolean }) => void;
-  onClear?: () => void;
 };
 
 /**
@@ -23,7 +22,6 @@ export function OutcomeStrip({
   selectedYears,
   onToggle,
   onMarquee,
-  onClear,
 }: Props) {
   const sims = [...result.sims].sort((a, b) => a.startYear - b.startYear);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -105,8 +103,9 @@ export function OutcomeStrip({
     <div className="outcome-strip-wrap">
       <svg
         ref={svgRef}
-        width={width}
-        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        preserveAspectRatio="xMinYMin meet"
         className="outcome-strip"
         onMouseDown={onSvgMouseDown}
         style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
@@ -179,11 +178,6 @@ export function OutcomeStrip({
           )}
         </g>
       </svg>
-      {hasSelection && onClear && (
-        <button className="strip-clear" onClick={onClear}>
-          clear ({selectedYears!.size} selected)
-        </button>
-      )}
     </div>
   );
 }

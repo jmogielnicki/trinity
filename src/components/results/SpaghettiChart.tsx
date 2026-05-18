@@ -24,6 +24,8 @@ type Props = {
   onToggle?: (year: number, e: React.MouseEvent) => void;
   /** Marquee handler: receives the years whose trajectories enter the rect. */
   onMarquee?: (years: number[], e: { shiftKey: boolean }) => void;
+  /** Called when the user clicks empty chart space — use to clear selection. */
+  onClear?: () => void;
 };
 
 export function SpaghettiChart({
@@ -34,6 +36,7 @@ export function SpaghettiChart({
   selectedYears,
   onToggle,
   onMarquee,
+  onClear,
 }: Props) {
   const [hover, setHover] = useState<Hover | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -143,13 +146,22 @@ export function SpaghettiChart({
   return (
     <svg
       ref={svgRef}
-      width={width}
-      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      width="100%"
+      preserveAspectRatio="xMinYMin meet"
       className="spaghetti"
       onMouseDown={onSvgMouseDown}
       style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
     >
       <g transform={`translate(${margin.left},${margin.top})`}>
+        {onClear && (
+          <rect
+            x={0} y={0} width={innerW} height={innerH}
+            fill="transparent"
+            onClick={() => onClear()}
+            style={{ cursor: 'default' }}
+          />
+        )}
         {yTicks.map((v) => (
           <g key={v} transform={`translate(0,${y(v)})`}>
             <line x1={0} x2={innerW} stroke="#eee" />

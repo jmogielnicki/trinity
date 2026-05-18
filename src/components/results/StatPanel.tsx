@@ -3,15 +3,9 @@ import type { ScenarioResult } from '../../engine/types';
 
 type Props = {
   result: ScenarioResult;
-  /**
-   * Whether to show the success-rate and cohort-count cards. On the spaghetti
-   * view the SuccessBar already carries these, so they're hidden there to
-   * avoid a duplicated readout.
-   */
-  showSuccess?: boolean;
 };
 
-export function StatPanel({ result, showSuccess = true }: Props) {
+export function StatPanel({ result }: Props) {
   const finalP50 =
     result.percentiles.length > 0
       ? result.percentiles[result.percentiles.length - 1].values.p50
@@ -26,35 +20,18 @@ export function StatPanel({ result, showSuccess = true }: Props) {
 
   return (
     <div className="stat-panel">
-      {showSuccess && (
-        <Stat
-          label={hasProjection ? 'Success rate (observed)' : 'Success rate'}
-          value={
-            Number.isFinite(result.successRate)
-              ? `${(result.successRate * 100).toFixed(1)}%`
-              : '—'
-          }
-        />
-      )}
-      {showSuccess && hasProjection && (
+      <Stat
+        label={hasProjection ? 'Success rate (observed)' : '% success'}
+        value={
+          Number.isFinite(result.successRate)
+            ? `${(result.successRate * 100).toFixed(1)}%`
+            : '—'
+        }
+      />
+      {hasProjection && (
         <Stat
           label="Success rate (bootstrap-projected)"
           value={`${(result.projectedSuccessRate! * 100).toFixed(1)}%`}
-        />
-      )}
-      {showSuccess && (
-        <Stat label="Cohorts (observed)" value={`${result.completedCount}`} />
-      )}
-      {showSuccess && (
-        <Stat
-          label={
-            hasProjection ? 'Cohorts (projected)' : 'Cohorts (in-progress)'
-          }
-          value={`${
-            hasProjection
-              ? result.projectedCohortCount ?? 0
-              : result.inProgressCount
-          }`}
         />
       )}
       <Stat

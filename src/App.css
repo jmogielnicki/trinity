@@ -365,9 +365,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .legend-label { font-weight: 500; }
 .legend-note { color: #888; }
 
-.outcome-strip-wrap { display: flex; align-items: flex-start; gap: 8px; }
-.strip-clear { font-size: 11px; padding: 3px 8px; border: 1px solid #ccc; background: #fff; border-radius: 3px; cursor: pointer; align-self: center; }
-.strip-clear:hover { background: #f6f6f6; }
+.outcome-strip-wrap { display: block; }
 
 .rule-hint { font-size: 11px; color: #777; padding: 2px 0 4px; }
 
