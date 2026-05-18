@@ -29,9 +29,9 @@ function simColor(sim: SimulationResult, baseColor: string): string {
 }
 
 function simBaseOpacity(sim: SimulationResult): number {
-  if (!sim.success && !sim.inProgress) return 0.55;
-  if (sim.inProgress) return 0.35;
-  return 0.2;
+  if (!sim.success && !sim.inProgress) return 0.75;
+  if (sim.inProgress) return 0.55;
+  return 0.4;
 }
 
 function buildSeriesForSim(
