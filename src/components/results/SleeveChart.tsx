@@ -5,8 +5,9 @@ import type { ScenarioResult, SimulationResult } from '../../engine/types';
 import { ASSET } from '../colors';
 
 type Props = {
-  result: ScenarioResult;
-  selectedYears: Set<number>;
+  result?: ScenarioResult;
+  selectedYears?: Set<number>;
+  sim?: SimulationResult;
   width?: number;
   height?: number;
 };
@@ -17,17 +18,22 @@ type Props = {
  * source show up visually as cash band suddenly growing while the stock
  * band shrinks.
  *
- * Picks the sim to display by:
+ * Pass a sim directly, or a result + selection to pick one by:
  *   - the single selected start year, if exactly one is selected
  *   - else the most recent fully-completed start year
  */
 export function SleeveChart({
   result,
   selectedYears,
+  sim: simProp,
   width = 800,
   height = 320,
 }: Props) {
-  const sim = useMemo(() => pickSim(result, selectedYears), [result, selectedYears]);
+  const sim = useMemo(
+    () =>
+      simProp ?? (result ? pickSim(result, selectedYears ?? new Set()) : null),
+    [simProp, result, selectedYears],
+  );
   if (!sim) return null;
 
   const margin = { top: 16, right: 16, bottom: 36, left: 64 };
@@ -90,7 +96,7 @@ export function SleeveChart({
       <div className="heatmap-meta">
         Sleeve composition for the <strong>{sim.startYear}</strong> retiree — {status}.{' '}
         Final {fmt(final.total)} = {fmt(final.stock)} stocks + {fmt(final.bond)} bonds + {fmt(final.cash)} cash.
-        {selectedYears.size === 0 && (
+        {!simProp && selectedYears && selectedYears.size === 0 && (
           <em> Click a year in the strip or spaghetti to switch.</em>
         )}
       </div>

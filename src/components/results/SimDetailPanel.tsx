@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { scaleLinear } from 'd3-scale';
 import { line } from 'd3-shape';
 import type { SimulationResult, Sleeves, YearStateRecord } from '../../engine/types';
+import { SleeveChart } from './SleeveChart';
 
 type Props = {
   sim: SimulationResult;
@@ -104,6 +105,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
     .map((r) => ({ t: r.t, label: String(r.calendarYear) }));
 
   const [detailMode, setDetailMode] = useState(false);
+  const [chartView, setChartView] = useState<'balance' | 'sleeves'>('balance');
 
   // Hover state: index into trajectory
   const [hoveredT, setHoveredT] = useState<number | null>(null);
@@ -140,6 +142,26 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         )}
       </div>
 
+      <div className="sim-detail-chart-tabs">
+        <button
+          className={chartView === 'balance' ? 'active' : ''}
+          onClick={() => setChartView('balance')}
+        >
+          balance &amp; withdrawals
+        </button>
+        <button
+          className={chartView === 'sleeves' ? 'active' : ''}
+          onClick={() => setChartView('sleeves')}
+        >
+          sleeve composition
+        </button>
+      </div>
+
+      {chartView === 'sleeves' && (
+        <SleeveChart sim={sim} width={chartW} height={chartH} />
+      )}
+
+      {chartView === 'balance' && (
       <svg width={chartW} height={chartH} className="sim-detail-chart">
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Gridlines + y-axis labels (balance) */}
@@ -348,6 +370,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
           )}
         </g>
       </svg>
+      )}
 
       {/* Year-by-year data table */}
       <div className="sim-detail-table-header">

@@ -13,6 +13,55 @@ body { margin: 0; }
 header h1 { margin: 0 0 4px; font-size: 22px; }
 .subtitle { margin: 0 0 24px; color: #666; font-size: 13px; }
 
+.header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.header-actions .actions { margin: 0; }
+.about-link {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  line-height: 1;
+}
+.about-link:hover { background: #f6f6f6; }
+.about-link.active { background: #335577; color: #fff; border-color: #335577; }
+
+.sim-detail-chart-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.sim-detail-chart-tabs button {
+  font-size: 11px;
+  padding: 3px 10px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+  color: #555;
+}
+.sim-detail-chart-tabs button.active {
+  background: #335577;
+  color: #fff;
+  border-color: #335577;
+}
+
 .layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);

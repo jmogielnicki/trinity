@@ -10,7 +10,6 @@ import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
 import { Legend } from './components/results/Legend';
 import { OutcomeStrip } from './components/results/OutcomeStrip';
-import { SleeveChart } from './components/results/SleeveChart';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { SuccessBar } from './components/results/SuccessBar';
@@ -28,7 +27,7 @@ import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
 import './App.css';
 
-type View = 'spaghetti' | 'calendar' | 'whereami' | 'sleeves';
+type View = 'spaghetti' | 'calendar' | 'whereami';
 type TopMode = 'single' | 'optimize' | 'evolve' | 'compare' | 'about';
 
 export function App() {
@@ -100,7 +99,8 @@ export function App() {
     if (parsed.tailMethod) scenario.setTailMethod(parsed.tailMethod);
     if (parsed.withdrawalSource)
       scenario.setWithdrawalSource(parsed.withdrawalSource);
-    if (parsed.view) setView(parsed.view as View);
+    if (parsed.view && parsed.view !== 'sleeves')
+      setView(parsed.view as View);
     (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
       sweep.setAxis(a, parsed.axes[a]),
     );
@@ -157,11 +157,27 @@ export function App() {
   return (
     <div className="app">
       <header>
-        <h1>Historical Withdrawal Simulator</h1>
-        <p className="subtitle">
-          Stress-test against every retirement start year from{' '}
-          {data?.start ?? '…'} to {data?.end ?? '…'}.
-        </p>
+        <div className="header-main">
+          <div>
+            <h1>Historical Withdrawal Simulator</h1>
+            <p className="subtitle">
+              Stress-test against every retirement start year from{' '}
+              {data?.start ?? '…'} to {data?.end ?? '…'}.
+            </p>
+          </div>
+          <div className="header-actions">
+            <ScenarioActions />
+            <button
+              className={`about-link ${topMode === 'about' ? 'active' : ''}`}
+              onClick={() =>
+                setTopMode((m) => (m === 'about' ? 'single' : 'about'))
+              }
+              title="About / methodology"
+            >
+              ?
+            </button>
+          </div>
+        </div>
       </header>
       <div className="layout">
         <aside className="controls">
@@ -182,7 +198,6 @@ export function App() {
           <h3 className="section-heading">Withdrawal source</h3>
           <WithdrawalSourceInput />
           <TailMethodInput />
-          <ScenarioActions />
           <ScenarioLibrary />
         </aside>
         <main className="results">
@@ -210,12 +225,6 @@ export function App() {
               onClick={() => setTopMode('compare')}
             >
               Compare scenarios
-            </button>
-            <button
-              className={topMode === 'about' ? 'active' : ''}
-              onClick={() => setTopMode('about')}
-            >
-              About
             </button>
           </div>
           {topMode === 'optimize' && (
@@ -250,12 +259,6 @@ export function App() {
                     onClick={() => setView('whereami')}
                   >
                     where am i
-                  </button>
-                  <button
-                    className={view === 'sleeves' ? 'active' : ''}
-                    onClick={() => setView('sleeves')}
-                  >
-                    sleeves
                   </button>
                 </span>
               )}
@@ -308,9 +311,6 @@ export function App() {
                   initialBalance={scenario.initialBalance}
                   dataEnd={data.end}
                 />
-              )}
-              {view === 'sleeves' && (
-                <SleeveChart result={result} selectedYears={selectedYears} />
               )}
               {view === 'spaghetti' && <Legend />}
             </>
