@@ -42,8 +42,6 @@ export type OptimizeState = {
   reset: () => void;
 };
 
-/** Cap on how many candidates are auto-selected into the comparison. */
-const AUTO_SELECT_CAP = 24;
 
 function filterAndFront(
   results: CandidateResult[],
@@ -88,16 +86,11 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       }));
       const minSuccessRate = get().minSuccessRate;
       const frontier = filterAndFront(results, minSuccessRate);
-      // The point of a study is to compare every variant tried, so pre-select
-      // them all (capped) rather than just the frontier subset.
-      const initialSelected = results
-        .slice(0, AUTO_SELECT_CAP)
-        .map((r) => r.candidate.id);
       set({
         results,
         axes,
         frontier,
-        selectedIds: initialSelected,
+        selectedIds: [],
         running: false,
         studyDirty: false,
         computeMs: performance.now() - t0,
