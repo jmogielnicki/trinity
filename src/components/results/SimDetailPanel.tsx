@@ -30,6 +30,37 @@ function zeroSleeves(): Sleeves {
   return { stock: 0, bond: 0, cash: 0 };
 }
 
+const SLEEVE_LABEL: Record<keyof Sleeves, string> = {
+  stock: 'stocks',
+  bond: 'bonds',
+  cash: 'cash',
+};
+
+type Transfer = { from: keyof Sleeves; to: keyof Sleeves; amount: number };
+
+/**
+ * Reduce a net per-sleeve flow (which sums to ~0) into discrete
+ * source→destination transfers by greedily pairing outflows with inflows.
+ */
+function deriveTransfers(flow: Sleeves | undefined): Transfer[] {
+  if (!flow) return [];
+  const keys: (keyof Sleeves)[] = ['stock', 'bond', 'cash'];
+  const sources = keys.filter((k) => flow[k] < -1).map((k) => ({ k, amt: -flow[k] }));
+  const dests = keys.filter((k) => flow[k] > 1).map((k) => ({ k, amt: flow[k] }));
+  const transfers: Transfer[] = [];
+  let si = 0;
+  let di = 0;
+  while (si < sources.length && di < dests.length) {
+    const amt = Math.min(sources[si].amt, dests[di].amt);
+    transfers.push({ from: sources[si].k, to: dests[di].k, amount: amt });
+    sources[si].amt -= amt;
+    dests[di].amt -= amt;
+    if (sources[si].amt < 1) si++;
+    if (dests[di].amt < 1) di++;
+  }
+  return transfers;
+}
+
 export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
   const { trajectory, startYear, success, inProgress, depletedAt } = sim;
   const failed = !success && !inProgress;
@@ -136,6 +167,77 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
     .map((r) => ({ t: r.t, label: String(r.calendarYear) }));
 
   const [detailMode, setDetailMode] = useState(false);
+  const [showAllFlows, setShowAllFlows] = useState(false);
+
+  // Inter-bucket flows (annual rebalance + bucket refill) per year, with the
+  // pixel mid-y of each sleeve's band so flow ribbons land inside the bands.
+  type YearFlow = {
+    t: number;
+    mid: Record<keyof Sleeves, number>;
+    transfers: (Transfer & { kind: 'rebalance' | 'refill' })[];
+    volume: number;
+  };
+  const flowYears: YearFlow[] = trajectory.map((r) => {
+    const sl = r.sleeves;
+    const mid: Record<keyof Sleeves, number> = {
+      stock: ySleeve(sl.stock / 2),
+      bond: ySleeve(sl.stock + sl.bond / 2),
+      cash: ySleeve(sl.stock + sl.bond + sl.cash / 2),
+    };
+    const transfers = [
+      ...deriveTransfers(r.rebalanceFlow).map((x) => ({ ...x, kind: 'rebalance' as const })),
+      ...deriveTransfers(r.refillFlow).map((x) => ({ ...x, kind: 'refill' as const })),
+    ];
+    const volume = transfers.reduce((s, x) => s + x.amount, 0);
+    return { t: r.t, mid, transfers, volume };
+  });
+  const maxFlowVolume = Math.max(1, ...flowYears.map((f) => f.volume));
+  const hasFlows = flowYears.some((f) => f.transfers.length > 0);
+
+  // A single year's transfers drawn as vertical Sankey-style ribbons centred
+  // on that year's x tick: thickness encodes $ moved, gradient runs from the
+  // source sleeve colour to the destination, arrowhead marks the direction.
+  function renderYearFlows(f: YearFlow, key: string) {
+    if (!f.transfers.length) return null;
+    const cx = xScale(f.t);
+    const n = f.transfers.length;
+    return (
+      <g key={key} pointerEvents="none">
+        {f.transfers.map((tr, i) => {
+          const th = Math.max(3.5, areaH - ySleeve(tr.amount));
+          const x = cx + (i - (n - 1) / 2) * 18;
+          const srcY = f.mid[tr.from];
+          const destY = f.mid[tr.to];
+          const dir = destY < srcY ? -1 : 1;
+          const arrowLen = Math.min(18, Math.max(9, th + 6));
+          const halfW = Math.max(5.5, th / 2 + 3);
+          let baseY = destY - dir * arrowLen;
+          if (dir * (baseY - srcY) < 0) baseY = srcY;
+          const gid = `${key}-${i}`;
+          return (
+            <g key={i}>
+              <defs>
+                <linearGradient id={gid} gradientUnits="userSpaceOnUse" x1={x} y1={srcY} x2={x} y2={destY}>
+                  <stop offset="0%" stopColor={ASSET[tr.from]} />
+                  <stop offset="100%" stopColor={ASSET[tr.to]} />
+                </linearGradient>
+              </defs>
+              <line x1={x} y1={srcY} x2={x} y2={baseY} stroke="#fff" strokeWidth={th + 3} strokeLinecap="round" strokeOpacity={0.95} />
+              <line x1={x} y1={srcY} x2={x} y2={baseY} stroke={`url(#${gid})`} strokeWidth={th} strokeLinecap="round" />
+              <polygon
+                points={`${x - halfW},${baseY} ${x + halfW},${baseY} ${x},${destY}`}
+                fill={ASSET[tr.to]}
+                stroke="#fff"
+                strokeWidth={1}
+                strokeLinejoin="round"
+              />
+              <circle cx={x} cy={srcY} r={Math.max(2.5, th / 2)} fill={ASSET[tr.from]} stroke="#fff" strokeWidth={1} />
+            </g>
+          );
+        })}
+      </g>
+    );
+  }
 
   // Hover state: index into trajectory
   const [hoveredT, setHoveredT] = useState<number | null>(null);
@@ -201,6 +303,35 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
               strokeDasharray="3,3"
             />
           )}
+
+          {/* Rebalance-activity rail: a tick per year that moved money between
+              buckets, opacity scaled to the $ volume so big moves stand out. */}
+          {flowYears.map((f) =>
+            f.volume > 1 ? (
+              <line
+                key={`rail-${f.t}`}
+                x1={xScale(f.t)}
+                x2={xScale(f.t)}
+                y1={0}
+                y2={hoveredT === f.t ? 9 : 6}
+                stroke={hoveredT === f.t ? '#444' : '#8a8a8a'}
+                strokeWidth={1.5}
+                strokeOpacity={
+                  hoveredT === f.t ? 0.9 : 0.2 + 0.55 * (f.volume / maxFlowVolume)
+                }
+              />
+            ) : null,
+          )}
+
+          {/* Flow ribbons: every material year when "all" is on, otherwise
+              just the hovered year. */}
+          {showAllFlows
+            ? flowYears.map((f) =>
+                f.volume > 1 ? renderYearFlows(f, `flow-${f.t}`) : null,
+              )
+            : hoveredT != null && flowYears[hoveredT]
+              ? renderYearFlows(flowYears[hoveredT], 'flow-hover')
+              : null}
 
           {/* Balance axis label */}
           <text
@@ -347,9 +478,14 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
                   r.return != null
                     ? `Return: ${fmtPct(r.return)}  ${r.return >= 0 ? '▲' : '▼'}`
                     : null,
+                  ...(flowYears[r.t]?.transfers ?? []).map(
+                    (tr) =>
+                      `${tr.kind === 'refill' ? 'Bucket refill' : 'Rebalance'}: ` +
+                      `${fmt$(tr.amount)} ${SLEEVE_LABEL[tr.from]} → ${SLEEVE_LABEL[tr.to]}`,
+                  ),
                 ].filter(Boolean) as string[];
 
-                const tipW = 268;
+                const tipW = 300;
                 const tipLineH = 15;
                 const tipPad = 8;
                 const tipH = tipLines.length * tipLineH + tipPad * 2;
@@ -388,12 +524,25 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         </g>
       </svg>
 
-      <ul className="legend-row sim-detail-legend">
-        <li><span className="sw" style={{ background: ASSET.stock }} /> stocks</li>
-        <li><span className="sw" style={{ background: ASSET.bond }} /> bonds</li>
-        <li><span className="sw" style={{ background: ASSET.cash }} /> cash</li>
-        <li className="legend-note">filled area = holdings · bars = withdrawals by source</li>
-      </ul>
+      <div className="sim-detail-chart-footer">
+        <ul className="legend-row sim-detail-legend">
+          <li><span className="sw" style={{ background: ASSET.stock }} /> stocks</li>
+          <li><span className="sw" style={{ background: ASSET.bond }} /> bonds</li>
+          <li><span className="sw" style={{ background: ASSET.cash }} /> cash</li>
+          <li className="legend-note">
+            filled area = holdings · bars = withdrawals · ribbons = money moved between buckets
+          </li>
+        </ul>
+        {hasFlows && (
+          <button
+            className={`sim-detail-mode-btn ${showAllFlows ? 'active' : ''}`}
+            onClick={() => setShowAllFlows((v) => !v)}
+            title="Toggle whether rebalancing/refill ribbons show for every year or only on hover"
+          >
+            {showAllFlows ? 'Flows: all years' : 'Flows: on hover'}
+          </button>
+        )}
+      </div>
 
       {/* Year-by-year data table */}
       <div className="sim-detail-table-header">
