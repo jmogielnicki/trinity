@@ -206,13 +206,15 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 }
 .num-input:focus,
 .control-group input[type="number"]:focus,
-.floor-upside-grid input:focus {
+.floor-upside-grid input:focus,
+.axis-num:focus {
   border-color: #335577;
   box-shadow: 0 0 0 3px rgba(51, 85, 119, 0.12);
 }
 .num-input:hover:not(:focus),
 .control-group input[type="number"]:hover:not(:focus),
-.floor-upside-grid input:hover:not(:focus) {
+.floor-upside-grid input:hover:not(:focus),
+.axis-num:hover:not(:focus) {
   border-color: #aab4bf;
 }
 
@@ -263,7 +265,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .axis-sweeping .axis-toggle { background: #e0eaff; border-color: #6b8cce; }
 .axis-name { min-width: 110px; color: #444; }
 .axis-range { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.axis-num { width: 56px; padding: 3px 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+.axis-num { width: 56px; padding: 3px 6px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 12px; font-family: inherit; color: #111; background: #fff; outline: none; box-sizing: border-box; transition: border-color 0.15s, box-shadow 0.15s; }
 .axis-count { color: #888; font-size: 11px; }
 
 .heatmap-wrap { margin-top: 12px; }
