@@ -71,7 +71,7 @@ For start years where the horizon would run past the data:
 
 ### Selection model (App state)
 
-App holds `selectedYears: Set<number>`. The spaghetti chart, outcome strip, and sleeves view all read from it. Click toggles; **shift + drag draws a marquee** on either the strip (1D) or spaghetti (2D); a clear button appears once anything is selected. Sleeves view picks its sim from the selection.
+App holds `selectedYears: Set<number>`. The spaghetti chart and outcome strip both read from it. Click toggles; **shift + drag draws a marquee** on either the strip (1D) or spaghetti (2D); a clear button appears once anything is selected. Clicking a year opens the per-sim detail panel.
 
 ## 4. Stores (`src/store/`)
 
@@ -86,14 +86,19 @@ State that needs to round-trip (URL hash, library, presets) goes through `Serial
 ## 5. UI map (`src/components/`)
 
 **Controls (left rail, top to bottom):**
-`PresetPicker → PortfolioInput → AllocationEditor → WithdrawalEditor → WithdrawalSourceInput → TailMethodInput → SweepSelector → ScenarioActions → ScenarioLibrary`
+`PresetPicker → PortfolioInput → AllocationEditor → WithdrawalEditor → WithdrawalSourceInput → TailMethodInput → SweepSelector → ScenarioLibrary`
+
+(`ScenarioActions` — share / export / snapshot — lives in the header, not the left rail.)
 
 `AllocationEditor` and `WithdrawalEditor` wrap their underlying chart editor with a `glide/rules/script` (alloc) or `curve/rules/script` (withdrawal) mode toggle. Mode switches between visual editor, rule builder, and `customSrc` script editor.
 
+**Header:** title + `ScenarioActions` (share / export csv / snapshot) toolbar + `?` button toggling the About panel.
+
 **Results (main pane):**
-- View tabs: `spaghetti / calendar / where am i / sleeves` (single-scenario)
+- View tabs: `spaghetti / calendar / where am i` (single-scenario)
 - Sweep views: `SmallMultiples` (1D), `Heatmap` (2D)
 - Single-scenario tabs use `StatPanel`, `SuccessBar`, `OutcomeStrip`, `Legend` as supporting components
+- Clicking a spaghetti line opens `SimDetailPanel`: one chart with the stacked sleeve composition on top and source-colored withdrawal bars below, sharing a stock/bond/cash legend
 
 ## 6. Engine: data flow
 
@@ -136,6 +141,7 @@ Add a test when adding a strategy type, source type, or non-trivial engine behav
 
 ## 8. Conventions
 
+- **Always open a PR** — every piece of completed work ships as a pull request. After committing and pushing a branch, create a PR against `main` (via the `mcp__github__create_pull_request` tool) before reporting the task done. Never leave work on a pushed branch without a PR.
 - **PRs** — small focused branches off `main`, squash-merged via the `mcp__github__merge_pull_request` tool. Each PR description has a Test plan checklist.
 - **Branch names** — `claude/<topic>`.
 - **Commits** — concise summary, then explanation of *why* not just *what*.
@@ -159,11 +165,11 @@ CLAUDE.md describes the original product vision; here's what's actually been bui
 - **piecewiseLinear** withdrawal type — replaces the misleading step-function `piecewise` for the curve editor.
 - **customSrc** strategy variant — string-of-JS, structured-clone-safe (works across workers and URL state).
 - **Outcome strip** — barcode of start-year outcomes below the spaghetti, click/drag to select.
-- **Sleeves view** — stacked area of one sim's per-sleeve balances over time.
+- **Sleeve composition** — stacked area of one sim's per-sleeve balances over time; the upper section of the `SimDetailPanel` chart (not a top-level view), with source-colored withdrawal bars below it.
 - **Where Am I view** — completed-historical percentile band with the actual realized prefix of recent retirees.
 - **Marquee selection** — shift+drag on either chart adds years to the selection.
 - **Worker pool** — Comlink-wrapped engine, scenarios distributed round-robin.
 - **Presets** — eight curated starting points incl. cash-bucket-with-refill.
 - **URL share + localStorage library + CSV export** — full round-trip of `SerializedState`.
 
-If you're picking up cold: load the **Cash bucket with refill — 50/35/15** preset and switch to the sleeves view to see the most novel piece working end-to-end.
+If you're picking up cold: load the **Cash bucket with refill — 50/35/15** preset, click a spaghetti line, and switch to the sleeve-composition chart tab to see the most novel piece working end-to-end.
