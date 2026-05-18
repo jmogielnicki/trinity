@@ -7,3 +7,4 @@ coverage
 .cache
 scripts/.cache
 tsconfig.tsbuildinfo
+.claude/worktrees
