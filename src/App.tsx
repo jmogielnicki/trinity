@@ -46,7 +46,6 @@ export function App() {
   const [view, setView] = useState<View>('spaghetti');
   const [topMode, setTopMode] = useState<TopMode>('single');
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
-  const [detailYear, setDetailYear] = useState<number | null>(null);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) => {
@@ -55,7 +54,6 @@ export function App() {
       else next.add(year);
       return next;
     });
-    setDetailYear((prev) => (prev === year ? null : year));
   };
   const marqueeYears = (years: number[]) => {
     setSelectedYears((prev) => {
@@ -64,7 +62,7 @@ export function App() {
       return next;
     });
   };
-  const clearSelection = () => { setSelectedYears(new Set()); setDetailYear(null); };
+  const clearSelection = () => setSelectedYears(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -314,16 +312,19 @@ export function App() {
                     onToggle={toggleYear}
                     onMarquee={marqueeYears}
                   />
-                  {detailYear != null && (() => {
-                    const sim = result.sims.find(s => s.startYear === detailYear);
-                    return sim ? (
-                      <SimDetailPanel
-                        sim={sim}
-                        initialBalance={scenario.initialBalance}
-                        onClose={() => setDetailYear(null)}
-                      />
-                    ) : null;
-                  })()}
+                  {selectedYears.size > 0 && (
+                    [...selectedYears].sort((a, b) => a - b).map((year) => {
+                      const sim = result.sims.find(s => s.startYear === year);
+                      return sim ? (
+                        <SimDetailPanel
+                          key={year}
+                          sim={sim}
+                          initialBalance={scenario.initialBalance}
+                          onClose={() => toggleYear(year)}
+                        />
+                      ) : null;
+                    })
+                  )}
                 </>
               )}
               {view === 'calendar' && (
