@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { interpolatePlasma } from 'd3-scale-chromatic';
+import HighchartsReact from 'highcharts-react-official';
+import type { Options } from 'highcharts';
+import { Highcharts } from '../../lib/highchartsInit';
 
 /**
  * Plasma clamped to its darker portion (skips the bright pale-yellow end so
@@ -404,42 +407,25 @@ function ScatterPlot({
   yAxis: Axis;
   colorBy: ColorBy;
 }) {
-  const [hover, setHover] = useState<CandidateResult | null>(null);
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [marquee, setMarquee] = useState<{
-    x0: number; y0: number; x1: number; y1: number;
-  } | null>(null);
-  const dragStateRef = useRef<{
-    start: { x: number; y: number };
-    moved: boolean;
-  } | null>(null);
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
 
-  const W = 720;
-  const H = 360;
-  const padL = 70;
-  const padR = 16;
-  const padT = 12;
-  const padB = 40;
-
-  const xVals = results.map((r) => r.metrics[xAxis]).filter(Number.isFinite);
-  const yVals = results.map((r) => r.metrics[yAxis]).filter(Number.isFinite);
-  if (xVals.length === 0 || yVals.length === 0) return null;
-
-  const xMinRaw = Math.min(...xVals);
-  const xMaxRaw = Math.max(...xVals);
-  const yMinRaw = Math.min(...yVals);
-  const yMaxRaw = Math.max(...yVals);
-  const xMin = xAxis === 'successRate' ? Math.min(xMinRaw, 0) : Math.min(0, xMinRaw);
-  const xMax = xMaxRaw;
-  const yMin = yAxis === 'successRate' ? Math.min(yMinRaw, 0) : Math.min(0, yMinRaw);
-  const yMax = yMaxRaw;
-  const xRange = xMax - xMin || 1;
-  const yRange = yMax - yMin || 1;
-
-  const xScale = (v: number) =>
-    padL + ((v - xMin) / xRange) * (W - padL - padR);
-  const yScale = (v: number) =>
-    H - padB - ((v - yMin) / yRange) * (H - padT - padB);
+  // Stable refs so event handlers always see the latest data/callbacks.
+  const onToggleRef = useRef(onToggle);
+  onToggleRef.current = onToggle;
+  const onMarqueeRef = useRef(onMarquee);
+  onMarqueeRef.current = onMarquee;
+  const resultsRef = useRef(results);
+  resultsRef.current = results;
+  const frontierIdsRef = useRef(frontierIds);
+  frontierIdsRef.current = frontierIds;
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
+  const xAxisRef = useRef(xAxis);
+  xAxisRef.current = xAxis;
+  const yAxisRef = useRef(yAxis);
+  yAxisRef.current = yAxis;
+  const colorByRef = useRef(colorBy);
+  colorByRef.current = colorBy;
 
   const fmtAxis = (a: Axis, v: number) => {
     switch (a) {
@@ -452,247 +438,172 @@ function ScatterPlot({
     }
   };
 
-  const xTicks = 5;
-  const yTicks = 4;
+  // Compute color-related values based on results and colorBy
+  const { cMin, cMax, colorFor } = useMemo(() => {
+    const colorVals =
+      colorBy === 'frontier'
+        ? []
+        : results
+            .map((r) => colorValue(r, colorBy))
+            .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    const cMin = colorVals.length ? Math.min(...colorVals) : 0;
+    const cMax = colorVals.length ? Math.max(...colorVals) : 1;
+    const cRange = cMax - cMin || 1;
 
-  // Color-by metric range (over the visible/passing set).
-  const colorVals =
-    colorBy === 'frontier'
-      ? []
-      : results
-          .map((r) => colorValue(r, colorBy))
-          .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
-  const cMin = colorVals.length ? Math.min(...colorVals) : 0;
-  const cMax = colorVals.length ? Math.max(...colorVals) : 1;
-  const cRange = cMax - cMin || 1;
-
-  const colorFor = (r: CandidateResult): string => {
-    if (colorBy === 'frontier') {
-      return frontierIds.has(r.candidate.id) ? '#d62728' : '#888';
-    }
-    const v = colorValue(r, colorBy);
-    if (typeof v !== 'number' || !Number.isFinite(v)) return '#ccc';
-    return colorScale((v - cMin) / cRange);
-  };
-
-  // Mouse → SVG coords via getCTM.
-  const svgPoint = (clientX: number, clientY: number) => {
-    const svg = svgRef.current;
-    if (!svg) return { x: 0, y: 0 };
-    const rect = svg.getBoundingClientRect();
-    const x = ((clientX - rect.left) / rect.width) * W;
-    const y = ((clientY - rect.top) / rect.height) * H;
-    return { x, y };
-  };
-
-  const onMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    const p = svgPoint(e.clientX, e.clientY);
-    dragStateRef.current = { start: p, moved: false };
-  };
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    const drag = dragStateRef.current;
-    if (!drag) return;
-    const p = svgPoint(e.clientX, e.clientY);
-    const dx = p.x - drag.start.x;
-    const dy = p.y - drag.start.y;
-    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
-    drag.moved = true;
-    setMarquee({
-      x0: Math.min(drag.start.x, p.x),
-      y0: Math.min(drag.start.y, p.y),
-      x1: Math.max(drag.start.x, p.x),
-      y1: Math.max(drag.start.y, p.y),
-    });
-  };
-
-  const onMouseUp = (e: React.MouseEvent) => {
-    const drag = dragStateRef.current;
-    dragStateRef.current = null;
-    if (!drag) return;
-    if (drag.moved && marquee) {
-      const inside: string[] = [];
-      for (const r of results) {
-        const x = xScale(r.metrics[xAxis]);
-        const y = yScale(r.metrics[yAxis]);
-        if (
-          x >= marquee.x0 &&
-          x <= marquee.x1 &&
-          y >= marquee.y0 &&
-          y <= marquee.y1
-        ) {
-          inside.push(r.candidate.id);
-        }
+    const colorFor = (r: CandidateResult): string => {
+      if (colorBy === 'frontier') {
+        return frontierIds.has(r.candidate.id) ? '#d62728' : '#888';
       }
-      onMarquee(inside);
-      setMarquee(null);
-    } else {
-      // Click on empty space (no point hit handler triggered) → clear selection
-      const target = e.target as Element;
-      if (target.tagName !== 'circle') onMarquee([]);
-      setMarquee(null);
-    }
-  };
+      const v = colorValue(r, colorBy);
+      if (typeof v !== 'number' || !Number.isFinite(v)) return '#ccc';
+      return colorScale((v - cMin) / cRange);
+    };
 
-  const onMouseLeave = () => {
-    dragStateRef.current = null;
-    setMarquee(null);
-  };
+    return { cMin, cMax, colorFor };
+  }, [results, colorBy, frontierIds]);
+
+  // Stable selection event handler.
+  const selectionHandler = useCallback(function (this: unknown, e: any) {
+    e.preventDefault();
+    const cb = onMarqueeRef.current;
+    if (!cb || !e.xAxis || !e.yAxis) return false;
+
+    const xMin = e.xAxis[0].min as number;
+    const xMax = e.xAxis[0].max as number;
+    const yMin = e.yAxis[0].min as number;
+    const yMax = e.yAxis[0].max as number;
+
+    const currentXAxis = xAxisRef.current;
+    const currentYAxis = yAxisRef.current;
+    const ids: string[] = [];
+    for (const r of resultsRef.current) {
+      const vx = r.metrics[currentXAxis];
+      const vy = r.metrics[currentYAxis];
+      if (Number.isFinite(vx) && Number.isFinite(vy) &&
+          vx >= xMin && vx <= xMax && vy >= yMin && vy <= yMax) {
+        ids.push(r.candidate.id);
+      }
+    }
+    cb(ids);
+    return false;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clickHandler = useCallback(function (this: unknown, _e: any) {
+    onMarqueeRef.current?.([]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pointClickHandler = useCallback(function (this: any) {
+    const id = this.options?.custom?.id as string | undefined;
+    if (id) onToggleRef.current?.(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const xVals = results.map((r) => r.metrics[xAxis]).filter(Number.isFinite);
+  const yVals = results.map((r) => r.metrics[yAxis]).filter(Number.isFinite);
+
+  const seriesData = useMemo(() => {
+    return results
+      .filter((r) => Number.isFinite(r.metrics[xAxis]) && Number.isFinite(r.metrics[yAxis]))
+      .map((r) => {
+        const isSel = selectedIds.has(r.candidate.id);
+        const color = colorFor(r);
+        return {
+          x: r.metrics[xAxis],
+          y: r.metrics[yAxis],
+          color,
+          custom: { id: r.candidate.id, result: r },
+          marker: {
+            radius: isSel ? 6 : 4,
+            lineColor: isSel ? '#000' : '#fff',
+            lineWidth: isSel ? 2 : 0.5,
+            fillColor: color,
+            fillOpacity: isSel ? 1 : 0.7,
+          },
+        };
+      });
+  }, [results, xAxis, yAxis, selectedIds, colorFor]);
+
+  const options: Options = useMemo(() => {
+    const xMin = xVals.length ? (xAxis === 'successRate' ? Math.min(0, Math.min(...xVals)) : Math.min(0, Math.min(...xVals))) : 0;
+    const yMin = yVals.length ? (yAxis === 'successRate' ? Math.min(0, Math.min(...yVals)) : Math.min(0, Math.min(...yVals))) : 0;
+
+    return {
+      chart: {
+        type: 'scatter',
+        width: null as any,
+        height: 360,
+        margin: [16, 20, 48, 80],
+        zooming: { type: 'xy' } as any,
+        events: {
+          click: clickHandler,
+          selection: selectionHandler,
+        },
+      },
+      xAxis: {
+        min: xMin,
+        title: { text: AXIS_LABELS[xAxis] },
+        labels: {
+          formatter() {
+            return fmtAxis(xAxis, this.value as number);
+          },
+        },
+      },
+      yAxis: {
+        min: yMin,
+        title: { text: AXIS_LABELS[yAxis] },
+        labels: {
+          formatter() {
+            return fmtAxis(yAxis, this.value as number);
+          },
+        },
+      },
+      tooltip: {
+        formatter() {
+          const ctx = this as any;
+          const r = ctx.point?.options?.custom?.result as CandidateResult | undefined;
+          if (!r) return false;
+          const m = r.metrics;
+          return `<span style="font-size:11px">
+            <b>${r.candidate.label}</b><br/>
+            success ${(m.successRate * 100).toFixed(1)}% · avg wd ${fmtMoney(m.avgAnnualWithdrawal)}/y<br/>
+            p50 ${fmtMoney(m.p50Final)} · p95 ${fmtMoney(m.p95Final)}<br/>
+            near-depletion years: ${m.avgYearsNearDepletion.toFixed(1)}
+          </span>`;
+        },
+      },
+      plotOptions: {
+        scatter: {
+          allowPointSelect: false,
+          cursor: 'pointer',
+          point: {
+            events: {
+              click: pointClickHandler,
+            },
+          },
+          marker: {
+            symbol: 'circle',
+          },
+        },
+      },
+      series: [
+        {
+          type: 'scatter',
+          data: seriesData,
+          turboThreshold: 0,
+        } as any,
+      ],
+    };
+  }, [xAxis, yAxis, xVals, yVals, seriesData, clickHandler, selectionHandler, pointClickHandler]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (xVals.length === 0 || yVals.length === 0) return null;
 
   return (
     <div className="frontier-scatter-wrap">
-      <svg
-        ref={svgRef}
-        className="frontier-scatter"
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        width="100%"
-        height={H}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseLeave}
-      >
-        <line x1={padL} x2={W - padR} y1={H - padB} y2={H - padB} stroke="#bbb" />
-        <line x1={padL} x2={padL} y1={padT} y2={H - padB} stroke="#bbb" />
-        {Array.from({ length: xTicks + 1 }, (_, i) => {
-          const v = xMin + (xRange * i) / xTicks;
-          const x = xScale(v);
-          return (
-            <g key={`xt${i}`}>
-              <line x1={x} x2={x} y1={H - padB} y2={H - padB + 4} stroke="#bbb" />
-              <text x={x} y={H - padB + 16} fontSize="10" textAnchor="middle" fill="#666">
-                {fmtAxis(xAxis, v)}
-              </text>
-            </g>
-          );
-        })}
-        {Array.from({ length: yTicks + 1 }, (_, i) => {
-          const v = yMin + (yRange * i) / yTicks;
-          const y = yScale(v);
-          return (
-            <g key={`yt${i}`}>
-              <line x1={padL - 4} x2={padL} y1={y} y2={y} stroke="#bbb" />
-              <text x={padL - 6} y={y + 3} fontSize="10" textAnchor="end" fill="#666">
-                {fmtAxis(yAxis, v)}
-              </text>
-            </g>
-          );
-        })}
-        <text
-          x={(padL + W - padR) / 2}
-          y={H - 6}
-          fontSize="11"
-          textAnchor="middle"
-          fill="#444"
-        >
-          {AXIS_LABELS[xAxis]}
-        </text>
-        <text
-          x={14}
-          y={(padT + H - padB) / 2}
-          fontSize="11"
-          textAnchor="middle"
-          fill="#444"
-          transform={`rotate(-90 14 ${(padT + H - padB) / 2})`}
-        >
-          {AXIS_LABELS[yAxis]}
-        </text>
-
-        {/* Points: single pass using the selected color metric. Selected
-            points get a black stroke; selection ring is independent of
-            color so it stays visible across the whole viridis range. */}
-        {results.map((r) => {
-          const x = xScale(r.metrics[xAxis]);
-          const y = yScale(r.metrics[yAxis]);
-          if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-          const isSel = selectedIds.has(r.candidate.id);
-          const fill = colorFor(r);
-          return (
-            <circle
-              key={r.candidate.id}
-              cx={x}
-              cy={y}
-              r={isSel ? 6 : 4}
-              fill={fill}
-              fillOpacity={isSel ? 1 : 0.7}
-              stroke={isSel ? '#000' : '#fff'}
-              strokeWidth={isSel ? 2 : 0.5}
-              style={{ cursor: 'pointer' }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggle(r.candidate.id);
-              }}
-              onMouseEnter={() => setHover(r)}
-              onMouseLeave={() => setHover(null)}
-            />
-          );
-        })}
-
-        {marquee && (
-          <rect
-            x={marquee.x0}
-            y={marquee.y0}
-            width={marquee.x1 - marquee.x0}
-            height={marquee.y1 - marquee.y0}
-            fill="#1f77b4"
-            fillOpacity={0.12}
-            stroke="#1f77b4"
-            strokeDasharray="4 3"
-            pointerEvents="none"
-          />
-        )}
-
-        {hover && (
-          <g pointerEvents="none">
-            <rect
-              x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10)}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70)}
-              width={230}
-              height={66}
-              fill="#fff"
-              stroke="#999"
-              rx={3}
-            />
-            <text
-              x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10) + 6}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70) + 14}
-              fontSize="11"
-              fill="#222"
-            >
-              {hover.candidate.label}
-            </text>
-            <text
-              x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10) + 6}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70) + 28}
-              fontSize="10"
-              fill="#555"
-            >
-              success {(hover.metrics.successRate * 100).toFixed(1)}% · avg wd{' '}
-              {fmtMoney(hover.metrics.avgAnnualWithdrawal)}/y
-            </text>
-            <text
-              x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10) + 6}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70) + 42}
-              fontSize="10"
-              fill="#555"
-            >
-              p50 {fmtMoney(hover.metrics.p50Final)} · p95{' '}
-              {fmtMoney(hover.metrics.p95Final)}
-            </text>
-            <text
-              x={Math.min(W - 240, xScale(hover.metrics[xAxis]) + 10) + 6}
-              y={Math.max(0, yScale(hover.metrics[yAxis]) - 70) + 56}
-              fontSize="10"
-              fill="#555"
-            >
-              near-depletion years: {hover.metrics.avgYearsNearDepletion.toFixed(1)}
-            </text>
-          </g>
-        )}
-      </svg>
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        ref={chartRef}
+        immutable={false}
+      />
       <div className="frontier-legend">
         {colorBy === 'frontier' ? (
           <>
@@ -829,75 +740,130 @@ function ComparisonBars({
     .map((id) => byId.get(id))
     .filter((r): r is CandidateResult => !!r);
 
-  const maxVal = Math.max(
-    1,
-    ...selected.flatMap((r) => [
-      r.metrics.p5Final,
-      r.metrics.p50Final,
-      r.metrics.p95Final,
-    ]),
-  );
+  if (selected.length === 0) return null;
 
-  const W = 720;
-  const rowH = 22;
-  const labelW = 240;
-  const padR = 60;
-  const H = rowH * selected.length + 20;
-  const barAreaW = W - labelW - padR;
+  const chartHeight = selected.length * 28 + 40;
+
+  // Build three scatter series (p5, p50, p95) plus one line series per strategy
+  // that connects the p5 and p95 endpoints. We use inverted chart for horizontal bars.
+  const categories = selected.map((r) => truncate(r.candidate.label, 36));
+
+  // One line series per strategy connecting p5–p95
+  const connectorSeries = selected.map((r, i) => ({
+    type: 'line' as const,
+    name: truncate(r.candidate.label, 36),
+    color: SERIES_COLORS[i % SERIES_COLORS.length],
+    lineWidth: 2,
+    opacity: 0.5,
+    marker: { enabled: false },
+    enableMouseTracking: false,
+    showInLegend: false,
+    data: [
+      { x: i, y: r.metrics.p5Final },
+      { x: i, y: r.metrics.p95Final },
+    ] as any,
+  }));
+
+  // P5 dots
+  const p5Series = {
+    type: 'scatter' as const,
+    name: 'P5',
+    showInLegend: false,
+    enableMouseTracking: false,
+    data: selected.map((r, i) => ({
+      x: i,
+      y: r.metrics.p5Final,
+      color: SERIES_COLORS[i % SERIES_COLORS.length],
+      marker: { radius: 4, fillOpacity: 0.55 },
+    })),
+  };
+
+  // P95 dots
+  const p95Series = {
+    type: 'scatter' as const,
+    name: 'P95',
+    showInLegend: false,
+    enableMouseTracking: false,
+    data: selected.map((r, i) => ({
+      x: i,
+      y: r.metrics.p95Final,
+      color: SERIES_COLORS[i % SERIES_COLORS.length],
+      marker: { radius: 4, fillOpacity: 0.55 },
+    })),
+  };
+
+  // P50 as scatter with dataLabels showing the value
+  const p50Series = {
+    type: 'scatter' as const,
+    name: 'Median',
+    showInLegend: false,
+    enableMouseTracking: false,
+    data: selected.map((r, i) => ({
+      x: i,
+      y: r.metrics.p50Final,
+      color: SERIES_COLORS[i % SERIES_COLORS.length],
+      marker: { radius: 5, symbol: 'square' },
+      dataLabels: {
+        enabled: true,
+        format: `${fmtMoney(r.metrics.p50Final)}`,
+        style: { fontSize: '10px', color: '#666', fontWeight: 'normal' },
+        x: 8,
+      },
+    })),
+  };
+
+  const options: Options = {
+    chart: {
+      type: 'scatter',
+      inverted: true,
+      width: null as any,
+      height: chartHeight,
+      margin: [8, 80, 8, 200],
+    },
+    xAxis: {
+      categories,
+      title: { text: '' },
+      tickWidth: 0,
+      lineWidth: 0,
+    },
+    yAxis: {
+      min: 0,
+      title: { text: '' },
+      labels: {
+        formatter() {
+          const v = this.value as number;
+          return `$${(v / 1e6).toFixed(1)}M`;
+        },
+      },
+    },
+    tooltip: {
+      formatter() {
+        const ctx = this as any;
+        const r = selected[ctx.point?.x];
+        if (!r) return false;
+        const m = r.metrics;
+        return `<b>${r.candidate.label}</b><br/>P5: ${fmtMoney(m.p5Final)} · Median: ${fmtMoney(m.p50Final)} · P95: ${fmtMoney(m.p95Final)}`;
+      },
+    },
+    plotOptions: {
+      scatter: {
+        marker: { symbol: 'circle' },
+        dataLabels: { enabled: false },
+      },
+    },
+    series: [...connectorSeries, p5Series as any, p95Series as any, p50Series as any],
+  };
 
   return (
     <div className="frontier-bars-wrap">
       <div className="frontier-bars-title">
         Final-balance distribution (P5 / Median / P95) per selected strategy
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
-        {selected.map((r, i) => {
-          const y = i * rowH + 8;
-          const color = SERIES_COLORS[i % SERIES_COLORS.length];
-          const p5x = (r.metrics.p5Final / maxVal) * barAreaW;
-          const p50x = (r.metrics.p50Final / maxVal) * barAreaW;
-          const p95x = (r.metrics.p95Final / maxVal) * barAreaW;
-          return (
-            <g key={r.candidate.id}>
-              <text
-                x={labelW - 8}
-                y={y + rowH / 2 + 3}
-                fontSize="11"
-                textAnchor="end"
-                fill="#333"
-              >
-                {truncate(r.candidate.label, 36)}
-              </text>
-              <line
-                x1={labelW + p5x}
-                x2={labelW + p95x}
-                y1={y + rowH / 2}
-                y2={y + rowH / 2}
-                stroke={color}
-                strokeWidth={2}
-                opacity={0.5}
-              />
-              <circle cx={labelW + p5x} cy={y + rowH / 2} r={4} fill={color} opacity={0.55} />
-              <circle cx={labelW + p95x} cy={y + rowH / 2} r={4} fill={color} opacity={0.55} />
-              <rect
-                x={labelW + p50x - 3}
-                y={y + 4}
-                width={6}
-                height={rowH - 8}
-                fill={color}
-              />
-              <text
-                x={labelW + p95x + 6}
-                y={y + rowH / 2 + 3}
-                fontSize="10"
-                fill="#666"
-              >
-                {fmtMoney(r.metrics.p50Final)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        immutable={false}
+      />
     </div>
   );
 }
