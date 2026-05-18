@@ -12,7 +12,6 @@ import type {
   YearState,
 } from './types';
 import {
-  adjustWeightsForData,
   applyGlideStep,
   applyRefill,
   applyReturns,
@@ -67,8 +66,7 @@ export function simulate(input: SimulateInput): SimulationResult {
   const inProgress = returns.length < horizonYears;
   const effectiveHorizon = Math.min(horizonYears, returns.length);
 
-  // Seed sleeves from the year-0 target weights. If the first year has no
-  // cash data, fold cash into bond up front so we don't carry phantom cash.
+  // Seed sleeves from the year-0 target weights.
   let sleeves: Sleeves;
   {
     const seedState: YearState = {
@@ -78,15 +76,12 @@ export function simulate(input: SimulateInput): SimulationResult {
       trajectory,
       cape: returns[0]?.cape ?? null,
     };
-    const w0Raw = computeWeights(
+    const w0 = computeWeights(
       allocation,
       seedState,
       initialBalance,
       returns[0]?.inflation ?? 0,
     );
-    const w0 = returns[0]
-      ? adjustWeightsForData(w0Raw, returns[0])
-      : w0Raw;
     sleeves = splitInitial(initialBalance, w0);
   }
   const initialSleeves: Sleeves = { ...sleeves };
@@ -106,13 +101,12 @@ export function simulate(input: SimulateInput): SimulationResult {
       cape: r.cape,
     };
 
-    const weightsRaw: Weights = computeWeights(
+    const weights: Weights = computeWeights(
       allocation,
       state,
       initialBalance,
       r.inflation,
     );
-    const weights = adjustWeightsForData(weightsRaw, r);
 
     const wd = computeWithdrawal(
       withdrawal,
@@ -135,7 +129,7 @@ export function simulate(input: SimulateInput): SimulationResult {
         calendarYear,
         balance: 0,
         withdrawal: wd,
-        weights: weightsRaw,
+        weights: weights,
         sleeves: { stock: 0, bond: 0, cash: 0 },
         depleted: true,
         sleevesStart: sleevesAtStart,
@@ -162,25 +156,20 @@ export function simulate(input: SimulateInput): SimulationResult {
       withdrawalSource.type === 'proportional' &&
       withdrawalSource.rebalance
     ) {
-      // Full rebalance: snap back to target every year. Uses the data-adjusted
-      // weights so we don't rebalance into a cash sleeve with no return data.
+      // Full rebalance: snap back to target every year.
       sleeves = rebalanceTo(sleeves, weights);
     } else if (prevTarget) {
       // Drift modes (waterfall, bucket, rebalance-off proportional): don't
       // correct return drift, but still honor a deliberate glide-path shift
       // — otherwise the allocation strategy is silently ignored after year 0.
-      // The glide step is computed from *raw* (un-data-adjusted) weights so a
-      // change in cash-data availability — e.g. cash returns starting in 1934
-      // — isn't mistaken for an intentional allocation shift. A static
-      // allocation therefore produces no glide step at all.
-      sleeves = applyGlideStep(sleeves, prevTarget, weightsRaw);
+      sleeves = applyGlideStep(sleeves, prevTarget, weights);
     }
     const rebalanceFlow: Sleeves = {
       stock: sleeves.stock - sleevesAfterWithdrawal.stock,
       bond: sleeves.bond - sleevesAfterWithdrawal.bond,
       cash: sleeves.cash - sleevesAfterWithdrawal.cash,
     };
-    prevTarget = weightsRaw;
+    prevTarget = weights;
 
     const beforeReturns: Sleeves = { ...sleeves };
 
@@ -212,7 +201,7 @@ export function simulate(input: SimulateInput): SimulationResult {
       calendarYear,
       balance: totalSleeves(sleeves),
       withdrawal: wd,
-      weights: weightsRaw,
+      weights: weights,
       sleeves: { ...sleeves },
       return: portRet,
       sleevesStart: sleevesAtStart,
