@@ -179,71 +179,65 @@ export function App() {
           </div>
         </div>
       </header>
-      <div className="layout">
-        <aside className="controls">
-          <section className="control-zone">
-            <div className="zone-heading">
-              <h2>Context</h2>
-              <span className="zone-sub">applies to every tab</span>
-            </div>
-            <PresetPicker />
-            <PortfolioInput />
-          </section>
-          <section className="control-zone">
-            <div className="zone-heading">
-              <h2>Strategy</h2>
-              {(topMode === 'optimize' || topMode === 'evolve') && (
-                <span className="zone-sub">
-                  base for {topMode === 'optimize' ? 'Study' : 'Evolve'} —
-                  swept dimensions vary from here
-                </span>
-              )}
-            </div>
-            <h3 className="section-heading">Holdings mix</h3>
-            <AllocationEditor
-              horizonYears={scenario.horizonYears}
-              allocation={scenario.allocation}
-              onChange={scenario.setAllocation}
-            />
-            <h3 className="section-heading">Withdrawal strategy</h3>
-            <WithdrawalEditor
-              horizonYears={scenario.horizonYears}
-              withdrawal={scenario.withdrawal}
-              onChange={scenario.setWithdrawal}
-            />
-            <h3 className="section-heading">Withdrawal source</h3>
-            <WithdrawalSourceInput />
-            <TailMethodInput />
-          </section>
-          <ScenarioLibrary />
-        </aside>
+      <div className="context-bar">
+        <span className="context-bar-tag">Context</span>
+        <PortfolioInput />
+        <span className="context-bar-note">applies to every tab</span>
+      </div>
+      <div className="top-mode-tabs">
+        <button
+          className={topMode === 'single' ? 'active' : ''}
+          onClick={() => setTopMode('single')}
+        >
+          Single scenario
+        </button>
+        <button
+          className={topMode === 'optimize' ? 'active' : ''}
+          onClick={() => setTopMode('optimize')}
+        >
+          Study / optimize
+        </button>
+        <button
+          className={topMode === 'evolve' ? 'active' : ''}
+          onClick={() => setTopMode('evolve')}
+        >
+          Evolve
+        </button>
+        <button
+          className={topMode === 'compare' ? 'active' : ''}
+          onClick={() => setTopMode('compare')}
+        >
+          Compare scenarios
+        </button>
+      </div>
+      <div className={`layout${topMode === 'single' ? '' : ' no-aside'}`}>
+        {topMode === 'single' && (
+          <aside className="controls">
+            <section className="control-zone">
+              <div className="zone-heading">
+                <h2>Strategy</h2>
+              </div>
+              <PresetPicker />
+              <h3 className="section-heading">Holdings mix</h3>
+              <AllocationEditor
+                horizonYears={scenario.horizonYears}
+                allocation={scenario.allocation}
+                onChange={scenario.setAllocation}
+              />
+              <h3 className="section-heading">Withdrawal strategy</h3>
+              <WithdrawalEditor
+                horizonYears={scenario.horizonYears}
+                withdrawal={scenario.withdrawal}
+                onChange={scenario.setWithdrawal}
+              />
+              <h3 className="section-heading">Withdrawal source</h3>
+              <WithdrawalSourceInput />
+              <TailMethodInput />
+            </section>
+            <ScenarioLibrary />
+          </aside>
+        )}
         <main className="results">
-          <div className="top-mode-tabs">
-            <button
-              className={topMode === 'single' ? 'active' : ''}
-              onClick={() => setTopMode('single')}
-            >
-              Single scenario
-            </button>
-            <button
-              className={topMode === 'optimize' ? 'active' : ''}
-              onClick={() => setTopMode('optimize')}
-            >
-              Study / optimize
-            </button>
-            <button
-              className={topMode === 'evolve' ? 'active' : ''}
-              onClick={() => setTopMode('evolve')}
-            >
-              Evolve
-            </button>
-            <button
-              className={topMode === 'compare' ? 'active' : ''}
-              onClick={() => setTopMode('compare')}
-            >
-              Compare scenarios
-            </button>
-          </div>
           {topMode === 'optimize' && (
             <FrontierView onApplied={() => setTopMode('single')} />
           )}

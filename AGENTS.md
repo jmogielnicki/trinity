@@ -85,10 +85,10 @@ State that needs to round-trip (URL hash, library, presets) goes through `Serial
 
 ## 5. UI map (`src/components/`)
 
-**Controls (left rail)** — split into two zones plus the library:
-- *Context* (global, applies to every tab): `PresetPicker → PortfolioInput`
-- *Strategy* (the base scenario; Study/Evolve sweep from it): `AllocationEditor → WithdrawalEditor → WithdrawalSourceInput → TailMethodInput`
-- `ScenarioLibrary` below both zones
+**Layout:**
+- *Context bar* (full-width, below the header, applies to every tab): `PortfolioInput` — initial balance + horizon.
+- *Strategy panel* (left rail, **rendered only on the Single scenario tab**): `PresetPicker → AllocationEditor → WithdrawalEditor → WithdrawalSourceInput → TailMethodInput`, then `ScenarioLibrary`. On other tabs the `.layout` grid gets `.no-aside` and the results pane goes full width.
+- *Tabs* (`.top-mode-tabs`) sit full-width between the context bar and the layout.
 
 (`ScenarioActions` — share / export / snapshot — lives in the header, not the left rail.)
 
