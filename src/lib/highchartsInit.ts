@@ -1,7 +1,6 @@
 import Highcharts from 'highcharts';
 // In Highcharts v12, modules register themselves as side-effects; no factory call needed.
 import 'highcharts/highcharts-more'; // includes arearange, columnrange, etc.
-import 'highcharts/modules/boost';   // WebGL acceleration for many-series charts
 
 Highcharts.setOptions({
   chart: {

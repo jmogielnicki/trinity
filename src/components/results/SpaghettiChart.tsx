@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options, SeriesLineOptions } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
@@ -99,6 +99,19 @@ export function SpaghettiChart({
   const chartRef = useRef<HighchartsReact.RefObject>(null);
   const hasSelection = !!selectedYears && selectedYears.size > 0;
 
+  // Stable refs so event handlers always see the latest callbacks/data
+  // without needing to be in useMemo deps (which would rebuild all series).
+  const onToggleRef = useRef(onToggle);
+  onToggleRef.current = onToggle;
+  const onMarqueeRef = useRef(onMarquee);
+  onMarqueeRef.current = onMarquee;
+  const onClearRef = useRef(onClear);
+  onClearRef.current = onClear;
+  const resultRef = useRef(result);
+  resultRef.current = result;
+  const overlayRef = useRef(overlay);
+  overlayRef.current = overlay;
+
   const horizon = useMemo(() => {
     const a = result.sims.reduce((m, s) => Math.max(m, s.trajectory.length), 0);
     const b = overlay
@@ -153,47 +166,53 @@ export function SpaghettiChart({
   const fmt = (n: number) =>
     n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}k` : `$${Math.round(n)}`;
 
+  // Stable selection handler — reads latest data/callbacks via refs.
+  const selectionHandler = useCallback(function (this: unknown, e: any) {
+    e.preventDefault();
+    const cb = onMarqueeRef.current;
+    if (!cb || !e.xAxis || !e.yAxis) return false;
+
+    const xMin = e.xAxis[0].min as number;
+    const xMax = e.xAxis[0].max as number;
+    const yMin = e.yAxis[0].min as number;
+    const yMax = e.yAxis[0].max as number;
+
+    const within = new Set<number>();
+    const scan = (sims: SimulationResult[]) => {
+      for (const s of sims) {
+        for (const r of s.trajectory) {
+          if (r.t >= xMin && r.t <= xMax && r.balance >= yMin && r.balance <= yMax) {
+            within.add(s.startYear);
+            break;
+          }
+        }
+      }
+    };
+    scan(resultRef.current.sims);
+    if (overlayRef.current) scan(overlayRef.current.sims);
+    cb([...within], { shiftKey: !!(e.originalEvent as MouseEvent)?.shiftKey });
+    return false;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clickHandler = useCallback(function (this: unknown, e: any) {
+    if (!e.point && !e.series) onClearRef.current?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const seriesClickHandler = useCallback(function (this: unknown, e: any) {
+    const sim: SimulationResult | undefined = (this as any).options?.custom?.sim;
+    if (sim) onToggleRef.current?.(sim.startYear, { shiftKey: !!(e.browserEvent as MouseEvent)?.shiftKey });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const options: Options = useMemo(
     () => ({
       chart: {
         width,
         height,
-        margin: [16, 16, 36, 64],
+        margin: [16, 16, 36, 72],
         zooming: { type: 'xy' } as any,
         events: {
-          click(e: any) {
-            // Click on empty area clears selection
-            if (!e.point && onClear) {
-              onClear();
-            }
-          },
-          selection(e: any) {
-            // Intercept zoom selection for marquee. e.xAxis[0].min/max are
-            // already in data coordinates (axis values), not pixels.
-            e.preventDefault();
-            if (!onMarquee) return false;
-
-            const xMin = e.xAxis[0].min as number;
-            const xMax = e.xAxis[0].max as number;
-            const yMin = e.yAxis[0].min as number;
-            const yMax = e.yAxis[0].max as number;
-
-            const within = new Set<number>();
-            const scan = (sims: SimulationResult[]) => {
-              for (const s of sims) {
-                for (const r of s.trajectory) {
-                  if (r.t >= xMin && r.t <= xMax && r.balance >= yMin && r.balance <= yMax) {
-                    within.add(s.startYear);
-                    break;
-                  }
-                }
-              }
-            };
-            scan(result.sims);
-            if (overlay) scan(overlay.sims);
-            onMarquee([...within], { shiftKey: !!(e.originalEvent as MouseEvent)?.shiftKey });
-            return false;
-          },
+          click: clickHandler,
+          selection: selectionHandler,
         },
       },
       xAxis: {
@@ -216,7 +235,7 @@ export function SpaghettiChart({
       tooltip: {
         formatter() {
           const series = this.series as any;
-          const custom = series.options.custom;
+          const custom = series?.options?.custom;
           if (!custom?.sim) return false;
           const sim: SimulationResult = custom.sim;
           const last = sim.trajectory[sim.trajectory.length - 1];
@@ -233,21 +252,13 @@ export function SpaghettiChart({
       },
       plotOptions: {
         series: {
-          cursor: onToggle ? 'pointer' : 'crosshair',
-          events: {
-            click(e: any) {
-              const sim: SimulationResult | undefined = (this.options as any).custom?.sim;
-              if (sim && onToggle) {
-                onToggle(sim.startYear, { shiftKey: !!(e.browserEvent as MouseEvent)?.shiftKey });
-              }
-            },
-          },
+          cursor: 'pointer',
+          events: { click: seriesClickHandler },
         },
       },
       series: seriesData,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [result.sims, overlay, horizon, maxBalance, width, height, seriesData],
+    [width, height, horizon, maxBalance, seriesData, clickHandler, selectionHandler, seriesClickHandler],
   );
 
   // Marquee: shift+mousedown on the chart container starts a native drag
