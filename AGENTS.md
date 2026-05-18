@@ -98,7 +98,7 @@ State that needs to round-trip (URL hash, library, presets) goes through `Serial
 - View tabs: `spaghetti / calendar / where am i` (single-scenario)
 - Sweep views: `SmallMultiples` (1D), `Heatmap` (2D)
 - Single-scenario tabs use `StatPanel`, `SuccessBar`, `OutcomeStrip`, `Legend` as supporting components
-- Clicking a spaghetti line opens `SimDetailPanel`, which has its own chart tabs: `balance & withdrawals` and `sleeve composition` (the `SleeveChart`)
+- Clicking a spaghetti line opens `SimDetailPanel`: one chart with the stacked sleeve composition on top and source-colored withdrawal bars below, sharing a stock/bond/cash legend
 
 ## 6. Engine: data flow
 
@@ -165,7 +165,7 @@ CLAUDE.md describes the original product vision; here's what's actually been bui
 - **piecewiseLinear** withdrawal type — replaces the misleading step-function `piecewise` for the curve editor.
 - **customSrc** strategy variant — string-of-JS, structured-clone-safe (works across workers and URL state).
 - **Outcome strip** — barcode of start-year outcomes below the spaghetti, click/drag to select.
-- **Sleeve composition** — stacked area of one sim's per-sleeve balances over time; a chart tab inside `SimDetailPanel` (not a top-level view).
+- **Sleeve composition** — stacked area of one sim's per-sleeve balances over time; the upper section of the `SimDetailPanel` chart (not a top-level view), with source-colored withdrawal bars below it.
 - **Where Am I view** — completed-historical percentile band with the actual realized prefix of recent retirees.
 - **Marquee selection** — shift+drag on either chart adds years to the selection.
 - **Worker pool** — Comlink-wrapped engine, scenarios distributed round-robin.
