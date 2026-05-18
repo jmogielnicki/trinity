@@ -56,17 +56,6 @@ export function totalSleeves(s: Sleeves): number {
   return s.stock + s.bond + s.cash;
 }
 
-/**
- * Drop the cash weight (folding it into bonds) for years where cash data is
- * unavailable. Without this, a pre-1934 sim with a cash sleeve would silently
- * accumulate "phantom" cash that earns 0% real, which is misleading.
- */
-export function adjustWeightsForData(w: Weights, r: AnnualReturns): Weights {
-  if (r.cash_return_real != null) return w;
-  if (w.cash === 0) return w;
-  return { stock: w.stock, bond: w.bond + w.cash, cash: 0 };
-}
-
 export function applyWithdrawal(
   sleeves: Sleeves,
   amount: number,
@@ -180,8 +169,8 @@ function applyOneRefill(
 
 export function applyReturns(sleeves: Sleeves, r: AnnualReturns): Sleeves {
   // Treat null cash returns as 0% real (cash holds purchasing power but
-  // earns nothing) — only relevant when adjustWeightsForData hasn't already
-  // forced the cash sleeve to zero.
+  // earns nothing). Cash data only starts in 1934; before that a cash sleeve
+  // simply tracks inflation — a deliberately conservative assumption.
   const cashRet = r.cash_return_real ?? 0;
   return {
     stock: sleeves.stock * (1 + r.stock_return_real),

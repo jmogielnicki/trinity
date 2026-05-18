@@ -43,6 +43,13 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
 .about-link.active { background: #335577; color: #fff; border-color: #335577; }
 
 .sim-detail-legend { margin-top: 4px; }
+.sim-detail-footnote {
+  margin: 6px 0 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #999;
+  max-width: 760px;
+}
 
 .layout {
   display: grid;

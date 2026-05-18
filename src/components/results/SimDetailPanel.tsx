@@ -11,6 +11,15 @@ type Props = {
   onClose?: () => void;
 };
 
+// Cash return data only begins in 1934. Before that the cash sleeve is held
+// flat at 0% real (a conservative assumption, not measured data) — the chart
+// draws that portion in a faded violet so observed and assumed holdings are
+// visually distinguishable.
+const CASH_DATA_START_YEAR = 1934;
+
+// A pale wash of ASSET.cash (#7c3aed) for the pre-1934 "assumed" range.
+const ASSUMED_CASH_FILL = 'rgba(124, 58, 237, 0.28)';
+
 function fmt$(n: number): string {
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}k`;
@@ -92,9 +101,25 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
 
     const horizonMax = Math.max(1, trajectory.length - 1);
 
+    // Last trajectory index whose calendar year predates cash data. Used to
+    // hatch the cash area (and shade the x-axis) over the assumed range.
+    const lastAssumedCashT = startYear < CASH_DATA_START_YEAR
+      ? Math.min(trajectory.length - 1, CASH_DATA_START_YEAR - startYear - 1)
+      : -1;
+    const hasAssumedCash = lastAssumedCashT >= 0;
+
     // Depletion plotLine
     const plotLines: Highcharts.XAxisPlotLinesOptions[] = depletedAt != null
       ? [{ value: depletedAt, color: '#d33', width: 1, dashStyle: 'Dash', zIndex: 5 }]
+      : [];
+
+    // Shade the pre-1934 range where cash returns are assumed, not measured.
+    const plotBands: Highcharts.XAxisPlotBandsOptions[] = hasAssumedCash
+      ? [{
+          from: -0.5,
+          to: lastAssumedCashT + 0.5,
+          color: 'rgba(0,0,0,0.035)',
+        }]
       : [];
 
     return {
@@ -110,6 +135,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         title: { text: 'years into retirement / calendar year' },
         tickInterval: Math.ceil(horizonMax / 8) || 1,
         plotLines,
+        plotBands,
         labels: {
           formatter() {
             const t = this.value as number;
@@ -169,6 +195,9 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
             `Withdrawal: ${fmt$(r.withdrawal)} (${fmtPct(r.withdrawal / initialBalance)} of initial)`,
             `  drawn: ${fmt$(wb.stock)} stk · ${fmt$(wb.bond)} bnd · ${fmt$(wb.cash)} csh`,
             r.return != null ? `Return: ${fmtPct(r.return)} ${r.return >= 0 ? '▲' : '▼'}` : null,
+            r.calendarYear < CASH_DATA_START_YEAR
+              ? `<span style="color:#999">cash return assumed 0% real (pre-${CASH_DATA_START_YEAR})</span>`
+              : null,
           ].filter(Boolean) as string[];
           return lines.join('<br/>');
         },
@@ -215,6 +244,16 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
           color: ASSET.cash,
           yAxis: 0,
           zIndex: 2,
+          // Fade the cash fill over years that predate cash return data.
+          ...(hasAssumedCash
+            ? {
+                zoneAxis: 'x',
+                zones: [
+                  { value: lastAssumedCashT + 0.5, fillColor: ASSUMED_CASH_FILL },
+                  {},
+                ],
+              }
+            : {}),
         } as Highcharts.SeriesAreaOptions,
         // Withdrawal stacked columns (yAxis 1)
         {
@@ -246,7 +285,9 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         } as Highcharts.SeriesColumnOptions,
       ],
     };
-  }, [trajectory, depletedAt, initialBalance]);
+  }, [trajectory, startYear, depletedAt, initialBalance]);
+
+  const showsAssumedCash = startYear < CASH_DATA_START_YEAR;
 
   return (
     <div className="sim-detail-panel">
@@ -280,6 +321,14 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         <li><span className="sw" style={{ background: ASSET.cash }} /> cash</li>
         <li className="legend-note">filled area = holdings · bars = withdrawals by source</li>
       </ul>
+
+      {showsAssumedCash && (
+        <p className="sim-detail-footnote">
+          Cash return data begins in {CASH_DATA_START_YEAR}. Earlier years
+          (faded violet) hold the cash sleeve flat at 0% real — a conservative
+          assumption, not measured data.
+        </p>
+      )}
 
       {/* Year-by-year data table */}
       <div className="sim-detail-table-header">

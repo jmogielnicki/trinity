@@ -12,7 +12,6 @@ import type {
   YearState,
 } from './types';
 import {
-  adjustWeightsForData,
   applyGlideStep,
   applyRefill,
   applyReturns,
@@ -67,8 +66,7 @@ export function simulate(input: SimulateInput): SimulationResult {
   const inProgress = returns.length < horizonYears;
   const effectiveHorizon = Math.min(horizonYears, returns.length);
 
-  // Seed sleeves from the year-0 target weights. If the first year has no
-  // cash data, fold cash into bond up front so we don't carry phantom cash.
+  // Seed sleeves from the year-0 target weights.
   let sleeves: Sleeves;
   {
     const seedState: YearState = {
@@ -78,15 +76,12 @@ export function simulate(input: SimulateInput): SimulationResult {
       trajectory,
       cape: returns[0]?.cape ?? null,
     };
-    const w0Raw = computeWeights(
+    const w0 = computeWeights(
       allocation,
       seedState,
       initialBalance,
       returns[0]?.inflation ?? 0,
     );
-    const w0 = returns[0]
-      ? adjustWeightsForData(w0Raw, returns[0])
-      : w0Raw;
     sleeves = splitInitial(initialBalance, w0);
   }
   const initialSleeves: Sleeves = { ...sleeves };
@@ -106,13 +101,12 @@ export function simulate(input: SimulateInput): SimulationResult {
       cape: r.cape,
     };
 
-    const weightsRaw: Weights = computeWeights(
+    const weights: Weights = computeWeights(
       allocation,
       state,
       initialBalance,
       r.inflation,
     );
-    const weights = adjustWeightsForData(weightsRaw, r);
 
     const wd = computeWithdrawal(
       withdrawal,
@@ -135,7 +129,7 @@ export function simulate(input: SimulateInput): SimulationResult {
         calendarYear,
         balance: 0,
         withdrawal: wd,
-        weights: weightsRaw,
+        weights: weights,
         sleeves: { stock: 0, bond: 0, cash: 0 },
         depleted: true,
         sleevesStart: sleevesAtStart,
@@ -156,9 +150,7 @@ export function simulate(input: SimulateInput): SimulationResult {
     }
 
     // Steer toward the target allocation before returns, so year-t returns
-    // are earned on year-t's allocation (matches the spec loop). When data
-    // forced cash → 0, this uses the adjusted weights so we don't refill a
-    // sleeve we just dropped.
+    // are earned on year-t's allocation (matches the spec loop).
     const sleevesAfterWithdrawal: Sleeves = { ...sleeves };
     if (
       withdrawalSource.type === 'proportional' &&
@@ -209,7 +201,7 @@ export function simulate(input: SimulateInput): SimulationResult {
       calendarYear,
       balance: totalSleeves(sleeves),
       withdrawal: wd,
-      weights: weightsRaw,
+      weights: weights,
       sleeves: { ...sleeves },
       return: portRet,
       sleevesStart: sleevesAtStart,
