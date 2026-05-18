@@ -507,20 +507,10 @@ function ScatterPlot({
         x: r.metrics[xAxis],
         y: r.metrics[yAxis],
         color: colorFor(r),
+        selected: selectedIds.has(r.candidate.id),
         custom: { id: r.candidate.id, result: r },
       }));
-  }, [results, xAxis, yAxis, colorFor]);
-
-  // Sync Highcharts native selection state whenever series or selection changes.
-  useEffect(() => {
-    const chart = chartRef.current?.chart;
-    if (!chart?.series[0]) return;
-    const ids = selectedIdsRef.current;
-    chart.series[0].points.forEach((p) => {
-      const id = (p.options as any).custom?.id as string | undefined;
-      if (id && p.selected !== ids.has(id)) p.select(ids.has(id), true);
-    });
-  }, [seriesData, selectedIds]);
+  }, [results, xAxis, yAxis, colorFor, selectedIds]);
 
   const options: Options = useMemo(() => ({
     chart: {
@@ -559,7 +549,7 @@ function ScatterPlot({
     },
     plotOptions: {
       scatter: {
-        allowPointSelect: true,
+        allowPointSelect: false,
         stickyTracking: false,
         cursor: 'pointer',
         point: { events: { click: pointClickHandler } },
