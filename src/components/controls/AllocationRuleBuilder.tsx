@@ -1,5 +1,6 @@
 import type { Action, Condition, Rule } from '../../engine/rules';
 import type { Weights } from '../../engine/types';
+import { NumericInput } from './NumericInput';
 
 type Props = {
   base: Weights;
@@ -20,6 +21,13 @@ function defaultRule(): Rule {
     then: { type: 'shiftAllocation', delta: { stock: -0.1, bond: 0.1, cash: 0 } },
   };
 }
+
+const fmtPct0 = (v: number) => (v * 100).toFixed(0);
+const parsePct = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n / 100; };
+const fmtInt = (v: number) => String(Math.round(v));
+const parseIntFn = (s: string) => { const n = parseInt(s, 10); return isNaN(n) ? null : n; };
+const fmtDec2 = (v: number) => v.toFixed(2);
+const parseFloat2 = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n; };
 
 /**
  * Visual builder for allocation ruleBased strategies. Conditions match the
@@ -43,28 +51,28 @@ export function AllocationRuleBuilder({ base, rules, onChange }: Props) {
       </div>
       <div className="rule-line">
         <span>stocks</span>
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          step={0.05}
           value={base.stock}
-          onChange={(e) => updateBase('stock', +e.target.value)}
+          format={fmtDec2}
+          parse={parseFloat2}
+          onChange={(v) => updateBase('stock', v)}
         />
         <span>bonds</span>
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          step={0.05}
           value={base.bond}
-          onChange={(e) => updateBase('bond', +e.target.value)}
+          format={fmtDec2}
+          parse={parseFloat2}
+          onChange={(v) => updateBase('bond', v)}
         />
         <span>cash</span>
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          step={0.05}
           value={base.cash}
-          onChange={(e) => updateBase('cash', +e.target.value)}
+          format={fmtDec2}
+          parse={parseFloat2}
+          onChange={(v) => updateBase('cash', v)}
         />
       </div>
       {rules.map((r, i) => (
@@ -136,28 +144,28 @@ function RuleRow({
       <div className="rule-line">
         <span>then shift</span>
         <span>stk</span>
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          step={0.05}
           value={action.delta.stock}
-          onChange={(e) => updateDelta('stock', +e.target.value)}
+          format={fmtDec2}
+          parse={parseFloat2}
+          onChange={(v) => updateDelta('stock', v)}
         />
         <span>bnd</span>
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          step={0.05}
           value={action.delta.bond}
-          onChange={(e) => updateDelta('bond', +e.target.value)}
+          format={fmtDec2}
+          parse={parseFloat2}
+          onChange={(v) => updateDelta('bond', v)}
         />
         <span>csh</span>
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          step={0.05}
           value={action.delta.cash}
-          onChange={(e) => updateDelta('cash', +e.target.value)}
+          format={fmtDec2}
+          parse={parseFloat2}
+          onChange={(v) => updateDelta('cash', v)}
         />
         <button className="x-btn" onClick={onDelete}>×</button>
       </div>
@@ -177,18 +185,20 @@ function CondInputs({
       return (
         <>
           <span>year</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
             value={cond.from}
-            onChange={(e) => onChange({ ...cond, from: +e.target.value })}
+            format={fmtInt}
+            parse={parseIntFn}
+            onChange={(v) => onChange({ ...cond, from: v })}
           />
           <span>–</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
             value={cond.to}
-            onChange={(e) => onChange({ ...cond, to: +e.target.value })}
+            format={fmtInt}
+            parse={parseIntFn}
+            onChange={(v) => onChange({ ...cond, to: v })}
           />
         </>
       );
@@ -196,21 +206,20 @@ function CondInputs({
       return (
         <>
           <span>last</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
             value={cond.lookback}
-            onChange={(e) => onChange({ ...cond, lookback: +e.target.value })}
+            format={fmtInt}
+            parse={parseIntFn}
+            onChange={(v) => onChange({ ...cond, lookback: v })}
           />
           <span>y ret &gt;</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
-            step={1}
-            value={(cond.threshold * 100).toFixed(0)}
-            onChange={(e) =>
-              onChange({ ...cond, threshold: Number(e.target.value) / 100 })
-            }
+            value={cond.threshold}
+            format={fmtPct0}
+            parse={parsePct}
+            onChange={(v) => onChange({ ...cond, threshold: v })}
           />
           <span>%</span>
         </>
@@ -228,12 +237,10 @@ function CondInputs({
             <option value=">">&gt;</option>
             <option value="<">&lt;</option>
           </select>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
-            step={0.1}
             value={cond.ratio}
-            onChange={(e) => onChange({ ...cond, ratio: +e.target.value })}
+            onChange={(v) => onChange({ ...cond, ratio: v })}
           />
         </>
       );
@@ -241,14 +248,12 @@ function CondInputs({
       return (
         <>
           <span>inflation &gt;</span>
-          <input
-            type="number"
+          <NumericInput
             className="axis-num"
-            step={1}
-            value={(cond.threshold * 100).toFixed(0)}
-            onChange={(e) =>
-              onChange({ ...cond, threshold: Number(e.target.value) / 100 })
-            }
+            value={cond.threshold}
+            format={fmtPct0}
+            parse={parsePct}
+            onChange={(v) => onChange({ ...cond, threshold: v })}
           />
           <span>%</span>
         </>

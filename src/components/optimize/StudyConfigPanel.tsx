@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AllocationStrategy, WithdrawalStrategy } from '../../engine/strategies';
 import type { WithdrawalSource } from '../../engine/withdrawalSource';
+import { NumericInput } from '../controls/NumericInput';
 import {
   SOURCE_PRESETS,
   allocationRangeVariants,
@@ -634,6 +635,11 @@ function EntryList<T extends AllocationStrategy | WithdrawalStrategy | Withdrawa
 // Numeric inputs — display in friendly units, store in engine units.
 // ---------------------------------------------------------------------------
 
+const fmtPct = (v: number) => String(+(v * 100).toFixed(4));
+const parsePct = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n / 100; };
+const fmtMarginal = (v: number) => String(+(v * 1000).toFixed(3));
+const parseMarginal = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n / 1000; };
+
 function PctRange({
   label,
   from,
@@ -652,37 +658,35 @@ function PctRange({
       {label && <span className="study-range-label">{label}</span>}
       <label>
         from
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          value={+(from * 100).toFixed(4)}
-          step={0.25}
-          onChange={(e) => onChange((+e.target.value || 0) / 100, to, step)}
+          value={from}
+          format={fmtPct}
+          parse={parsePct}
+          onChange={(v) => onChange(v, to, step)}
         />
         %
       </label>
       <label>
         to
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          value={+(to * 100).toFixed(4)}
-          step={0.25}
-          onChange={(e) => onChange(from, (+e.target.value || 0) / 100, step)}
+          value={to}
+          format={fmtPct}
+          parse={parsePct}
+          onChange={(v) => onChange(from, v, step)}
         />
         %
       </label>
       <label>
         step
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          value={+(step * 100).toFixed(4)}
-          step={0.05}
-          min={0.05}
-          onChange={(e) =>
-            onChange(from, to, Math.max(0.0005, (+e.target.value || 0) / 100))
-          }
+          value={step}
+          format={fmtPct}
+          parse={(s) => { const n = parseFloat(s); return isNaN(n) ? null : Math.max(0.0005, n / 100); }}
+          min={0.0005}
+          onChange={(v) => onChange(from, to, v)}
         />
         %
       </label>
@@ -706,37 +710,35 @@ function MarginalRange({
     <div className="study-range-row">
       <label>
         from
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          value={+(from * 1000).toFixed(3)}
-          step={1}
-          onChange={(e) => onChange((+e.target.value || 0) / 1000, to, step)}
+          value={from}
+          format={fmtMarginal}
+          parse={parseMarginal}
+          onChange={(v) => onChange(v, to, step)}
         />
         k
       </label>
       <label>
         to
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          value={+(to * 1000).toFixed(3)}
-          step={1}
-          onChange={(e) => onChange(from, (+e.target.value || 0) / 1000, step)}
+          value={to}
+          format={fmtMarginal}
+          parse={parseMarginal}
+          onChange={(v) => onChange(from, v, step)}
         />
         k
       </label>
       <label>
         step
-        <input
-          type="number"
+        <NumericInput
           className="axis-num"
-          value={+(step * 1000).toFixed(3)}
-          step={0.5}
-          min={0.5}
-          onChange={(e) =>
-            onChange(from, to, Math.max(0.0005, (+e.target.value || 0) / 1000))
-          }
+          value={step}
+          format={fmtMarginal}
+          parse={(s) => { const n = parseFloat(s); return isNaN(n) ? null : Math.max(0.0005, n / 1000); }}
+          min={0.0005}
+          onChange={(v) => onChange(from, to, v)}
         />
         k
       </label>
@@ -756,12 +758,12 @@ function PctNum({
   return (
     <label className="study-field">
       {label}
-      <input
-        type="number"
+      <NumericInput
         className="axis-num"
-        value={+(value * 100).toFixed(4)}
-        step={0.25}
-        onChange={(e) => onChange((+e.target.value || 0) / 100)}
+        value={value}
+        format={fmtPct}
+        parse={parsePct}
+        onChange={onChange}
       />
     </label>
   );
@@ -779,12 +781,12 @@ function MarginalNum({
   return (
     <label className="study-field">
       {label}
-      <input
-        type="number"
+      <NumericInput
         className="axis-num"
-        value={+(value * 1000).toFixed(3)}
-        step={1}
-        onChange={(e) => onChange((+e.target.value || 0) / 1000)}
+        value={value}
+        format={fmtMarginal}
+        parse={parseMarginal}
+        onChange={onChange}
       />
     </label>
   );

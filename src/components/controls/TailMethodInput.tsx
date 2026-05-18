@@ -1,5 +1,9 @@
 import type { TailMethod } from '../../engine/sweep';
 import { useScenarioStore } from '../../store/scenarioStore';
+import { NumericInput } from './NumericInput';
+
+const fmtInt = (v: number) => String(Math.round(v));
+const parseIntFn = (s: string) => { const n = parseInt(s, 10); return isNaN(n) ? null : n; };
 
 const DEFAULT_BOOTSTRAP: Extract<TailMethod, { type: 'bootstrap' }> = {
   type: 'bootstrap',
@@ -36,32 +40,26 @@ export function TailMethodInput() {
         <div className="bootstrap-cfg">
           <label>
             block (yrs){' '}
-            <input
-              type="number"
+            <NumericInput
               className="axis-num"
+              value={tailMethod.blockYears}
+              format={fmtInt}
+              parse={parseIntFn}
               min={1}
               max={20}
-              value={tailMethod.blockYears}
-              onChange={(e) =>
-                setTailMethod({ ...tailMethod, blockYears: +e.target.value })
-              }
+              onChange={(v) => setTailMethod({ ...tailMethod, blockYears: v })}
             />
           </label>
           <label>
             samples{' '}
-            <input
-              type="number"
+            <NumericInput
               className="axis-num"
+              value={tailMethod.samplesPerPrefix}
+              format={fmtInt}
+              parse={parseIntFn}
               min={10}
               max={500}
-              step={10}
-              value={tailMethod.samplesPerPrefix}
-              onChange={(e) =>
-                setTailMethod({
-                  ...tailMethod,
-                  samplesPerPrefix: +e.target.value,
-                })
-              }
+              onChange={(v) => setTailMethod({ ...tailMethod, samplesPerPrefix: v })}
             />
           </label>
         </div>
