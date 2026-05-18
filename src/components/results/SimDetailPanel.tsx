@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { scaleLinear } from 'd3-scale';
-import { area } from 'd3-shape';
+import { useMemo, useState, useRef } from 'react';
+import HighchartsReact from 'highcharts-react-official';
+import type { Options } from 'highcharts';
+import { Highcharts } from '../../lib/highchartsInit';
 import type { SimulationResult, Sleeves, YearStateRecord } from '../../engine/types';
 import { ASSET } from '../colors';
 
@@ -39,6 +40,8 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       ? 'In progress'
       : 'Survived';
 
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
+
   const summary = useMemo(() => {
     let peakBalance = 0;
     let peakYear = 0;
@@ -54,72 +57,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
     return { peakBalance, peakYear, minBalance: minBalance === Infinity ? 0 : minBalance, minYear, totalWithdrawn, finalBalance };
   }, [trajectory]);
 
-  // Chart geometry: a sleeve-composition stacked area on top, and a
-  // withdrawal strip below whose bars are stacked by the sleeve each
-  // dollar was drawn from — so one stock/bond/cash legend covers both.
-  const margin = { top: 12, right: 16, bottom: 44, left: 70 };
-  const chartW = 760;
-  const areaH = 150;
-  const gap = 10;
-  const wdH = 48;
-  const innerH = areaH + gap + wdH;
-  const chartH = innerH + margin.top + margin.bottom;
-  const innerW = chartW - margin.left - margin.right;
-  const wdBaseline = areaH + gap + wdH;
-
-  const xScale = scaleLinear()
-    .domain([0, Math.max(1, trajectory.length - 1)])
-    .range([0, innerW]);
-
-  // Per-year sleeve balances (post-return) — these stack to the total balance.
-  const sleevePoints = useMemo(
-    () =>
-      trajectory.map((r) => {
-        const s = r.sleeves;
-        return {
-          t: r.t,
-          stock: s.stock,
-          bond: s.bond,
-          cash: s.cash,
-          total: s.stock + s.bond + s.cash,
-        };
-      }),
-    [trajectory],
-  );
-
-  const maxTotal = useMemo(
-    () => sleevePoints.reduce((m, p) => Math.max(m, p.total), 0) || 1,
-    [sleevePoints],
-  );
-  const ySleeve = scaleLinear().domain([0, maxTotal]).range([areaH, 0]).nice();
-
-  const maxWd = useMemo(
-    () => trajectory.reduce((m, r) => Math.max(m, r.withdrawal), 0) || 1,
-    [trajectory],
-  );
-  const yWdScale = scaleLinear().domain([0, maxWd]).range([0, wdH - 4]);
-
-  // Stacked sleeve bands (stocks bottom, bonds middle, cash top).
-  type Band = { t: number; y0: number; y1: number };
-  const stockBand: Band[] = sleevePoints.map((p) => ({ t: p.t, y0: 0, y1: p.stock }));
-  const bondBand: Band[] = sleevePoints.map((p) => ({
-    t: p.t,
-    y0: p.stock,
-    y1: p.stock + p.bond,
-  }));
-  const cashBand: Band[] = sleevePoints.map((p) => ({
-    t: p.t,
-    y0: p.stock + p.bond,
-    y1: p.total,
-  }));
-  const areaGen = area<Band>()
-    .x((d) => xScale(d.t))
-    .y0((d) => ySleeve(d.y0))
-    .y1((d) => ySleeve(d.y1));
-
-  const yTicks = ySleeve.ticks(4);
-  const xTicks = xScale.ticks(Math.min(10, trajectory.length));
-  const barW = Math.max(1.5, innerW / Math.max(1, trajectory.length) - 0.5);
+  const [detailMode, setDetailMode] = useState(false);
 
   const hasRefill = useMemo(
     () => trajectory.some((r) => {
@@ -129,29 +67,186 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
     [trajectory],
   );
 
-  // Calendar year labels for x-axis: show every ~10 years
-  const calStep = Math.ceil(trajectory.length / 8);
-  const calTicks = trajectory
-    .filter((r) => r.t % calStep === 0 || r.t === trajectory.length - 1)
-    .map((r) => ({ t: r.t, label: String(r.calendarYear) }));
+  // Build Highcharts options: single chart, two y-axes.
+  // yAxis[0] = sleeve balances (stacked area, top 75%)
+  // yAxis[1] = withdrawals (stacked column, bottom 25%)
+  const options: Options = useMemo(() => {
+    // Sleeve balance series data
+    const stockData = trajectory.map((r) => [r.t, r.sleeves.stock] as [number, number]);
+    const bondData = trajectory.map((r) => [r.t, r.sleeves.bond] as [number, number]);
+    const cashData = trajectory.map((r) => [r.t, r.sleeves.cash] as [number, number]);
 
-  const [detailMode, setDetailMode] = useState(false);
+    // Withdrawal series data by sleeve
+    const wdStockData = trajectory.map((r) => [r.t, (r.withdrawalBySleeve ?? zeroSleeves()).stock] as [number, number]);
+    const wdBondData = trajectory.map((r) => [r.t, (r.withdrawalBySleeve ?? zeroSleeves()).bond] as [number, number]);
+    const wdCashData = trajectory.map((r) => [r.t, (r.withdrawalBySleeve ?? zeroSleeves()).cash] as [number, number]);
 
-  // Hover state: index into trajectory
-  const [hoveredT, setHoveredT] = useState<number | null>(null);
-  const hoveredRecord: YearStateRecord | null =
-    hoveredT != null ? (trajectory[hoveredT] ?? null) : null;
+    // Calendar year labels: show every ~8 ticks
+    const calStep = Math.ceil(trajectory.length / 8);
+    const xCategories: Record<number, string> = {};
+    trajectory.forEach((r) => {
+      if (r.t % calStep === 0 || r.t === trajectory.length - 1) {
+        xCategories[r.t] = String(r.calendarYear);
+      }
+    });
 
-  const handleMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const t = Math.round(xScale.invert(px));
-    const clamped = Math.max(0, Math.min(trajectory.length - 1, t));
-    setHoveredT(clamped);
-  };
+    const horizonMax = Math.max(1, trajectory.length - 1);
 
-  // Flip tooltip to left when in right half
-  const tooltipFlip = hoveredT != null && xScale(hoveredT) > innerW / 2;
+    // Depletion plotLine
+    const plotLines: Highcharts.XAxisPlotLinesOptions[] = depletedAt != null
+      ? [{ value: depletedAt, color: '#d33', width: 1, dashStyle: 'Dash', zIndex: 5 }]
+      : [];
+
+    return {
+      chart: {
+        width: 760,
+        height: 260,
+        margin: [12, 16, 56, 70],
+        zooming: { type: undefined } as any,
+      },
+      xAxis: {
+        min: 0,
+        max: horizonMax,
+        title: { text: 'years into retirement / calendar year' },
+        tickInterval: Math.ceil(horizonMax / 8) || 1,
+        plotLines,
+        labels: {
+          formatter() {
+            const t = this.value as number;
+            const cal = xCategories[Math.round(t)];
+            // Show "y{t}\n{cal}" — use two lines via HTML
+            return cal
+              ? `<span style="font-size:9px;color:#888">y${Math.round(t)}<br/><span style="color:#666">${cal}</span></span>`
+              : `<span style="font-size:9px;color:#888">y${Math.round(t)}</span>`;
+          },
+          useHTML: true,
+        },
+      },
+      yAxis: [
+        {
+          // Axis 0: sleeve balances (top 75%)
+          title: { text: 'holdings (real $)', style: { fontSize: '10px', color: '#555' } },
+          height: '72%',
+          top: '0%',
+          offset: 0,
+          labels: {
+            formatter() {
+              return fmt$(this.value as number);
+            },
+            style: { fontSize: '10px' },
+          },
+          tickAmount: 5,
+          min: 0,
+        },
+        {
+          // Axis 1: withdrawals (bottom 25%)
+          title: { text: 'w/d', style: { fontSize: '9px', color: '#888' } },
+          height: '22%',
+          top: '78%',
+          offset: 0,
+          labels: {
+            formatter() {
+              return fmt$(this.value as number);
+            },
+            style: { fontSize: '10px' },
+          },
+          tickAmount: 3,
+          min: 0,
+          gridLineColor: '#f5f5f5',
+        },
+      ],
+      tooltip: {
+        formatter() {
+          const t = this.x as number;
+          const idx = Math.round(t);
+          const r: YearStateRecord | undefined = trajectory[idx];
+          if (!r) return false;
+          const wb = r.withdrawalBySleeve ?? zeroSleeves();
+          const lines = [
+            `<b>Year ${r.t} · ${r.calendarYear}</b>`,
+            `Balance: ${fmt$(r.balance)}`,
+            `Holdings: ${fmt$(r.sleeves.stock)} stk · ${fmt$(r.sleeves.bond)} bnd · ${fmt$(r.sleeves.cash)} csh`,
+            `Withdrawal: ${fmt$(r.withdrawal)} (${fmtPct(r.withdrawal / initialBalance)} of initial)`,
+            `  drawn: ${fmt$(wb.stock)} stk · ${fmt$(wb.bond)} bnd · ${fmt$(wb.cash)} csh`,
+            r.return != null ? `Return: ${fmtPct(r.return)} ${r.return >= 0 ? '▲' : '▼'}` : null,
+          ].filter(Boolean) as string[];
+          return lines.join('<br/>');
+        },
+        shared: false,
+        crosshairs: true,
+      },
+      plotOptions: {
+        area: {
+          stacking: 'normal',
+          marker: { enabled: false },
+          fillOpacity: 0.85,
+          lineWidth: 0,
+          trackByArea: false,
+        },
+        column: {
+          stacking: 'normal',
+          borderWidth: 0,
+          pointPadding: 0,
+          groupPadding: 0.02,
+        },
+      },
+      series: [
+        // Sleeve balance stacked areas (yAxis 0) — stock at bottom, cash at top
+        {
+          type: 'area',
+          name: 'stock',
+          data: stockData,
+          color: ASSET.stock,
+          yAxis: 0,
+          zIndex: 2,
+        } as Highcharts.SeriesAreaOptions,
+        {
+          type: 'area',
+          name: 'bond',
+          data: bondData,
+          color: ASSET.bond,
+          yAxis: 0,
+          zIndex: 2,
+        } as Highcharts.SeriesAreaOptions,
+        {
+          type: 'area',
+          name: 'cash',
+          data: cashData,
+          color: ASSET.cash,
+          yAxis: 0,
+          zIndex: 2,
+        } as Highcharts.SeriesAreaOptions,
+        // Withdrawal stacked columns (yAxis 1)
+        {
+          type: 'column',
+          name: 'wd-stock',
+          data: wdStockData,
+          color: ASSET.stock,
+          yAxis: 1,
+          zIndex: 1,
+          opacity: 0.85,
+        } as Highcharts.SeriesColumnOptions,
+        {
+          type: 'column',
+          name: 'wd-bond',
+          data: wdBondData,
+          color: ASSET.bond,
+          yAxis: 1,
+          zIndex: 1,
+          opacity: 0.85,
+        } as Highcharts.SeriesColumnOptions,
+        {
+          type: 'column',
+          name: 'wd-cash',
+          data: wdCashData,
+          color: ASSET.cash,
+          yAxis: 1,
+          zIndex: 1,
+          opacity: 0.85,
+        } as Highcharts.SeriesColumnOptions,
+      ],
+    };
+  }, [trajectory, depletedAt, initialBalance]);
 
   return (
     <div className="sim-detail-panel">
@@ -172,221 +267,12 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         )}
       </div>
 
-      <svg viewBox={`0 0 ${chartW} ${chartH}`} width="100%" preserveAspectRatio="xMinYMin meet" className="sim-detail-chart">
-        <g transform={`translate(${margin.left},${margin.top})`}>
-          {/* Gridlines + y-axis labels (balance) */}
-          {yTicks.map((v) => (
-            <g key={v} transform={`translate(0,${ySleeve(v)})`}>
-              <line x1={0} x2={innerW} stroke="#eee" />
-              <text x={-8} dy="0.32em" textAnchor="end" fontSize={10} fill="#888">
-                {fmt$(v)}
-              </text>
-            </g>
-          ))}
-
-          {/* Stacked sleeve composition — the top edge is the total balance */}
-          <path d={areaGen(stockBand) ?? ''} fill={ASSET.stock} fillOpacity={0.85} />
-          <path d={areaGen(bondBand) ?? ''} fill={ASSET.bond} fillOpacity={0.85} />
-          <path d={areaGen(cashBand) ?? ''} fill={ASSET.cash} fillOpacity={0.85} />
-
-          {/* Depletion marker */}
-          {depletedAt != null && (
-            <line
-              x1={xScale(depletedAt)}
-              x2={xScale(depletedAt)}
-              y1={0}
-              y2={wdBaseline}
-              stroke="#d33"
-              strokeWidth={1}
-              strokeDasharray="3,3"
-            />
-          )}
-
-          {/* Balance axis label */}
-          <text
-            transform={`translate(${-52},${areaH / 2}) rotate(-90)`}
-            textAnchor="middle"
-            fontSize={10}
-            fill="#555"
-          >
-            holdings (real $)
-          </text>
-
-          {/* Separator */}
-          <line
-            x1={0} x2={innerW}
-            y1={areaH + gap / 2} y2={areaH + gap / 2}
-            stroke="#e0e0e0"
-          />
-
-          {/* Withdrawal bars, stacked by source sleeve */}
-          {trajectory.map((r) => {
-            const wb = r.withdrawalBySleeve ?? zeroSleeves();
-            const hStock = yWdScale(Math.max(0, wb.stock));
-            const hBond = yWdScale(Math.max(0, wb.bond));
-            const hCash = yWdScale(Math.max(0, wb.cash));
-            const x = xScale(r.t) - barW / 2;
-            const yStock = wdBaseline - hStock;
-            const yBond = yStock - hBond;
-            const yCash = yBond - hCash;
-            return (
-              <g key={r.t}>
-                <rect x={x} y={yStock} width={barW} height={hStock} fill={ASSET.stock} fillOpacity={0.85} />
-                <rect x={x} y={yBond} width={barW} height={hBond} fill={ASSET.bond} fillOpacity={0.85} />
-                <rect x={x} y={yCash} width={barW} height={hCash} fill={ASSET.cash} fillOpacity={0.85} />
-              </g>
-            );
-          })}
-
-          {/* Withdrawal axis label */}
-          <text
-            x={-8}
-            y={wdBaseline - wdH / 2}
-            dy="0.32em"
-            textAnchor="end"
-            fontSize={9}
-            fill="#888"
-          >
-            w/d
-          </text>
-
-          {/* X-axis: year-into-retirement ticks */}
-          {xTicks.map((v) => (
-            <g key={v} transform={`translate(${xScale(v)},${innerH})`}>
-              <line y1={0} y2={4} stroke="#bbb" />
-              <text y={14} textAnchor="middle" fontSize={9} fill="#888">
-                y{Math.round(v)}
-              </text>
-            </g>
-          ))}
-
-          {/* X-axis: calendar year labels below */}
-          {calTicks.map(({ t, label }) => (
-            <text
-              key={t}
-              x={xScale(t)}
-              y={innerH + 28}
-              textAnchor="middle"
-              fontSize={9}
-              fill="#666"
-            >
-              {label}
-            </text>
-          ))}
-
-          {/* Axis label */}
-          <text
-            x={innerW / 2}
-            y={innerH + 40}
-            textAnchor="middle"
-            fontSize={10}
-            fill="#555"
-          >
-            years into retirement / calendar year
-          </text>
-
-          {/* Hover interaction overlay */}
-          <rect
-            x={0}
-            y={0}
-            width={innerW}
-            height={innerH}
-            fill="transparent"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => setHoveredT(null)}
-            style={{ cursor: 'crosshair' }}
-          />
-
-          {/* Crosshair + tooltip */}
-          {hoveredRecord != null && hoveredT != null && (
-            <g pointerEvents="none">
-              {/* Vertical crosshair line */}
-              <line
-                x1={xScale(hoveredT)}
-                x2={xScale(hoveredT)}
-                y1={0}
-                y2={innerH}
-                stroke="#555"
-                strokeWidth={1}
-                strokeDasharray="3,2"
-              />
-              {/* Dot on top of the stacked area (= total balance) */}
-              <circle
-                cx={xScale(hoveredT)}
-                cy={ySleeve(
-                  hoveredRecord.sleeves.stock +
-                    hoveredRecord.sleeves.bond +
-                    hoveredRecord.sleeves.cash,
-                )}
-                r={4}
-                fill="#222"
-                stroke="#fff"
-                strokeWidth={1.5}
-              />
-              {/* Dot on top of the withdrawal stack */}
-              {hoveredRecord.withdrawal > 0 && (
-                <circle
-                  cx={xScale(hoveredT)}
-                  cy={wdBaseline - yWdScale(hoveredRecord.withdrawal)}
-                  r={3}
-                  fill="#222"
-                  stroke="#fff"
-                  strokeWidth={1.5}
-                />
-              )}
-              {/* Tooltip box */}
-              {(() => {
-                const r = hoveredRecord;
-                const wb = r.withdrawalBySleeve ?? zeroSleeves();
-                const tipLines = [
-                  `Year ${r.t}  ·  ${r.calendarYear}`,
-                  `Balance: ${fmt$(r.balance)}`,
-                  `Holdings: ${fmt$(r.sleeves.stock)} stk · ${fmt$(r.sleeves.bond)} bnd · ${fmt$(r.sleeves.cash)} csh`,
-                  `Withdrawal: ${fmt$(r.withdrawal)}  (${fmtPct(r.withdrawal / initialBalance)} of initial)`,
-                  `  drawn from: ${fmt$(wb.stock)} stk · ${fmt$(wb.bond)} bnd · ${fmt$(wb.cash)} csh`,
-                  r.return != null
-                    ? `Return: ${fmtPct(r.return)}  ${r.return >= 0 ? '▲' : '▼'}`
-                    : null,
-                ].filter(Boolean) as string[];
-
-                const tipW = 268;
-                const tipLineH = 15;
-                const tipPad = 8;
-                const tipH = tipLines.length * tipLineH + tipPad * 2;
-                const cx = xScale(hoveredT);
-                const tx = tooltipFlip ? cx - tipW - 10 : cx + 10;
-                const ty = Math.max(0, areaH / 2 - tipH / 2);
-
-                return (
-                  <g transform={`translate(${tx},${ty})`}>
-                    <rect
-                      x={0} y={0}
-                      width={tipW} height={tipH}
-                      fill="#fff"
-                      stroke="#bbb"
-                      strokeWidth={0.5}
-                      rx={4}
-                      filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))"
-                    />
-                    {tipLines.map((l, i) => (
-                      <text
-                        key={i}
-                        x={tipPad}
-                        y={tipPad + (i + 0.75) * tipLineH}
-                        fontSize={11}
-                        fill={i === 0 ? '#222' : '#444'}
-                        fontWeight={i === 0 ? 600 : 400}
-                      >
-                        {l}
-                      </text>
-                    ))}
-                  </g>
-                );
-              })()}
-            </g>
-          )}
-        </g>
-      </svg>
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        ref={chartRef}
+        immutable={false}
+      />
 
       <ul className="legend-row sim-detail-legend">
         <li><span className="sw" style={{ background: ASSET.stock }} /> stocks</li>

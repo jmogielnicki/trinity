@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { scaleLinear } from 'd3-scale';
-import { line } from 'd3-shape';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
+import HighchartsReact from 'highcharts-react-official';
+import type { Options, SeriesLineOptions } from 'highcharts';
+import { Highcharts } from '../../lib/highchartsInit';
 import type { ScenarioResult, SimulationResult } from '../../engine/types';
 import { CURRENT_COLOR, SNAPSHOT_COLOR } from '../../store/compareStore';
-
-type Hover = {
-  sim: SimulationResult;
-  source: 'current' | 'snapshot';
-  px: number;
-  py: number;
-};
 
 type Props = {
   result: ScenarioResult;
@@ -21,12 +15,76 @@ type Props = {
    * intensity; the rest fade out so highlighted runs pop. */
   selectedYears?: Set<number>;
   /** Click on a line toggles its start year in the selection. */
-  onToggle?: (year: number, e: React.MouseEvent) => void;
+  onToggle?: (year: number, e: { shiftKey: boolean }) => void;
   /** Marquee handler: receives the years whose trajectories enter the rect. */
   onMarquee?: (years: number[], e: { shiftKey: boolean }) => void;
   /** Called when the user clicks empty chart space — use to clear selection. */
   onClear?: () => void;
 };
+
+function simColor(sim: SimulationResult, baseColor: string): string {
+  if (!sim.success && !sim.inProgress) return '#d33';
+  if (sim.inProgress) return '#888';
+  return baseColor;
+}
+
+function simBaseOpacity(sim: SimulationResult): number {
+  if (!sim.success && !sim.inProgress) return 0.75;
+  if (sim.inProgress) return 0.55;
+  return 0.4;
+}
+
+function buildSeriesForSim(
+  sim: SimulationResult,
+  source: 'current' | 'snapshot',
+  baseColor: string,
+  hasSelection: boolean,
+  selectedYears: Set<number> | undefined,
+): SeriesLineOptions {
+  const color = simColor(sim, baseColor);
+  const baseOpacity = simBaseOpacity(sim);
+  const isSelected = selectedYears?.has(sim.startYear) ?? false;
+  const opacity = hasSelection ? (isSelected ? 1 : 0.04) : baseOpacity;
+  const lineWidth = hasSelection && isSelected ? 2 : 1;
+
+  // Bootstrap sims: use zones to render prefix solid and tail dashed.
+  const useZones = sim.bootstrapped && sim.prefixYears < sim.trajectory.length;
+
+  const data = sim.trajectory.map((r) => [r.t, r.balance] as [number, number]);
+
+  const series: SeriesLineOptions = {
+    type: 'line',
+    data,
+    color,
+    opacity,
+    lineWidth,
+    marker: { enabled: false },
+    enableMouseTracking: true,
+    states: { hover: { lineWidthPlus: 0 } },
+    custom: { sim, source },
+    turboThreshold: 0,
+  } as SeriesLineOptions;
+
+  if (useZones) {
+    // Prefix zone: solid (default). Tail zone: dashed + half opacity via
+    // dashStyle. We approximate the reduced tail opacity via a lighter color
+    // since Highcharts zones don't support per-zone opacity directly.
+    (series as any).zoneAxis = 'x';
+    (series as any).zones = [
+      {
+        value: sim.prefixYears - 1,
+        // prefix: solid, full opacity
+      },
+      {
+        // tail: dashed
+        dashStyle: 'Dash',
+        color: color + '80', // half-transparent via hex alpha
+      },
+    ];
+  }
+
+  return series;
+}
 
 export function SpaghettiChart({
   result,
@@ -38,17 +96,21 @@ export function SpaghettiChart({
   onMarquee,
   onClear,
 }: Props) {
-  const [hover, setHover] = useState<Hover | null>(null);
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [drag, setDrag] = useState<
-    null | { x0: number; y0: number; x1: number; y1: number }
-  >(null);
-  const dragRef = useRef<typeof drag>(null);
-  dragRef.current = drag;
-  const margin = { top: 16, right: 16, bottom: 36, left: 64 };
-  const innerW = width - margin.left - margin.right;
-  const innerH = height - margin.top - margin.bottom;
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
   const hasSelection = !!selectedYears && selectedYears.size > 0;
+
+  // Stable refs so event handlers always see the latest callbacks/data
+  // without needing to be in useMemo deps (which would rebuild all series).
+  const onToggleRef = useRef(onToggle);
+  onToggleRef.current = onToggle;
+  const onMarqueeRef = useRef(onMarquee);
+  onMarqueeRef.current = onMarquee;
+  const onClearRef = useRef(onClear);
+  onClearRef.current = onClear;
+  const resultRef = useRef(result);
+  resultRef.current = result;
+  const overlayRef = useRef(overlay);
+  overlayRef.current = overlay;
 
   const horizon = useMemo(() => {
     const a = result.sims.reduce((m, s) => Math.max(m, s.trajectory.length), 0);
@@ -69,297 +131,149 @@ export function SpaghettiChart({
     return m || 1;
   }, [result.sims, overlay]);
 
-  const x = scaleLinear()
-    .domain([0, Math.max(1, horizon - 1)])
-    .range([0, innerW]);
-  const y = scaleLinear().domain([0, maxBalance]).range([innerH, 0]).nice();
+  const seriesData = useMemo(() => {
+    const series: SeriesLineOptions[] = [];
+    for (const sim of result.sims) {
+      series.push(buildSeriesForSim(sim, 'current', CURRENT_COLOR, hasSelection, selectedYears));
+    }
+    if (overlay) {
+      for (const sim of overlay.sims) {
+        series.push(buildSeriesForSim(sim, 'snapshot', SNAPSHOT_COLOR, hasSelection, selectedYears));
+      }
+    }
+    return series;
+  }, [result.sims, overlay, hasSelection, selectedYears]);
 
-  const lineGen = line<{ t: number; balance: number }>()
-    .x((d) => x(d.t))
-    .y((d) => y(d.balance));
-
-  const yTicks = y.ticks(5);
-  const xTicks = x.ticks(Math.min(8, horizon));
-
-  // Marquee selection. shift+mousedown anywhere over the plot starts a drag;
-  // mousemove updates the rect; mouseup commits the union of years whose
-  // trajectories pass through the rect. Coords are in inner-group space
-  // (offset minus margins) to match where the lines are rendered.
+  // Update series opacity/lineWidth imperatively on selection change
+  // to avoid full chart rebuild.
   useEffect(() => {
-    if (!drag) return;
-    const onMove = (e: MouseEvent) => {
-      const svg = svgRef.current;
-      if (!svg) return;
-      const rect = svg.getBoundingClientRect();
-      const px = e.clientX - rect.left - margin.left;
-      const py = e.clientY - rect.top - margin.top;
-      setDrag((d) => (d ? { ...d, x1: px, y1: py } : d));
-    };
-    const onUp = (e: MouseEvent) => {
-      const d = dragRef.current;
-      setDrag(null);
-      if (!d || !onMarquee) return;
-      const xLo = Math.min(d.x0, d.x1);
-      const xHi = Math.max(d.x0, d.x1);
-      const yLo = Math.min(d.y0, d.y1);
-      const yHi = Math.max(d.y0, d.y1);
-      // Ignore tiny drags so a stray shift+click doesn't trigger marquee.
-      if (xHi - xLo < 3 && yHi - yLo < 3) return;
-      const tLo = x.invert(xLo);
-      const tHi = x.invert(xHi);
-      // y is inverted (top = high balance), so swap when going through invert.
-      const balLo = y.invert(yHi);
-      const balHi = y.invert(yLo);
-      const within = new Set<number>();
-      const scan = (sims: SimulationResult[]) => {
-        for (const s of sims) {
-          for (const r of s.trajectory) {
-            if (r.t >= tLo && r.t <= tHi && r.balance >= balLo && r.balance <= balHi) {
-              within.add(s.startYear);
-              break;
-            }
-          }
-        }
-      };
-      scan(result.sims);
-      if (overlay) scan(overlay.sims);
-      onMarquee([...within], { shiftKey: e.shiftKey });
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drag, onMarquee, x, y, result.sims, overlay]);
+    const chart = chartRef.current?.chart;
+    if (!chart) return;
 
-  const onSvgMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!onMarquee || !e.shiftKey) return;
-    const rect = (svgRef.current as SVGSVGElement).getBoundingClientRect();
-    const px = e.clientX - rect.left - margin.left;
-    const py = e.clientY - rect.top - margin.top;
-    setDrag({ x0: px, y0: py, x1: px, y1: py });
-    e.preventDefault();
-  };
+    for (const series of chart.series) {
+      const custom = (series.options as any).custom;
+      if (!custom?.sim) continue;
+      const sim: SimulationResult = custom.sim;
+      const baseOpacity = simBaseOpacity(sim);
+      const isSelected = selectedYears?.has(sim.startYear) ?? false;
+      const opacity = hasSelection ? (isSelected ? 1 : 0.04) : baseOpacity;
+      const lineWidth = hasSelection && isSelected ? 2 : 1;
+      series.update({ opacity, lineWidth } as any, false);
+    }
+    chart.redraw(false);
+  }, [selectedYears, hasSelection]);
 
-  return (
-    <svg
-      ref={svgRef}
-      viewBox={`0 0 ${width} ${height}`}
-      width="100%"
-      preserveAspectRatio="xMinYMin meet"
-      className="spaghetti"
-      onMouseDown={onSvgMouseDown}
-      style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
-    >
-      <g transform={`translate(${margin.left},${margin.top})`}>
-        {onClear && (
-          <rect
-            x={0} y={0} width={innerW} height={innerH}
-            fill="transparent"
-            onClick={() => onClear()}
-            style={{ cursor: 'default' }}
-          />
-        )}
-        {yTicks.map((v) => (
-          <g key={v} transform={`translate(0,${y(v)})`}>
-            <line x1={0} x2={innerW} stroke="#eee" />
-            <text x={-8} dy="0.32em" textAnchor="end" fontSize={11} fill="#666">
-              ${(v / 1e6).toFixed(1)}M
-            </text>
-          </g>
-        ))}
-        {xTicks.map((v) => (
-          <g key={v} transform={`translate(${x(v)},${innerH})`}>
-            <line y1={0} y2={6} stroke="#999" />
-            <text y={20} textAnchor="middle" fontSize={11} fill="#666">
-              y{v}
-            </text>
-          </g>
-        ))}
-        {result.sims.map((s) => (
-          <SimLine
-            key={`a-${s.startYear}`}
-            sim={s}
-            lineGen={lineGen}
-            color={CURRENT_COLOR}
-            highlighted={
-              (hover?.source === 'current' && hover.sim.startYear === s.startYear) ||
-              (hasSelection && selectedYears!.has(s.startYear))
-            }
-            dimmed={hasSelection && !selectedYears!.has(s.startYear)}
-            onHover={(e) =>
-              setHover({
-                sim: s,
-                source: 'current',
-                px: e.nativeEvent.offsetX,
-                py: e.nativeEvent.offsetY,
-              })
-            }
-            onLeave={() => setHover(null)}
-            onClick={onToggle ? (e) => onToggle(s.startYear, e) : undefined}
-          />
-        ))}
-        {overlay?.sims.map((s) => (
-          <SimLine
-            key={`b-${s.startYear}`}
-            sim={s}
-            lineGen={lineGen}
-            color={SNAPSHOT_COLOR}
-            highlighted={
-              (hover?.source === 'snapshot' && hover.sim.startYear === s.startYear) ||
-              (hasSelection && selectedYears!.has(s.startYear))
-            }
-            dimmed={hasSelection && !selectedYears!.has(s.startYear)}
-            onHover={(e) =>
-              setHover({
-                sim: s,
-                source: 'snapshot',
-                px: e.nativeEvent.offsetX,
-                py: e.nativeEvent.offsetY,
-              })
-            }
-            onLeave={() => setHover(null)}
-            onClick={onToggle ? (e) => onToggle(s.startYear, e) : undefined}
-          />
-        ))}
-        <text
-          transform={`translate(${-48},${innerH / 2}) rotate(-90)`}
-          textAnchor="middle"
-          fontSize={11}
-          fill="#444"
-        >
-          balance (real $)
-        </text>
-        <text
-          x={innerW / 2}
-          y={innerH + 32}
-          textAnchor="middle"
-          fontSize={11}
-          fill="#444"
-        >
-          years into retirement
-        </text>
-        {drag && (
-          <rect
-            x={Math.min(drag.x0, drag.x1)}
-            y={Math.min(drag.y0, drag.y1)}
-            width={Math.abs(drag.x1 - drag.x0)}
-            height={Math.abs(drag.y1 - drag.y0)}
-            fill="#357"
-            fillOpacity={0.08}
-            stroke="#357"
-            strokeWidth={1}
-            strokeDasharray="3,3"
-            pointerEvents="none"
-          />
-        )}
-      </g>
-      {hover && <Tooltip hover={hover} />}
-    </svg>
-  );
-}
-
-function Tooltip({ hover }: { hover: Hover }) {
-  const { sim, px, py } = hover;
-  const last = sim.trajectory[sim.trajectory.length - 1];
-  const status = !sim.success && !sim.inProgress ? 'depleted' : sim.inProgress ? 'in-progress' : 'survived';
   const fmt = (n: number) =>
     n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}k` : `$${Math.round(n)}`;
-  const lines = [
-    `start ${sim.startYear} — ${status}`,
-    sim.depletedAt != null
-      ? `depleted at year ${sim.depletedAt}`
-      : `final ${fmt(last?.balance ?? 0)} (year ${last?.t ?? 0})`,
-  ];
-  return (
-    <g transform={`translate(${px + 12},${py + 12})`} pointerEvents="none">
-      <rect
-        x={0}
-        y={-26}
-        width={200}
-        height={36}
-        fill="#fff"
-        stroke="#bbb"
-        strokeWidth={0.5}
-        rx={3}
-      />
-      {lines.map((l, i) => (
-        <text key={i} x={6} y={-12 + i * 14} fontSize={11} fill="#222">
-          {l}
-        </text>
-      ))}
-    </g>
+
+  // Stable selection handler — reads latest data/callbacks via refs.
+  const selectionHandler = useCallback(function (this: unknown, e: any) {
+    e.preventDefault();
+    const cb = onMarqueeRef.current;
+    if (!cb || !e.xAxis || !e.yAxis) return false;
+
+    const xMin = e.xAxis[0].min as number;
+    const xMax = e.xAxis[0].max as number;
+    const yMin = e.yAxis[0].min as number;
+    const yMax = e.yAxis[0].max as number;
+
+    const within = new Set<number>();
+    const scan = (sims: SimulationResult[]) => {
+      for (const s of sims) {
+        for (const r of s.trajectory) {
+          if (r.t >= xMin && r.t <= xMax && r.balance >= yMin && r.balance <= yMax) {
+            within.add(s.startYear);
+            break;
+          }
+        }
+      }
+    };
+    scan(resultRef.current.sims);
+    if (overlayRef.current) scan(overlayRef.current.sims);
+    cb([...within], { shiftKey: !!(e.originalEvent as MouseEvent)?.shiftKey });
+    return false;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clickHandler = useCallback(function (this: unknown, e: any) {
+    if (!e.point && !e.series) onClearRef.current?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const seriesClickHandler = useCallback(function (this: unknown, e: any) {
+    const sim: SimulationResult | undefined = (this as any).options?.custom?.sim;
+    if (sim) onToggleRef.current?.(sim.startYear, { shiftKey: !!(e.browserEvent as MouseEvent)?.shiftKey });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const options: Options = useMemo(
+    () => ({
+      chart: {
+        width,
+        height,
+        margin: [16, 16, 36, 72],
+        zooming: { type: 'xy' } as any,
+        events: {
+          click: clickHandler,
+          selection: selectionHandler,
+        },
+      },
+      xAxis: {
+        min: 0,
+        max: Math.max(1, horizon - 1),
+        title: { text: 'years into retirement' },
+        tickInterval: Math.ceil((horizon - 1) / 8) || 1,
+      },
+      yAxis: {
+        min: 0,
+        max: maxBalance,
+        title: { text: 'balance (real $)' },
+        labels: {
+          formatter() {
+            const v = this.value as number;
+            return `$${(v / 1e6).toFixed(1)}M`;
+          },
+        },
+      },
+      tooltip: {
+        formatter() {
+          const series = this.series as any;
+          const custom = series?.options?.custom;
+          if (!custom?.sim) return false;
+          const sim: SimulationResult = custom.sim;
+          const last = sim.trajectory[sim.trajectory.length - 1];
+          const status = !sim.success && !sim.inProgress
+            ? 'depleted'
+            : sim.inProgress
+              ? 'in-progress'
+              : 'survived';
+          const line2 = sim.depletedAt != null
+            ? `depleted at year ${sim.depletedAt}`
+            : `final ${fmt(last?.balance ?? 0)} (year ${last?.t ?? 0})`;
+          return `<span style="font-size:11px"><b>start ${sim.startYear}</b> — ${status}<br>${line2}</span>`;
+        },
+      },
+      plotOptions: {
+        series: {
+          cursor: 'pointer',
+          events: { click: seriesClickHandler },
+        },
+      },
+      series: seriesData,
+    }),
+    [width, height, horizon, maxBalance, seriesData, clickHandler, selectionHandler, seriesClickHandler],
   );
-}
 
-function SimLine({
-  sim,
-  lineGen,
-  color,
-  highlighted,
-  dimmed,
-  onHover,
-  onLeave,
-  onClick,
-}: {
-  sim: SimulationResult;
-  lineGen: ReturnType<typeof line<{ t: number; balance: number }>>;
-  color: string;
-  highlighted: boolean;
-  dimmed: boolean;
-  onHover: (e: React.MouseEvent<SVGPathElement>) => void;
-  onLeave: () => void;
-  onClick?: (e: React.MouseEvent) => void;
-}) {
-  const points = sim.trajectory.map((r) => ({ t: r.t, balance: r.balance }));
-  const failed = !sim.success && !sim.inProgress;
-  const stroke = failed ? '#d33' : sim.inProgress ? '#888' : color;
-  const baseOpacity = failed ? 0.55 : sim.inProgress ? 0.35 : 0.2;
-  const opacity = highlighted ? 1 : dimmed ? 0.04 : baseOpacity;
-  const strokeWidth = highlighted ? 2 : 1;
-  const handlers = {
-    onMouseEnter: onHover,
-    onMouseMove: onHover,
-    onMouseLeave: onLeave,
-    onClick,
-    style: { cursor: onClick ? ('pointer' as const) : ('crosshair' as const) },
-  };
+  // Marquee: shift+mousedown on the chart container starts a native drag
+  // that is handled by Highcharts' built-in selection event. We just need to
+  // ensure the container passes shift+drag to the chart's zooming mechanism.
+  // Highcharts handles this natively with zooming.type:'xy' and the selection event.
 
-  // Bootstrap sims: render the actual-data prefix solid, the sampled tail
-  // dashed/translucent so users can tell observed from sampled at a glance.
-  if (sim.bootstrapped && sim.prefixYears < points.length) {
-    const prefix = points.slice(0, sim.prefixYears);
-    const tail = points.slice(sim.prefixYears - 1);
-    return (
-      <g {...handlers}>
-        <path
-          d={lineGen(prefix) ?? ''}
-          fill="none"
-          stroke={stroke}
-          strokeOpacity={opacity}
-          strokeWidth={strokeWidth}
-        />
-        <path
-          d={lineGen(tail) ?? ''}
-          fill="none"
-          stroke={stroke}
-          strokeOpacity={opacity * 0.5}
-          strokeWidth={strokeWidth}
-          strokeDasharray="2,3"
-        />
-      </g>
-    );
-  }
   return (
-    <path
-      d={lineGen(points) ?? ''}
-      fill="none"
-      stroke={stroke}
-      strokeOpacity={opacity}
-      strokeWidth={strokeWidth}
-      {...handlers}
-    />
+    <div className="spaghetti-wrapper">
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        ref={chartRef}
+        immutable={false}
+      />
+    </div>
   );
 }
