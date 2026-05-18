@@ -265,7 +265,7 @@ function FixedWithdrawalSlider({
           style={{ paintOrder: 'stroke', stroke: '#fff', strokeWidth: 3 } as React.CSSProperties}
           pointerEvents="none"
         >
-          {(rate * 100).toFixed(1)}%
+          {(rate * 100).toFixed(2)}%
         </text>
       </svg>
     </div>
