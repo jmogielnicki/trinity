@@ -186,12 +186,10 @@ export function StackedBar({
     const hx = handleX(i);
     return [
       <g key={`col${i}_bondTop`} {...handleProps(i, 'bondTop')}>
-        <circle cx={hx} cy={margin.top + bondTop} r={18} fill="transparent" />
-        <circle cx={hx} cy={margin.top + bondTop} r={6} fill="#fff" stroke="#222" strokeWidth={2} />
+        <circle cx={hx} cy={margin.top + bondTop} r={8} fill="#fff" stroke="#222" strokeWidth={2} />
       </g>,
       <g key={`col${i}_cashTop`} {...handleProps(i, 'cashTop')}>
-        <circle cx={hx} cy={margin.top + cashTop} r={18} fill="transparent" />
-        <circle cx={hx} cy={margin.top + cashTop} r={6} fill="#fff" stroke="#222" strokeWidth={2} />
+        <circle cx={hx} cy={margin.top + cashTop} r={8} fill="#fff" stroke="#222" strokeWidth={2} />
       </g>,
     ];
   });
