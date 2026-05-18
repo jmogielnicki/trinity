@@ -167,14 +167,13 @@ export function StackedBar({
     );
   }, [innerH, margin.top, onChange]);
 
-  const renderHandles = () => local.flatMap((w, i) => {
+  const renderHandles = () => local.flatMap((_w, i) => {
     const { cashTop, bondTop } = pixels[i];
     const hx = handleX(i);
-    const showCash = true;
     return [
       <circle key={`col${i}_bondTop`} className="sb-handle" data-key={`col${i}_bondTop`}
         cx={hx} cy={margin.top + bondTop} r={6} fill="#fff" stroke="#222" strokeWidth={2} cursor="ns-resize" />,
-      showCash && (
+      (
         <circle key={`col${i}_cashTop`} className="sb-handle" data-key={`col${i}_cashTop`}
           cx={hx} cy={margin.top + cashTop} r={6} fill="#fff" stroke="#222" strokeWidth={2} cursor="ns-resize" />
       ),
