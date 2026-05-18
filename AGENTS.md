@@ -136,6 +136,7 @@ Add a test when adding a strategy type, source type, or non-trivial engine behav
 
 ## 8. Conventions
 
+- **Always open a PR** — every piece of completed work ships as a pull request. After committing and pushing a branch, create a PR against `main` (via the `mcp__github__create_pull_request` tool) before reporting the task done. Never leave work on a pushed branch without a PR.
 - **PRs** — small focused branches off `main`, squash-merged via the `mcp__github__merge_pull_request` tool. Each PR description has a Test plan checklist.
 - **Branch names** — `claude/<topic>`.
 - **Commits** — concise summary, then explanation of *why* not just *what*.
