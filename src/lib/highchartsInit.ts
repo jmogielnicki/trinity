@@ -1,10 +1,7 @@
 import Highcharts from 'highcharts';
-import HighchartsHeatmap from 'highcharts/modules/heatmap';
-import HighchartsBoost from 'highcharts/modules/boost';
-
-// Load modules once — cast required because Highcharts ESM types don't expose callable signatures
-(HighchartsHeatmap as unknown as (hc: typeof Highcharts) => void)(Highcharts);
-(HighchartsBoost as unknown as (hc: typeof Highcharts) => void)(Highcharts);
+// In Highcharts v12, modules register themselves as side-effects; no factory call needed.
+import 'highcharts/highcharts-more'; // includes arearange, columnrange, etc.
+import 'highcharts/modules/boost';   // WebGL acceleration for many-series charts
 
 Highcharts.setOptions({
   chart: {
