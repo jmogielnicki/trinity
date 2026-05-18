@@ -13,18 +13,12 @@ type Props = {
 
 // Cash return data only begins in 1934. Before that the cash sleeve is held
 // flat at 0% real (a conservative assumption, not measured data) — the chart
-// hatches that portion so observed and assumed holdings are distinguishable.
+// draws that portion in a faded violet so observed and assumed holdings are
+// visually distinguishable.
 const CASH_DATA_START_YEAR = 1934;
 
-const ASSUMED_CASH_PATTERN = {
-  pattern: {
-    path: { d: 'M 0 6 L 6 0 M -1.5 1.5 L 1.5 -1.5 M 4.5 7.5 L 7.5 4.5', strokeWidth: 1.4 },
-    width: 6,
-    height: 6,
-    color: ASSET.cash,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-  },
-};
+// A pale wash of ASSET.cash (#7c3aed) for the pre-1934 "assumed" range.
+const ASSUMED_CASH_FILL = 'rgba(124, 58, 237, 0.28)';
 
 function fmt$(n: number): string {
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
@@ -250,12 +244,12 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
           color: ASSET.cash,
           yAxis: 0,
           zIndex: 2,
-          // Hatch the cash fill over years that predate cash return data.
+          // Fade the cash fill over years that predate cash return data.
           ...(hasAssumedCash
             ? {
                 zoneAxis: 'x',
                 zones: [
-                  { value: lastAssumedCashT + 0.5, fillColor: ASSUMED_CASH_PATTERN },
+                  { value: lastAssumedCashT + 0.5, fillColor: ASSUMED_CASH_FILL },
                   {},
                 ],
               }
@@ -331,7 +325,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       {showsAssumedCash && (
         <p className="sim-detail-footnote">
           Cash return data begins in {CASH_DATA_START_YEAR}. Earlier years
-          (hatched) hold the cash sleeve flat at 0% real — a conservative
+          (faded violet) hold the cash sleeve flat at 0% real — a conservative
           assumption, not measured data.
         </p>
       )}
