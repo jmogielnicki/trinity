@@ -172,7 +172,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         )}
       </div>
 
-      <svg width={chartW} height={chartH} className="sim-detail-chart">
+      <svg viewBox={`0 0 ${chartW} ${chartH}`} width="100%" height={chartH} className="sim-detail-chart">
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Gridlines + y-axis labels (balance) */}
           {yTicks.map((v) => (

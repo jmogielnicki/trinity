@@ -305,6 +305,7 @@ export function App() {
                       selectedYears={selectedYears}
                       onToggle={toggleYear}
                       onMarquee={marqueeYears}
+                      onClear={clearSelection}
                     />
                   </div>
                   <OutcomeStrip
@@ -312,7 +313,6 @@ export function App() {
                     selectedYears={selectedYears}
                     onToggle={toggleYear}
                     onMarquee={marqueeYears}
-                    onClear={clearSelection}
                   />
                   {detailYear != null && (() => {
                     const sim = result.sims.find(s => s.startYear === detailYear);
