@@ -60,6 +60,66 @@ header h1 { margin: 0 0 4px; font-size: 22px; }
   padding: 16px;
   height: fit-content;
 }
+.control-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.control-zone + .control-zone {
+  border-top: 1px solid #e5e5e5;
+  padding-top: 18px;
+}
+.zone-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.zone-heading h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.zone-sub { font-size: 11px; color: #888; }
+
+.inprogress-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #f4f6fa;
+  border: 1px solid #d6deec;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #44506a;
+  margin-bottom: 12px;
+}
+.inprogress-banner button {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 5px 10px;
+  border: 1px solid #6b8cce;
+  background: #fff;
+  color: #335577;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.inprogress-banner button:hover { background: #eef2fb; }
+
+.back-link {
+  border: none;
+  background: transparent;
+  color: #335577;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 0 8px;
+}
+.back-link:hover { text-decoration: underline; }
+
 .control-group { display: flex; flex-direction: column; gap: 8px; }
 .control-group label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #555; font-weight: 500; }
 

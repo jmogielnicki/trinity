@@ -181,23 +181,40 @@ export function App() {
       </header>
       <div className="layout">
         <aside className="controls">
-          <PresetPicker />
-          <PortfolioInput />
-          <h3 className="section-heading">Holdings mix</h3>
-          <AllocationEditor
-            horizonYears={scenario.horizonYears}
-            allocation={scenario.allocation}
-            onChange={scenario.setAllocation}
-          />
-          <h3 className="section-heading">Withdrawal strategy</h3>
-          <WithdrawalEditor
-            horizonYears={scenario.horizonYears}
-            withdrawal={scenario.withdrawal}
-            onChange={scenario.setWithdrawal}
-          />
-          <h3 className="section-heading">Withdrawal source</h3>
-          <WithdrawalSourceInput />
-          <TailMethodInput />
+          <section className="control-zone">
+            <div className="zone-heading">
+              <h2>Context</h2>
+              <span className="zone-sub">applies to every tab</span>
+            </div>
+            <PresetPicker />
+            <PortfolioInput />
+          </section>
+          <section className="control-zone">
+            <div className="zone-heading">
+              <h2>Strategy</h2>
+              {(topMode === 'optimize' || topMode === 'evolve') && (
+                <span className="zone-sub">
+                  base for {topMode === 'optimize' ? 'Study' : 'Evolve'} —
+                  swept dimensions vary from here
+                </span>
+              )}
+            </div>
+            <h3 className="section-heading">Holdings mix</h3>
+            <AllocationEditor
+              horizonYears={scenario.horizonYears}
+              allocation={scenario.allocation}
+              onChange={scenario.setAllocation}
+            />
+            <h3 className="section-heading">Withdrawal strategy</h3>
+            <WithdrawalEditor
+              horizonYears={scenario.horizonYears}
+              withdrawal={scenario.withdrawal}
+              onChange={scenario.setWithdrawal}
+            />
+            <h3 className="section-heading">Withdrawal source</h3>
+            <WithdrawalSourceInput />
+            <TailMethodInput />
+          </section>
           <ScenarioLibrary />
         </aside>
         <main className="results">
@@ -243,7 +260,11 @@ export function App() {
                 <span className="view-toggle">
                   view:
                   <button
-                    className={view === 'spaghetti' ? 'active' : ''}
+                    className={
+                      view === 'spaghetti' || view === 'whereami'
+                        ? 'active'
+                        : ''
+                    }
                     onClick={() => setView('spaghetti')}
                   >
                     spaghetti
@@ -254,21 +275,37 @@ export function App() {
                   >
                     calendar
                   </button>
-                  <button
-                    className={view === 'whereami' ? 'active' : ''}
-                    onClick={() => setView('whereami')}
-                  >
-                    where am i
-                  </button>
                 </span>
               )}
             </div>
           )}
-          {data && result && (
+          {data && result && (() => {
+            const recentCohorts =
+              result.inProgressCount + (result.projectedCohortCount ?? 0);
+            return (
             <>
-              <StatPanel result={result} />
+              {view !== 'whereami' && (
+                <StatPanel
+                  result={result}
+                  showSuccess={view === 'calendar'}
+                />
+              )}
               {view === 'spaghetti' && (
                 <>
+                  {recentCohorts > 0 && (
+                    <div className="inprogress-banner">
+                      <span>
+                        {recentCohorts} in-progress cohort
+                        {recentCohorts === 1 ? '' : 's'}{' '}
+                        {recentCohorts === 1 ? "isn't" : "aren't"} counted in
+                        the success rate — their horizon hasn't fully played
+                        out yet.
+                      </span>
+                      <button onClick={() => setView('whereami')}>
+                        View as “Where Am I” →
+                      </button>
+                    </div>
+                  )}
                   <div className="spaghetti-row">
                     <SpaghettiChart
                       result={result}
@@ -305,16 +342,25 @@ export function App() {
                 />
               )}
               {view === 'whereami' && (
-                <WhereAmI
-                  result={result}
-                  horizonYears={scenario.horizonYears}
-                  initialBalance={scenario.initialBalance}
-                  dataEnd={data.end}
-                />
+                <>
+                  <button
+                    className="back-link"
+                    onClick={() => setView('spaghetti')}
+                  >
+                    ← Back to spaghetti
+                  </button>
+                  <WhereAmI
+                    result={result}
+                    horizonYears={scenario.horizonYears}
+                    initialBalance={scenario.initialBalance}
+                    dataEnd={data.end}
+                  />
+                </>
               )}
               {view === 'spaghetti' && <Legend />}
             </>
-          )}
+            );
+          })()}
           </>}
         </main>
       </div>

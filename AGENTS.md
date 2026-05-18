@@ -85,8 +85,10 @@ State that needs to round-trip (URL hash, library, presets) goes through `Serial
 
 ## 5. UI map (`src/components/`)
 
-**Controls (left rail, top to bottom):**
-`PresetPicker → PortfolioInput → AllocationEditor → WithdrawalEditor → WithdrawalSourceInput → TailMethodInput → SweepSelector → ScenarioLibrary`
+**Controls (left rail)** — split into two zones plus the library:
+- *Context* (global, applies to every tab): `PresetPicker → PortfolioInput`
+- *Strategy* (the base scenario; Study/Evolve sweep from it): `AllocationEditor → WithdrawalEditor → WithdrawalSourceInput → TailMethodInput`
+- `ScenarioLibrary` below both zones
 
 (`ScenarioActions` — share / export / snapshot — lives in the header, not the left rail.)
 
@@ -95,9 +97,10 @@ State that needs to round-trip (URL hash, library, presets) goes through `Serial
 **Header:** title + `ScenarioActions` (share / export csv / snapshot) toolbar + `?` button toggling the About panel.
 
 **Results (main pane):**
-- View tabs: `spaghetti / calendar / where am i` (single-scenario)
+- View toggle: `spaghetti / calendar`. `WhereAmI` is a drill-down reached from an in-progress-cohorts banner on the spaghetti view (with a back link), not a peer toggle.
 - Sweep views: `SmallMultiples` (1D), `Heatmap` (2D)
-- Single-scenario tabs use `StatPanel`, `SuccessBar`, `OutcomeStrip`, `Legend` as supporting components
+- `StatPanel` takes `showSuccess` — false on spaghetti (the `SuccessBar` already shows success rate + cohort counts there), true on calendar; not rendered on WhereAmI
+- Single-scenario uses `SuccessBar`, `OutcomeStrip`, `Legend` as supporting components
 - Clicking a spaghetti line opens `SimDetailPanel`: one chart with the stacked sleeve composition on top and source-colored withdrawal bars below, sharing a stock/bond/cash legend
 
 ## 6. Engine: data flow
