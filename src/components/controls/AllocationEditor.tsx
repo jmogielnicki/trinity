@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { drag } from 'd3-drag';
+import { select } from 'd3-selection';
 import type { AllocationStrategy } from '../../engine/strategies';
 import type { Weights } from '../../engine/types';
+import { ASSET } from '../colors';
 import { AllocationRuleBuilder } from './AllocationRuleBuilder';
 import { CustomScriptEditor } from './CustomScriptEditor';
 import { GlidePath } from './GlidePath';
@@ -102,6 +105,22 @@ export function AllocationEditor({ horizonYears, allocation, onChange }: Props) 
   );
 }
 
+function pixelsToWeights(bondTop: number, cashTop: number, innerH: number): Weights {
+  const stockH = innerH - bondTop;
+  const bondH = bondTop - cashTop;
+  const cashH = cashTop;
+  const total = stockH + bondH + cashH;
+  if (total <= 0) return { stock: 1, bond: 0, cash: 0 };
+  return { stock: stockH / total, bond: bondH / total, cash: cashH / total };
+}
+
+function weightsToPixels(w: Weights, innerH: number) {
+  return {
+    cashTop: w.cash * innerH,
+    bondTop: (w.cash + w.bond) * innerH,
+  };
+}
+
 function FixedAllocationEditor({
   weights,
   onChange,
@@ -109,57 +128,120 @@ function FixedAllocationEditor({
   weights: Weights;
   onChange: (w: Weights) => void;
 }) {
-  const toStr = (v: number) => Math.round(v * 100).toString();
-  const [stock, setStock] = useState(toStr(weights.stock));
-  const [bond, setBond] = useState(toStr(weights.bond));
-  const [cash, setCash] = useState(toStr(weights.cash));
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [local, setLocal] = useState<Weights>(weights);
 
-  const sum = (parseFloat(stock) || 0) + (parseFloat(bond) || 0) + (parseFloat(cash) || 0);
-  const valid = Math.abs(sum - 100) < 0.01;
+  useEffect(() => {
+    setLocal(weights);
+  }, [weights]);
 
-  const commit = (s: string, b: string, c: string) => {
-    const sv = parseFloat(s) || 0;
-    const bv = parseFloat(b) || 0;
-    const cv = parseFloat(c) || 0;
-    const total = sv + bv + cv;
-    if (Math.abs(total - 100) < 0.01) {
-      onChange({ stock: sv / 100, bond: bv / 100, cash: cv / 100 });
-    }
+  const W = 280, H = 200;
+  const margin = { top: 12, right: 40, bottom: 12, left: 12 };
+  const innerW = W - margin.left - margin.right;
+  const innerH = H - margin.top - margin.bottom;
+  const barX = margin.left;
+  const handleX = margin.left + innerW + 8;
+
+  const { cashTop, bondTop } = weightsToPixels(local, innerH);
+
+  const stockRegion = { y: margin.top + bondTop, h: innerH - bondTop };
+  const bondRegion  = { y: margin.top + cashTop, h: bondTop - cashTop };
+  const cashRegion  = { y: margin.top,           h: cashTop };
+
+  const labelAt = (region: { y: number; h: number }, label: string) => {
+    if (region.h < 14) return null;
+    return (
+      <text
+        x={barX + innerW / 2}
+        y={region.y + region.h / 2}
+        dy="0.32em"
+        textAnchor="middle"
+        fontSize={12}
+        fontWeight={600}
+        fill="#fff"
+        pointerEvents="none"
+        style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.25)', strokeWidth: 2 }}
+      >
+        {label}
+      </text>
+    );
   };
 
+  useEffect(() => {
+    const svg = select(svgRef.current);
+
+    svg.selectAll<SVGCircleElement, 'bond' | 'cash'>('.fa-handle').call(
+      drag<SVGCircleElement, 'bond' | 'cash'>().on('drag', function (event) {
+        const key = (this as SVGCircleElement).dataset.key as 'bond' | 'cash';
+        const yPx = Math.max(0, Math.min(innerH, event.y - margin.top));
+        setLocal((prev) => {
+          const { cashTop: ct, bondTop: bt } = weightsToPixels(prev, innerH);
+          let newCashTop = ct;
+          let newBondTop = bt;
+          if (key === 'bond') {
+            newBondTop = yPx;
+            if (newBondTop < newCashTop) newCashTop = newBondTop;
+          } else {
+            newCashTop = yPx;
+            if (newCashTop > newBondTop) newBondTop = newCashTop;
+          }
+          const next = pixelsToWeights(newBondTop, newCashTop, innerH);
+          onChange(next);
+          return next;
+        });
+      }),
+    );
+  }, [innerH, margin.top, onChange]);
+
+  const pct = (n: number) => `${Math.round(n * 100)}%`;
+
   return (
-    <div className="fixed-alloc-editor">
-      {(['stock', 'bond', 'cash'] as const).map((asset) => {
-        const val = asset === 'stock' ? stock : asset === 'bond' ? bond : cash;
-        const setter = asset === 'stock' ? setStock : asset === 'bond' ? setBond : setCash;
-        return (
-          <label key={asset} className="fixed-alloc-row">
-            <span className="fixed-alloc-label">{asset.charAt(0).toUpperCase() + asset.slice(1)}</span>
-            <div className="fixed-alloc-input-wrap">
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                value={val}
-                onChange={(e) => {
-                  setter(e.target.value);
-                  const newVals = {
-                    stock: asset === 'stock' ? e.target.value : stock,
-                    bond: asset === 'bond' ? e.target.value : bond,
-                    cash: asset === 'cash' ? e.target.value : cash,
-                  };
-                  commit(newVals.stock, newVals.bond, newVals.cash);
-                }}
-              />
-              <span className="fixed-alloc-pct">%</span>
-            </div>
-          </label>
-        );
-      })}
-      {!valid && (
-        <p className="fixed-alloc-warn">Must sum to 100% (currently {sum.toFixed(0)}%)</p>
-      )}
+    <div className="control-group">
+      <div className="control-label">Drag the band boundaries to set the allocation.</div>
+      <svg ref={svgRef} width={W} height={H} className="curve-editor">
+        {/* stock band */}
+        <rect x={barX} y={stockRegion.y} width={innerW} height={stockRegion.h} fill={ASSET.stock} fillOpacity={0.85} />
+        {/* bond band */}
+        <rect x={barX} y={bondRegion.y} width={innerW} height={bondRegion.h} fill={ASSET.bond} fillOpacity={0.85} />
+        {/* cash band */}
+        <rect x={barX} y={cashRegion.y} width={innerW} height={cashRegion.h} fill={ASSET.cash} fillOpacity={0.85} />
+
+        {labelAt(stockRegion, pct(local.stock))}
+        {labelAt(bondRegion,  pct(local.bond))}
+        {labelAt(cashRegion,  pct(local.cash))}
+
+        {/* bond/stock boundary handle */}
+        <circle
+          className="fa-handle"
+          data-key="bond"
+          cx={handleX}
+          cy={margin.top + bondTop}
+          r={6}
+          fill="#fff"
+          stroke="#222"
+          strokeWidth={2}
+          cursor="ns-resize"
+        />
+        {/* cash/bond boundary handle (only visible when cash > 0) */}
+        {local.cash > 0.001 && (
+          <circle
+            className="fa-handle"
+            data-key="cash"
+            cx={handleX}
+            cy={margin.top + cashTop}
+            r={6}
+            fill="#fff"
+            stroke="#222"
+            strokeWidth={2}
+            cursor="ns-resize"
+          />
+        )}
+      </svg>
+      <div className="legend">
+        <span><span className="sw" style={{ background: ASSET.stock }} /> stocks</span>
+        <span><span className="sw" style={{ background: ASSET.bond }} /> bonds</span>
+        <span><span className="sw" style={{ background: ASSET.cash }} /> cash</span>
+      </div>
     </div>
   );
 }
