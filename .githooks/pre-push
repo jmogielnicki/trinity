@@ -1,0 +1,9 @@
+#!/bin/sh
+# Run the full build (tsc -b + vite build) before pushing.
+# Mirrors exactly what Vercel runs, so CI failures are caught locally.
+echo "Running build check before push..."
+npm run build
+if [ $? -ne 0 ]; then
+  echo "Build failed — push aborted. Fix the errors above and try again."
+  exit 1
+fi
