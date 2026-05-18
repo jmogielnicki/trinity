@@ -507,7 +507,6 @@ function ScatterPlot({
         x: r.metrics[xAxis],
         y: r.metrics[yAxis],
         color: colorFor(r),
-        selected: selectedIds.has(r.candidate.id),
         custom: { id: r.candidate.id, result: r },
       }));
   }, [results, xAxis, yAxis, colorFor, selectedIds]);
