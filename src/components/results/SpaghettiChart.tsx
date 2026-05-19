@@ -108,6 +108,10 @@ export function SpaghettiChart({
   resultRef.current = result;
   const overlayRef = useRef(overlay);
   overlayRef.current = overlay;
+  const selectedYearsRef = useRef(selectedYears);
+  selectedYearsRef.current = selectedYears;
+  const hasSelectionRef = useRef(hasSelection);
+  hasSelectionRef.current = hasSelection;
 
   const horizon = useMemo(() => {
     const a = result.sims.reduce((m, s) => Math.max(m, s.trajectory.length), 0);
@@ -200,6 +204,31 @@ export function SpaghettiChart({
     if (sim) onToggleRef.current?.(sim.startYear, { shiftKey: !!(e.browserEvent as MouseEvent)?.shiftKey });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const seriesMouseOverHandler = useCallback(function (this: unknown) {
+    if (hasSelectionRef.current) return;
+    const chart = (this as any).chart;
+    if (!chart) return;
+    const hoveredSim: SimulationResult | undefined = (this as any).options?.custom?.sim;
+    for (const s of chart.series) {
+      const custom = (s.options as any).custom;
+      if (!custom?.sim) continue;
+      const isSelf = custom.sim === hoveredSim;
+      const baseOpacity = simBaseOpacity(custom.sim);
+      s.group?.attr({ opacity: isSelf ? baseOpacity : 0.06 });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const seriesMouseOutHandler = useCallback(function (this: unknown) {
+    if (hasSelectionRef.current) return;
+    const chart = (this as any).chart;
+    if (!chart) return;
+    for (const s of chart.series) {
+      const custom = (s.options as any).custom;
+      if (!custom?.sim) continue;
+      s.group?.attr({ opacity: simBaseOpacity(custom.sim) });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const options: Options = useMemo(
     () => ({
       chart: {
@@ -235,6 +264,7 @@ export function SpaghettiChart({
           const custom = series?.options?.custom;
           if (!custom?.sim) return false;
           const sim: SimulationResult = custom.sim;
+          if (hasSelectionRef.current && !(selectedYearsRef.current?.has(sim.startYear))) return false;
           const last = sim.trajectory[sim.trajectory.length - 1];
           const status = !sim.success && !sim.inProgress
             ? 'depleted'
@@ -253,7 +283,11 @@ export function SpaghettiChart({
           // Only track mouse when cursor is actually over a line; hides tooltip
           // and clears hover state when cursor moves to empty chart space.
           stickyTracking: false,
-          events: { click: seriesClickHandler },
+          events: {
+            click: seriesClickHandler,
+            mouseOver: seriesMouseOverHandler,
+            mouseOut: seriesMouseOutHandler,
+          },
           states: {
             hover: { lineWidthPlus: 0 },
             // Disable Highcharts' automatic inactive-state management so it
@@ -264,7 +298,7 @@ export function SpaghettiChart({
       },
       series: seriesData,
     }),
-    [height, horizon, maxBalance, seriesData, clickHandler, selectionHandler, seriesClickHandler],
+    [height, horizon, maxBalance, seriesData, clickHandler, selectionHandler, seriesClickHandler, seriesMouseOverHandler, seriesMouseOutHandler],
   );
 
   // Marquee: shift+mousedown on the chart container starts a native drag
