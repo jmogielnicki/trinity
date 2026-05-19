@@ -27,317 +27,238 @@ function flatStatic(stock: number, bond: number, cash: number) {
 }
 
 export const PRESETS: Preset[] = [
-  {
-    id: 'classic-60-40',
-    name: 'Classic 60/40 — 4%',
-    description: 'The default starting point. 60/40 stocks/bonds, 4% real, rebalanced annually.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.6, 0.4, 0),
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'bengen-50-50',
-    name: 'Bengen 50/50 — 4%',
-    description: "The original 4% rule (Bengen 1994). 50/50 stocks/bonds, 30-year horizon.",
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.5, 0.5, 0),
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'trinity-75-25',
-    name: 'Trinity 75/25 — 4%',
-    description: 'Trinity Study (Cooley, Hubbard, Walz 1998). 75/25, 4%, ~95% historical success.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.75, 0.25, 0),
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'aggressive-100',
-    name: 'Aggressive 100/0 — 4%',
-    description: 'All stocks, no bonds. Fewer failures historically but bigger drawdowns.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(1, 0, 0),
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'cash-bucket',
-    name: 'Cash bucket — 50/40/10 waterfall',
-    description: '50% stocks / 40% bonds / 10% cash. Withdraw cash first, then bonds, then stocks. Sleeves drift; no auto-rebalance.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.5, 0.4, 0.1),
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: { type: 'waterfall', order: ['cash', 'bond', 'stock'] },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'cash-bucket-refill',
-    name: 'Cash bucket with refill — 50/35/15',
-    description: '50/35/15 stocks/bonds/cash. Spend cash first; when cash drops below 8%, sell bonds to refill cash. When bonds drop below 25% and stocks are at or above their initial value, sell stocks to refill bonds.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.5, 0.35, 0.15),
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: {
-        type: 'bucket',
-        order: ['cash', 'bond', 'stock'],
-        refill: [
-          {
-            targetSleeve: 'cash',
-            floor: 0.08,
-            ceiling: 0.15,
-            sourceSleeve: 'bond',
-            sourceMinRatio: undefined,
-          },
-          {
-            targetSleeve: 'bond',
-            floor: 0.25,
-            ceiling: 0.35,
-            sourceSleeve: 'stock',
-            sourceMinRatio: 1.0,
-          },
-        ],
-      },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'years-bucket',
-    name: 'Years-of-expenses bucket — 2yr cash / 6yr bonds',
-    description:
-      '68/24/8 stocks/bonds/cash at 4% withdrawal ($1M → $40k/yr). ' +
-      'Spend cash first, then bonds, never stocks unless forced. ' +
-      'In positive stock years: trim stocks to refill bonds back to 6 years of expenses, ' +
-      'then bonds to refill cash back to 2 years. In down years: let cash and bonds absorb the spend without touching stocks.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      // At 4% of $1M = $40k/yr: 2yr cash = $80k (8%), 6yr bonds = $240k (24%), rest stocks (68%)
-      allocation: flatStatic(0.68, 0.24, 0.08),
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: {
-        type: 'bucket',
-        order: ['cash', 'bond', 'stock'],
-        refill: [
-          {
-            targetSleeve: 'bond',
-            floor: 6,
-            ceiling: 6,
-            floorMode: 'withdrawalYears',
-            sourceSleeve: 'stock',
-            sourceReturnGate: 0,
-          },
-          {
-            targetSleeve: 'cash',
-            floor: 2,
-            ceiling: 2,
-            floorMode: 'withdrawalYears',
-            sourceSleeve: 'bond',
-          },
-        ],
-      },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'glide-down',
-    name: 'Glide path 80→40 stocks — 4%',
-    description: 'Start aggressive (80/20), end conservative (40/60) over the horizon. Classic age-based de-risking.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: {
-        type: 'glidepath',
-        start: { stock: 0.8, bond: 0.2, cash: 0 },
-        end: { stock: 0.4, bond: 0.6, cash: 0 },
-        transitionYears: HORIZON,
-      },
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'rising-equity',
-    name: 'Rising equity 40→80 — 4%',
-    description: 'Kitces "U-shape": start conservative, raise stocks over time. Reduces sequence-of-returns damage.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: {
-        type: 'glidepath',
-        start: { stock: 0.4, bond: 0.6, cash: 0 },
-        end: { stock: 0.8, bond: 0.2, cash: 0 },
-        transitionYears: HORIZON,
-      },
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'front-loaded',
-    name: 'Front-loaded spend 5%→3% — 60/40',
-    description: 'Spend more early (go-go years), less later (slow-go). Linear ramp from 5% in year 0 to 3% in year horizon.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.6, 0.4, 0),
-      withdrawal: {
-        type: 'piecewiseLinear',
-        points: [
-          { t: 0, rate: 0.05 },
-          { t: HORIZON / 2, rate: 0.04 },
-          { t: HORIZON - 1, rate: 0.03 },
-        ],
-      },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'rising-equity-pfau',
-    name: 'Rising equity 30→60 — Pfau — 4%',
-    description:
-      'Pfau rising-equity glidepath: start conservative at 30/70 stocks/bonds, ' +
-      'add 2% equity per year for 15 years, then hold at 60/40. ' +
-      'Mitigates sequence-of-returns risk by keeping equity low in the fragile early years.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: {
-        type: 'risingEquity',
-        start: { stock: 0.3, bond: 0.7, cash: 0 },
-        end: { stock: 0.6, bond: 0.4, cash: 0 },
-        years: 15,
-      },
-      withdrawal: { type: 'fixedPercent', rate: 0.04 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'cape-withdrawal',
-    name: 'CAPE-based withdrawal — 60/40',
-    description:
-      'Blanchett CAPE rule: W = 1.75% + 0.5 × (1/CAPE), applied to the current balance each year. ' +
-      'Pulls back automatically when markets are expensive and spends more when they are cheap. ' +
-      'CAPE data available from 1881; earlier start years use a fallback CAPE of 20.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.6, 0.4, 0),
-      withdrawal: { type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'ratchet-swr',
-    name: 'Ratcheting SWR 3.25% — 60/40',
-    description:
-      'Start conservatively at 3.25% (inflation-adjusted). Each time the portfolio grows 50% above ' +
-      'its starting value, permanently raise real spending by 10%. Gains are locked in — ' +
-      'a subsequent crash does not cut the elevated floor.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.6, 0.4, 0),
-      withdrawal: { type: 'ratchet', baseRate: 0.0325, stepSize: 0.5, stepBoost: 0.1 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'guardrails-gk',
-    name: 'Guyton-Klinger guardrails 5% — 65/35',
-    description:
-      'Start at 5% of initial balance. Each year, if the current implied withdrawal rate drifts ' +
-      'more than 20% above the starting rate, cut spending 10%; if it drifts 20% below, raise 10%. ' +
-      'Spending is capped between 80% and 125% of the original amount.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.65, 0.35, 0),
-      withdrawal: {
-        type: 'guardrails',
-        base: 0.05,
-        trigger: 0.2,
-        floor: 0.8,
-        ceiling: 1.25,
-      },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'endowment',
-    name: 'Endowment method 5% — 65/35',
-    description:
-      'University-endowment style: withdraw 5% of the 10-year rolling average portfolio balance. ' +
-      'Smooths out market volatility. A 90% floor on year-over-year spending prevents severe lifestyle cuts.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.65, 0.35, 0),
-      withdrawal: { type: 'endowment', rate: 0.05, lookbackYears: 10, floorFraction: 0.9 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
-  {
-    id: 'vanguard-dynamic',
-    name: 'Vanguard dynamic spending 5% — 60/40',
-    description:
-      'Apply 5% to the current portfolio balance each year, then constrain the result: ' +
-      'spending can rise at most 5% from the prior year and fall at most 2.5%. ' +
-      'Adapts to markets while preventing jarring year-over-year swings.',
-    state: {
-      initialBalance: STARTING,
-      horizonYears: HORIZON,
-      allocation: flatStatic(0.6, 0.4, 0),
-      withdrawal: { type: 'vanguardDynamic', rate: 0.05, ceiling: 0.05, floor: -0.025 },
-      withdrawalSource: { type: 'proportional', rebalance: true },
-      tailMethod: { type: 'truncate' },
-      axes: PINNED_AXES,
-    },
-  },
+	{
+		id: "trinity-75-25",
+		name: "Trinity 75/25 — 4%",
+		description:
+			"Trinity Study (Cooley, Hubbard, Walz 1998). 75/25, 4%, ~95% historical success.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.75, 0.25, 0),
+			withdrawal: { type: "fixedPercent", rate: 0.04 },
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "aggressive-100",
+		name: "Aggressive 100/0 — 3.5%",
+		description:
+			"All stocks, no bonds. Fewer failures historically but bigger drawdowns.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(1, 0, 0),
+			withdrawal: { type: "fixedPercent", rate: 0.035 },
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "cash-bucket",
+		name: "Cash bucket — 50/40/10 waterfall",
+		description:
+			"50% stocks / 40% bonds / 10% cash. Withdraw cash first, then bonds, then stocks. Sleeves drift; no auto-rebalance.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.5, 0.4, 0.1),
+			withdrawal: { type: "fixedPercent", rate: 0.0375 },
+			withdrawalSource: {
+				type: "waterfall",
+				order: ["cash", "bond", "stock"],
+			},
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "cash-bucket-refill",
+		name: "Cash bucket with refill — 50/35/15",
+		description:
+			"50/35/15 stocks/bonds/cash. Spend cash first; when cash drops below 8%, sell bonds to refill cash. When bonds drop below 25% and stocks are at or above their initial value, sell stocks to refill bonds.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.5, 0.35, 0.15),
+			withdrawal: { type: "fixedPercent", rate: 0.04 },
+			withdrawalSource: {
+				type: "bucket",
+				order: ["cash", "bond", "stock"],
+				refill: [
+					{
+						targetSleeve: "cash",
+						floor: 0.08,
+						ceiling: 0.15,
+						sourceSleeve: "bond",
+						sourceMinRatio: undefined,
+					},
+					{
+						targetSleeve: "bond",
+						floor: 0.25,
+						ceiling: 0.35,
+						sourceSleeve: "stock",
+						sourceMinRatio: 1.0,
+					},
+				],
+			},
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "rising-equity",
+		name: "Rising equity 40→80 — 4%",
+		description:
+			'Kitces "U-shape": start conservative, raise stocks over time. Reduces sequence-of-returns damage.',
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: {
+				type: "glidepath",
+				start: { stock: 0.4, bond: 0.6, cash: 0 },
+				end: { stock: 0.8, bond: 0.2, cash: 0 },
+				transitionYears: HORIZON,
+			},
+			withdrawal: { type: "fixedPercent", rate: 0.04 },
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "front-loaded",
+		name: "Front-loaded spend 5%→3% — 60/40",
+		description:
+			"Spend more early (go-go years), less later (slow-go). Linear ramp from 5% in year 0 to 3% in year horizon.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.6, 0.4, 0),
+			withdrawal: {
+				type: "piecewiseLinear",
+				points: [
+					{ t: 0, rate: 0.05 },
+					{ t: HORIZON / 2, rate: 0.04 },
+					{ t: HORIZON - 1, rate: 0.03 },
+				],
+			},
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "cape-withdrawal",
+		name: "CAPE-based withdrawal — 60/40",
+		description:
+			"Blanchett CAPE rule: W = 1.75% + 0.5 × (1/CAPE), applied to the current balance each year. " +
+			"Pulls back automatically when markets are expensive and spends more when they are cheap. " +
+			"CAPE data available from 1881; earlier start years use a fallback CAPE of 20.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.6, 0.4, 0),
+			withdrawal: {
+				type: "capeWithdrawal",
+				a: 0.0175,
+				b: 0.5,
+				fallbackCape: 20,
+			},
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "ratchet-swr",
+		name: "Ratcheting SWR 3.25% — 60/40",
+		description:
+			"Start conservatively at 3.25% (inflation-adjusted). Each time the portfolio grows 50% above " +
+			"its starting value, permanently raise real spending by 10%. Gains are locked in — " +
+			"a subsequent crash does not cut the elevated floor.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.6, 0.4, 0),
+			withdrawal: {
+				type: "ratchet",
+				baseRate: 0.0325,
+				stepSize: 0.5,
+				stepBoost: 0.1,
+			},
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "guardrails-gk",
+		name: "Guyton-Klinger guardrails 5% — 65/35",
+		description:
+			"Start at 5% of initial balance. Each year, if the current implied withdrawal rate drifts " +
+			"more than 20% above the starting rate, cut spending 10%; if it drifts 20% below, raise 10%. " +
+			"Spending is capped between 80% and 125% of the original amount.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.65, 0.35, 0),
+			withdrawal: {
+				type: "guardrails",
+				base: 0.05,
+				trigger: 0.2,
+				floor: 0.8,
+				ceiling: 1.25,
+			},
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "endowment",
+		name: "Endowment method 5% — 65/35",
+		description:
+			"University-endowment style: withdraw 5% of the 10-year rolling average portfolio balance. " +
+			"Smooths out market volatility. A 90% floor on year-over-year spending prevents severe lifestyle cuts.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.65, 0.35, 0),
+			withdrawal: {
+				type: "endowment",
+				rate: 0.05,
+				lookbackYears: 10,
+				floorFraction: 0.9,
+			},
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "vanguard-dynamic",
+		name: "Vanguard dynamic spending 5% — 60/40",
+		description:
+			"Apply 5% to the current portfolio balance each year, then constrain the result: " +
+			"spending can rise at most 5% from the prior year and fall at most 2.5%. " +
+			"Adapts to markets while preventing jarring year-over-year swings.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.6, 0.4, 0),
+			withdrawal: {
+				type: "vanguardDynamic",
+				rate: 0.05,
+				ceiling: 0.05,
+				floor: -0.025,
+			},
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
 ];
