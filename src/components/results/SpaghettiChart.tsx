@@ -252,6 +252,11 @@ export function SpaghettiChart({
         series: {
           cursor: 'pointer',
           events: { click: seriesClickHandler },
+          // Disable Highcharts' built-in inactive-state dimming so our
+          // imperative series.update() calls are the sole opacity authority.
+          states: {
+            inactive: { opacity: 1 },
+          },
         },
       },
       series: seriesData,
