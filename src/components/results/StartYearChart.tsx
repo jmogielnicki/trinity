@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ScenarioResult } from '../../engine/types';
+import type { ScenarioResult, SimulationResult } from '../../engine/types';
 import { OUTCOME } from '../colors';
 
 type Props = {
@@ -10,9 +10,18 @@ type Props = {
   onMarquee?: (years: number[], e: { shiftKey: boolean }) => void;
 };
 
+function avgSpendOf(s: SimulationResult): number {
+  if (!s.trajectory || s.trajectory.length === 0) return 0;
+  return s.trajectory.reduce((sum, y) => sum + y.withdrawal, 0) / s.trajectory.length;
+}
+
 /**
- * Combined chart: terminal balance line (top) + outcome barcode (bottom),
- * both by start year. Clicking either panel toggles highlighting that cohort.
+ * Three-panel chart sharing one x-axis (retirement start year):
+ *   top    — average annual spend
+ *   middle — terminal balance
+ *   bottom — outcome barcode (survived / depleted / in-progress)
+ *
+ * Click or shift-drag either panel to toggle/marquee-select cohorts.
  */
 export function StartYearChart({
   result,
@@ -29,13 +38,16 @@ export function StartYearChart({
 
   if (sims.length === 0) return null;
 
-  const margin = { left: 72, right: 28, top: 14, bottom: 4 };
   const W = 800;
+  const margin = { left: 72, right: 32, top: 14, bottom: 6 };
   const innerW = W - margin.left - margin.right;
-  const lineH = 190;
+
+  const spendH = 130;
+  const balH = 130;
+  const gap = 10;    // vertical gap between panels
   const stripH = 22;
   const axisH = 22;
-  const totalH = margin.top + lineH + stripH + axisH + margin.bottom;
+  const totalH = margin.top + spendH + gap + balH + gap + stripH + axisH + margin.bottom;
 
   const firstYear = sims[0].startYear;
   const lastYear = sims[sims.length - 1].startYear;
@@ -45,12 +57,21 @@ export function StartYearChart({
   const xOf = (year: number) => ((year - firstYear) / (span + 1)) * innerW + colW / 2;
   const pxToYear = (px: number) => Math.round((px / innerW) * (span + 1) + firstYear);
 
+  // Completed / in-progress split
   const completedSims = sims.filter((s) => !s.inProgress);
+  const inProgressSims = sims.filter((s) => s.inProgress);
+
+  // ── Terminal balance scale ──────────────────────────────────────────────
   const maxBalance = Math.max(
     initialBalance,
     ...completedSims.map((s) => s.finalBalance ?? 0).filter(Number.isFinite),
   );
-  const yOf = (balance: number) => lineH * (1 - balance / maxBalance);
+  const balYOf = (v: number) => balH * (1 - v / maxBalance);
+
+  // ── Avg annual spend scale ─────────────────────────────────────────────
+  const spendVals = sims.map(avgSpendOf).filter((v) => v > 0);
+  const maxSpend = spendVals.length ? Math.max(...spendVals) : 1;
+  const spendYOf = (v: number) => spendH * (1 - v / maxSpend);
 
   const colorOf = (s: (typeof sims)[number]) => {
     if (!s.success && !s.inProgress) return OUTCOME.depleted;
@@ -58,7 +79,7 @@ export function StartYearChart({
     return OUTCOME.survived;
   };
 
-  const fmtBalance = (v: number) => {
+  const fmtMoney = (v: number) => {
     if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
     if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}k`;
     return `$${Math.round(v)}`;
@@ -111,41 +132,25 @@ export function StartYearChart({
   const firstTick = Math.ceil(firstYear / 10) * 10;
   for (let y = firstTick; y <= lastYear; y += 10) ticks.push(y);
 
-  // Y grid levels
-  const yGridLevels = [0, 0.25, 0.5, 0.75, 1.0].map((f) => ({
-    val: f * maxBalance,
-    y: yOf(f * maxBalance),
-  }));
-
-  // Polyline for completed sims
-  const completedLine = completedSims
-    .map((s) => {
-      const balance = s.success ? (s.finalBalance ?? 0) : 0;
-      return `${xOf(s.startYear).toFixed(1)},${yOf(balance).toFixed(1)}`;
-    })
-    .join(' ');
-
-  // Dashed line for in-progress sims
-  const inProgressSims = sims.filter((s) => s.inProgress);
-  const inProgressLine = inProgressSims
-    .map((s) => `${xOf(s.startYear).toFixed(1)},${yOf(s.finalBalance ?? 0).toFixed(1)}`)
-    .join(' ');
-
-  // Connect the last completed sim to the first in-progress sim for continuity
-  const bridgeLine =
-    completedSims.length > 0 && inProgressSims.length > 0
-      ? `${xOf(completedSims[completedSims.length - 1].startYear).toFixed(1)},${yOf(
-          completedSims[completedSims.length - 1].success
-            ? (completedSims[completedSims.length - 1].finalBalance ?? 0)
-            : 0,
-        ).toFixed(1)} ${xOf(inProgressSims[0].startYear).toFixed(1)},${yOf(
-          inProgressSims[0].finalBalance ?? 0,
-        ).toFixed(1)}`
-      : '';
-
   const hasSelection = !!selectedYears && selectedYears.size > 0;
-  const stripY = margin.top + lineH;
   const dotR = Math.max(2, Math.min(3.5, colW * 0.45));
+
+  // Panel y-offsets from top of inner area
+  const spendY0 = margin.top;
+  const balY0 = spendY0 + spendH + gap;
+  const stripY0 = balY0 + balH + gap;
+
+  // Helper: build a polyline points string for a list of sims
+  const linePoints = (simList: typeof sims, yFn: (s: typeof sims[number]) => number) =>
+    simList.map((s) => `${xOf(s.startYear).toFixed(1)},${yFn(s).toFixed(1)}`).join(' ');
+
+  // Grid levels for each panel
+  const balGridLevels = [0, 0.5, 1.0].map((f) => ({ val: f * maxBalance, y: balYOf(f * maxBalance) }));
+  const spendGridLevels = [0, 0.5, 1.0].map((f) => ({ val: f * maxSpend, y: spendYOf(f * maxSpend) }));
+
+  // Panel connector: last completed → first in-progress
+  const lastCompleted = completedSims[completedSims.length - 1];
+  const firstInProgress = inProgressSims[0];
 
   return (
     <div className="start-year-chart-wrap">
@@ -157,120 +162,134 @@ export function StartYearChart({
         onMouseDown={onSvgMouseDown}
         style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
       >
-        {/* ── Line chart panel ─────────────────────────────────── */}
-        <g transform={`translate(${margin.left},${margin.top})`}>
-          {/* Y grid */}
-          {yGridLevels.map(({ val, y }) => (
+
+        {/* ══ Panel 1: Avg annual spend ═══════════════════════════════════ */}
+        <g transform={`translate(${margin.left},${spendY0})`}>
+          {spendGridLevels.map(({ val, y }) => (
             <g key={val}>
-              <line
-                x1={0}
-                x2={innerW}
-                y1={y}
-                y2={y}
-                stroke={val === 0 ? '#bbb' : '#ebebeb'}
-                strokeWidth={val === 0 ? 1.5 : 1}
-              />
+              <line x1={0} x2={innerW} y1={y} y2={y}
+                stroke={val === 0 ? '#bbb' : '#ebebeb'} strokeWidth={val === 0 ? 1.5 : 1} />
               <text x={-6} y={y} dy="0.32em" textAnchor="end" fontSize={10} fill="#666">
-                {fmtBalance(val)}
+                {fmtMoney(val)}
               </text>
             </g>
           ))}
 
-          {/* Starting balance reference line */}
-          <line
-            x1={0}
-            x2={innerW}
-            y1={yOf(initialBalance)}
-            y2={yOf(initialBalance)}
-            stroke="#4a90d9"
-            strokeWidth={1}
-            strokeDasharray="4,3"
-            opacity={0.55}
-          />
-          <text
-            x={innerW + 5}
-            y={yOf(initialBalance)}
-            dy="0.32em"
-            fontSize={9}
-            fill="#4a90d9"
-            opacity={0.8}
-          >
-            start
-          </text>
-
           {/* Completed sims line */}
-          {completedLine && (
+          {completedSims.length > 1 && (
             <polyline
-              points={completedLine}
-              fill="none"
-              stroke="#2c5282"
-              strokeWidth={1.5}
-              opacity={0.75}
+              points={linePoints(completedSims, (s) => spendYOf(avgSpendOf(s)))}
+              fill="none" stroke="#2c5282" strokeWidth={1.5} opacity={0.75}
             />
           )}
-
           {/* Bridge to in-progress */}
-          {bridgeLine && (
+          {lastCompleted && firstInProgress && (
             <polyline
-              points={bridgeLine}
-              fill="none"
-              stroke="#888"
-              strokeWidth={1.5}
-              strokeDasharray="4,3"
-              opacity={0.5}
+              points={`${xOf(lastCompleted.startYear).toFixed(1)},${spendYOf(avgSpendOf(lastCompleted)).toFixed(1)} ${xOf(firstInProgress.startYear).toFixed(1)},${spendYOf(avgSpendOf(firstInProgress)).toFixed(1)}`}
+              fill="none" stroke="#888" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5}
+            />
+          )}
+          {/* In-progress sims line */}
+          {inProgressSims.length > 1 && (
+            <polyline
+              points={linePoints(inProgressSims, (s) => spendYOf(avgSpendOf(s)))}
+              fill="none" stroke="#888" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5}
             />
           )}
 
-          {/* In-progress sims line (dashed) */}
-          {inProgressLine && (
-            <polyline
-              points={inProgressLine}
-              fill="none"
-              stroke="#888"
-              strokeWidth={1.5}
-              strokeDasharray="4,3"
-              opacity={0.5}
-            />
-          )}
-
-          {/* Dots per sim (colored by outcome) */}
+          {/* Dots */}
           {sims.map((s) => {
-            const balance = s.inProgress
-              ? (s.finalBalance ?? 0)
-              : s.success
-                ? (s.finalBalance ?? 0)
-                : 0;
             const cx = xOf(s.startYear);
-            const cy = yOf(balance);
+            const cy = spendYOf(avgSpendOf(s));
             const isSelected = selectedYears?.has(s.startYear) ?? false;
             return (
-              <circle
-                key={s.startYear}
-                cx={cx}
-                cy={cy}
+              <circle key={s.startYear} cx={cx} cy={cy}
                 r={isSelected ? dotR + 1.5 : dotR}
                 fill={colorOf(s)}
                 fillOpacity={hasSelection && !isSelected ? 0.25 : s.inProgress ? 0.5 : 0.85}
-                stroke={isSelected ? '#111' : 'none'}
-                strokeWidth={isSelected ? 1.5 : 0}
+                stroke={isSelected ? '#111' : 'none'} strokeWidth={isSelected ? 1.5 : 0}
                 pointerEvents="none"
               />
             );
           })}
 
-          {/* Y axis label */}
-          <text
-            transform={`translate(-56,${lineH / 2}) rotate(-90)`}
-            textAnchor="middle"
-            fontSize={10}
-            fill="#555"
-          >
+          {/* Y-axis label */}
+          <text transform={`translate(-56,${spendH / 2}) rotate(-90)`}
+            textAnchor="middle" fontSize={10} fill="#555">
+            avg annual spend (real $)
+          </text>
+        </g>
+
+        {/* ══ Panel 2: Terminal balance ════════════════════════════════════ */}
+        <g transform={`translate(${margin.left},${balY0})`}>
+          {balGridLevels.map(({ val, y }) => (
+            <g key={val}>
+              <line x1={0} x2={innerW} y1={y} y2={y}
+                stroke={val === 0 ? '#bbb' : '#ebebeb'} strokeWidth={val === 0 ? 1.5 : 1} />
+              <text x={-6} y={y} dy="0.32em" textAnchor="end" fontSize={10} fill="#666">
+                {fmtMoney(val)}
+              </text>
+            </g>
+          ))}
+
+          {/* Starting balance reference */}
+          <line x1={0} x2={innerW}
+            y1={balYOf(initialBalance)} y2={balYOf(initialBalance)}
+            stroke="#4a90d9" strokeWidth={1} strokeDasharray="4,3" opacity={0.55}
+          />
+          <text x={innerW + 5} y={balYOf(initialBalance)} dy="0.32em"
+            fontSize={9} fill="#4a90d9" opacity={0.8}>
+            start
+          </text>
+
+          {/* Completed sims line */}
+          {completedSims.length > 1 && (
+            <polyline
+              points={linePoints(completedSims, (s) => balYOf(s.success ? (s.finalBalance ?? 0) : 0))}
+              fill="none" stroke="#2c5282" strokeWidth={1.5} opacity={0.75}
+            />
+          )}
+          {/* Bridge to in-progress */}
+          {lastCompleted && firstInProgress && (
+            <polyline
+              points={`${xOf(lastCompleted.startYear).toFixed(1)},${balYOf(lastCompleted.success ? (lastCompleted.finalBalance ?? 0) : 0).toFixed(1)} ${xOf(firstInProgress.startYear).toFixed(1)},${balYOf(firstInProgress.finalBalance ?? 0).toFixed(1)}`}
+              fill="none" stroke="#888" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5}
+            />
+          )}
+          {/* In-progress sims line */}
+          {inProgressSims.length > 1 && (
+            <polyline
+              points={linePoints(inProgressSims, (s) => balYOf(s.finalBalance ?? 0))}
+              fill="none" stroke="#888" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5}
+            />
+          )}
+
+          {/* Dots */}
+          {sims.map((s) => {
+            const balance = s.inProgress ? (s.finalBalance ?? 0) : s.success ? (s.finalBalance ?? 0) : 0;
+            const cx = xOf(s.startYear);
+            const cy = balYOf(balance);
+            const isSelected = selectedYears?.has(s.startYear) ?? false;
+            return (
+              <circle key={s.startYear} cx={cx} cy={cy}
+                r={isSelected ? dotR + 1.5 : dotR}
+                fill={colorOf(s)}
+                fillOpacity={hasSelection && !isSelected ? 0.25 : s.inProgress ? 0.5 : 0.85}
+                stroke={isSelected ? '#111' : 'none'} strokeWidth={isSelected ? 1.5 : 0}
+                pointerEvents="none"
+              />
+            );
+          })}
+
+          {/* Y-axis label */}
+          <text transform={`translate(-56,${balH / 2}) rotate(-90)`}
+            textAnchor="middle" fontSize={10} fill="#555">
             terminal balance (real $)
           </text>
         </g>
 
-        {/* ── Outcome strip panel ───────────────────────────────── */}
-        <g transform={`translate(${margin.left},${stripY})`}>
+        {/* ══ Panel 3: Outcome barcode ═════════════════════════════════════ */}
+        <g transform={`translate(${margin.left},${stripY0})`}>
           <text x={-6} y={stripH / 2} dy="0.32em" textAnchor="end" fontSize={10} fill="#444">
             start yr
           </text>
@@ -279,24 +298,15 @@ export function StartYearChart({
             const isSelected = selectedYears?.has(s.startYear) ?? false;
             return (
               <g key={s.startYear}>
-                <rect
-                  x={x}
-                  y={0}
-                  width={Math.max(1, colW - 0.5)}
-                  height={stripH}
+                <rect x={x} y={0}
+                  width={Math.max(1, colW - 0.5)} height={stripH}
                   fill={colorOf(s)}
                   fillOpacity={hasSelection && !isSelected ? 0.25 : 1}
                 />
                 {isSelected && (
-                  <rect
-                    x={x - 0.5}
-                    y={-1}
-                    width={Math.max(2, colW + 0.5)}
-                    height={stripH + 2}
-                    fill="none"
-                    stroke="#111"
-                    strokeWidth={1.5}
-                    pointerEvents="none"
+                  <rect x={x - 0.5} y={-1}
+                    width={Math.max(2, colW + 0.5)} height={stripH + 2}
+                    fill="none" stroke="#111" strokeWidth={1.5} pointerEvents="none"
                   />
                 )}
               </g>
@@ -304,55 +314,52 @@ export function StartYearChart({
           })}
         </g>
 
-        {/* ── Shared x-axis ticks ───────────────────────────────── */}
-        <g transform={`translate(${margin.left},${stripY + stripH})`}>
+        {/* ══ Shared x-axis ticks ══════════════════════════════════════════ */}
+        <g transform={`translate(${margin.left},${stripY0 + stripH})`}>
           {ticks.map((y) => (
             <g key={y} transform={`translate(${xOf(y)},0)`}>
               <line y1={0} y2={4} stroke="#888" />
-              <text y={16} textAnchor="middle" fontSize={10} fill="#666">
-                {y}
-              </text>
+              <text y={16} textAnchor="middle" fontSize={10} fill="#666">{y}</text>
             </g>
           ))}
         </g>
 
-        {/* ── Selected-year vertical rules (both panels) ─────────── */}
-        {selectedYears &&
-          [...selectedYears].map((year) => {
-            const sim = sims.find((s) => s.startYear === year);
-            if (!sim) return null;
-            const cx = margin.left + xOf(year);
-            return (
-              <line
-                key={year}
-                x1={cx}
-                x2={cx}
-                y1={margin.top}
-                y2={stripY + stripH}
-                stroke="#111"
-                strokeWidth={1}
-                strokeDasharray="2,2"
-                opacity={0.35}
-                pointerEvents="none"
-              />
-            );
-          })}
+        {/* ══ Panel divider lines ═══════════════════════════════════════════ */}
+        <line
+          x1={margin.left} x2={W - margin.right}
+          y1={balY0 - gap / 2} y2={balY0 - gap / 2}
+          stroke="#ddd" strokeWidth={1}
+        />
+        <line
+          x1={margin.left} x2={W - margin.right}
+          y1={stripY0 - gap / 2} y2={stripY0 - gap / 2}
+          stroke="#ddd" strokeWidth={1}
+        />
 
-        {/* ── Invisible click / drag targets ────────────────────── */}
+        {/* ══ Selected-year vertical rules (all panels) ════════════════════ */}
+        {selectedYears && [...selectedYears].map((year) => {
+          const sim = sims.find((s) => s.startYear === year);
+          if (!sim) return null;
+          const cx = margin.left + xOf(year);
+          return (
+            <line key={year}
+              x1={cx} x2={cx}
+              y1={spendY0} y2={stripY0 + stripH}
+              stroke="#111" strokeWidth={1} strokeDasharray="2,2" opacity={0.3}
+              pointerEvents="none"
+            />
+          );
+        })}
+
+        {/* ══ Invisible click / drag targets (full height) ═════════════════ */}
         {sims.map((s) => {
           const x = margin.left + ((s.startYear - firstYear) / (span + 1)) * innerW;
-          const balance = s.inProgress
-            ? (s.finalBalance ?? 0)
-            : s.success
-              ? (s.finalBalance ?? 0)
-              : 0;
+          const balance = s.inProgress ? (s.finalBalance ?? 0) : s.success ? (s.finalBalance ?? 0) : 0;
           return (
             <g key={s.startYear}>
               <rect
-                x={x}
-                y={margin.top}
-                width={Math.max(1, colW)}
-                height={lineH + stripH}
+                x={x} y={spendY0}
+                width={Math.max(1, colW)} height={stripY0 + stripH - spendY0}
                 fill="transparent"
                 onClick={(e) => onToggle?.(s.startYear, e)}
                 style={{ cursor: onToggle ? 'pointer' : 'default' }}
@@ -360,28 +367,25 @@ export function StartYearChart({
               <title>
                 {s.startYear} —{' '}
                 {s.inProgress
-                  ? `in-progress (${fmtBalance(s.finalBalance ?? 0)} so far)`
+                  ? `in-progress (${fmtMoney(balance)} so far, avg spend ${fmtMoney(avgSpendOf(s))}/yr)`
                   : s.success
-                    ? `terminal balance ${fmtBalance(balance)}`
-                    : `depleted at year ${s.depletedAt}`}
+                    ? `terminal balance ${fmtMoney(balance)}, avg spend ${fmtMoney(avgSpendOf(s))}/yr`
+                    : `depleted at year ${s.depletedAt}, avg spend ${fmtMoney(avgSpendOf(s))}/yr`}
                 {onToggle ? ' (click to highlight)' : ''}
               </title>
             </g>
           );
         })}
 
-        {/* ── Marquee drag overlay ───────────────────────────────── */}
+        {/* ══ Marquee drag overlay ══════════════════════════════════════════ */}
         {drag && (
           <rect
             x={margin.left + Math.min(drag.x0, drag.x1)}
-            y={margin.top}
+            y={spendY0}
             width={Math.abs(drag.x1 - drag.x0)}
-            height={lineH + stripH}
-            fill="#357"
-            fillOpacity={0.1}
-            stroke="#357"
-            strokeWidth={1}
-            strokeDasharray="3,3"
+            height={stripY0 + stripH - spendY0}
+            fill="#357" fillOpacity={0.1}
+            stroke="#357" strokeWidth={1} strokeDasharray="3,3"
             pointerEvents="none"
           />
         )}

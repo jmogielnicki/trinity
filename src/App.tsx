@@ -296,23 +296,28 @@ export function App() {
                       </button>
                     </div>
                   )}
-                  <div className="spaghetti-row">
-                    <SpaghettiChart
-                      result={result}
-                      overlay={snapshot?.result ?? null}
-                      selectedYears={selectedYears}
-                      onToggle={toggleYear}
-                      onMarquee={marqueeYears}
-                      onClear={clearSelection}
-                    />
+                  <div className="single-scenario-charts">
+                    <div className="spaghetti-col">
+                      <SpaghettiChart
+                        result={result}
+                        overlay={snapshot?.result ?? null}
+                        selectedYears={selectedYears}
+                        onToggle={toggleYear}
+                        onMarquee={marqueeYears}
+                        onClear={clearSelection}
+                        height={368}
+                      />
+                    </div>
+                    <div className="start-year-col">
+                      <StartYearChart
+                        result={result}
+                        initialBalance={scenario.initialBalance}
+                        selectedYears={selectedYears}
+                        onToggle={toggleYear}
+                        onMarquee={marqueeYears}
+                      />
+                    </div>
                   </div>
-                  <StartYearChart
-                    result={result}
-                    initialBalance={scenario.initialBalance}
-                    selectedYears={selectedYears}
-                    onToggle={toggleYear}
-                    onMarquee={marqueeYears}
-                  />
                   {selectedYears.size > 0 && (
                     [...selectedYears].sort((a, b) => a - b).map((year) => {
                       const sim = result.sims.find(s => s.startYear === year);
