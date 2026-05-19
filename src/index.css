@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ─────────────────────────────────────────────────────────── */
+@theme {
+  /* Brand / primary */
+  --color-primary:       #335577;
+  --color-primary-hover: #2a4562;
+  --color-primary-ring:  rgba(51, 85, 119, 0.12);
+
+  /* Asset class colors (mirrors colors.ts — keep in sync) */
+  --color-stock: #059669;
+  --color-bond:  #b08e3a;
+  --color-cash:  #7c3aed;
+
+  /* Simulation outcome colors (mirrors colors.ts — keep in sync) */
+  --color-survived:    #2c5282;
+  --color-depleted:    #dd3333;
+  --color-in-progress: #888888;
+  --color-snapshot:    #cc4444;
+
+  /* Chart / UI accent (D3 default blue) */
+  --color-chart-blue: #1f77b4;
+
+  /* Semantic status */
+  --color-success:    #1a7f37;
+  --color-success-bg: #e6f4ea;
+  --color-error:      #c0392b;
+  --color-error-bg:   #fde8e8;
+  --color-stale:      #cc4444;
+
+  /* Surface backgrounds */
+  --color-surface:       #ffffff;
+  --color-surface-page:  #fafafa;
+  --color-surface-muted: #f5f5f5;
+  --color-surface-panel: #f4f6fa;
+  --color-surface-code:  #f0f4ff;
+  --color-surface-hover: #f6f6f6;
+
+  /* Borders */
+  --color-border:       #e5e5e5;
+  --color-border-light: #eeeeee;
+  --color-border-input: #d1d5db;
+  --color-border-hover: #aab4bf;
+
+  /* Text scale */
+  --color-text:             #222222;
+  --color-text-body:        #333333;
+  --color-text-secondary:   #555555;
+  --color-text-muted:       #666666;
+  --color-text-faint:       #888888;
+  --color-text-placeholder: #aaaaaa;
+  --color-text-disabled:    #cccccc;
+
+  /* Font sizes */
+  --text-2xs:  0.625rem;    /* 10px */
+  --text-xs:   0.6875rem;   /* 11px */
+  --text-sm:   0.75rem;     /* 12px */
+  --text-base: 0.8125rem;   /* 13px */
+  --text-md:   0.875rem;    /* 14px */
+  --text-lg:   1.125rem;    /* 18px */
+  --text-xl:   1.375rem;    /* 22px */
+
+  /* Shadows */
+  --shadow-card:    0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.07);
+  --shadow-popover: 0 4px 16px rgba(0,0,0,0.14);
+  --shadow-sticky:  0 2px 8px rgba(0,0,0,0.12);
+}
+
+/* ─── Base resets ────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    font-family: system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+    color: var(--color-text);
+    background: var(--color-surface-page);
+  }
+
+  body { margin: 0; }
+
+  /* Strip browser spinners — can't be done with a utility class */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] { -moz-appearance: textfield; }
+}
+
+/* ─── Utilities ──────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Hide scrollbar — referenced as className="scrollbar-none" */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Adjacent control zones get a top divider — needs the + sibling selector */
+  .control-zone + .control-zone {
+    border-top: 1px solid var(--color-border);
+    padding-top: 18px;
+  }
+
+  /* Simulation detail table — complex :not() + nth-child selectors */
+  .sim-table td:not(:nth-child(-n+6)) {
+    border-left: 1px solid #f0f0f0;
+  }
+}

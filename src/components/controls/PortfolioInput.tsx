@@ -5,8 +5,8 @@ export function PortfolioInput() {
   const { initialBalance, horizonYears, setBalance, setHorizon } =
     useScenarioStore();
   return (
-    <div className="control-group">
-      <label>
+    <div className="flex flex-row gap-4 items-end">
+      <label className="flex flex-col gap-1 text-sm text-text-secondary font-medium">
         Initial balance ($, real)
         <NumericInput
           value={initialBalance}
@@ -19,7 +19,7 @@ export function PortfolioInput() {
           }}
         />
       </label>
-      <label>
+      <label className="flex flex-col gap-1 text-sm text-text-secondary font-medium">
         Horizon (years)
         <NumericInput
           value={horizonYears}

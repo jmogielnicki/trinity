@@ -100,13 +100,13 @@ export function OutcomeStrip({
   const hasSelection = !!selectedYears && selectedYears.size > 0;
 
   return (
-    <div className="outcome-strip-wrap">
+    <div className="block">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
         preserveAspectRatio="xMinYMin meet"
-        className="outcome-strip"
+        className="block"
         onMouseDown={onSvgMouseDown}
         style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
       >

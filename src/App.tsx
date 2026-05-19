@@ -24,8 +24,6 @@ import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
-import './App.css';
-
 type View = 'spaghetti' | 'calendar' | 'whereami';
 type TopMode = 'single' | 'optimize' | 'evolve' | 'compare' | 'about';
 
@@ -145,20 +143,20 @@ export function App() {
   ]);
 
   return (
-    <div className="app">
+    <div className="max-w-[1280px] mx-auto p-6">
       <header>
-        <div className="header-main">
+        <div className="flex justify-between items-start gap-4">
           <div>
             <h1>Historical Withdrawal Simulator</h1>
-            <p className="subtitle">
+            <p className="m-0 mb-6 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
             </p>
           </div>
-          <div className="header-actions">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <ScenarioActions />
             <button
-              className={`about-link ${topMode === 'about' ? 'active' : ''}`}
+              className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${topMode === 'about' ? ' bg-primary text-surface border-primary' : ''}`}
               onClick={() =>
                 setTopMode((m) => (m === 'about' ? 'single' : 'about'))
               }
@@ -169,65 +167,65 @@ export function App() {
           </div>
         </div>
       </header>
-      <div className="context-bar">
-        <span className="context-bar-tag">Context</span>
+      <div className="flex items-center gap-5 bg-surface border border-border rounded-lg px-4 py-3 mb-4">
+        <span className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint">Context</span>
         <PortfolioInput />
-        <span className="context-bar-note">applies to every tab</span>
+        <span className="text-xs text-text-placeholder ml-auto">applies to every tab</span>
       </div>
-      <div className="top-mode-tabs">
+      <div className="flex gap-1 mb-4 border-b border-border">
         <button
-          className={topMode === 'single' ? 'active' : ''}
+          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('single')}
         >
           Single scenario
         </button>
         <button
-          className={topMode === 'optimize' ? 'active' : ''}
+          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('optimize')}
         >
           Study / optimize
         </button>
         <button
-          className={topMode === 'evolve' ? 'active' : ''}
+          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('evolve')}
         >
           Evolve
         </button>
         <button
-          className={topMode === 'compare' ? 'active' : ''}
+          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('compare')}
         >
           Compare scenarios
         </button>
       </div>
-      <div className={`layout${topMode === 'single' ? '' : ' no-aside'}`}>
+      <div className={`grid gap-6${topMode === 'single' ? ' grid-cols-[280px_minmax(0,1fr)]' : ' grid-cols-[minmax(0,1fr)]'}`}>
         {topMode === 'single' && (
-          <aside className="controls">
-            <section className="control-zone">
-              <div className="zone-heading">
-                <h2>Strategy</h2>
+          <aside className="flex flex-col gap-5 bg-surface border border-border rounded-lg p-4 h-fit">
+            <section className="control-zone flex flex-col gap-5">
+              <div className="flex flex-col gap-0.5">
+                <h2 className="m-0 text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</h2>
               </div>
               <PresetPicker />
-              <h3 className="section-heading">Holdings mix</h3>
+              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Holdings mix</h3>
               <AllocationEditor
                 horizonYears={scenario.horizonYears}
                 allocation={scenario.allocation}
                 onChange={scenario.setAllocation}
               />
-              <h3 className="section-heading">Withdrawal strategy</h3>
+              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal strategy</h3>
               <WithdrawalEditor
                 horizonYears={scenario.horizonYears}
                 withdrawal={scenario.withdrawal}
                 onChange={scenario.setWithdrawal}
               />
-              <h3 className="section-heading">Withdrawal source</h3>
+              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
               <WithdrawalSourceInput />
               <TailMethodInput />
             </section>
             <ScenarioLibrary />
           </aside>
         )}
-        <main className="results">
+        <main className="bg-surface border border-border rounded-lg p-4">
           {topMode === 'optimize' && (
             <FrontierView onApplied={() => setTopMode('single')} />
           )}
@@ -235,26 +233,22 @@ export function App() {
           {topMode === 'compare' && <CompareScenariosView />}
           {topMode === 'about' && <AboutPanel />}
           {topMode === 'single' && <>
-          {!data && <div className="loading">Loading historical data…</div>}
+          {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
           {data && (
-            <div className="compute-meta">
+            <div className="text-xs text-text-placeholder mb-2">
               Compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
-              {pool && <span className="pool-meta"> ({pool.size} workers)</span>}
+              {pool && <span className="text-text-placeholder"> ({pool.size} workers)</span>}
               {result && (
-                <span className="view-toggle">
+                <span className="ml-3">
                   view:
                   <button
-                    className={
-                      view === 'spaghetti' || view === 'whereami'
-                        ? 'active'
-                        : ''
-                    }
+                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
                     onClick={() => setView('spaghetti')}
                   >
                     spaghetti
                   </button>
                   <button
-                    className={view === 'calendar' ? 'active' : ''}
+                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'calendar' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
                     onClick={() => setView('calendar')}
                   >
                     calendar
@@ -276,7 +270,7 @@ export function App() {
               {view === 'spaghetti' && (
                 <>
                   {recentCohorts > 0 && (
-                    <div className="inprogress-banner">
+                    <div className="flex items-center justify-between gap-3 flex-wrap bg-surface-panel border border-border rounded-md px-3 py-2 text-sm text-text-body mb-3">
                       <span>
                         {recentCohorts} in-progress cohort
                         {recentCohorts === 1 ? '' : 's'}{' '}
@@ -284,13 +278,16 @@ export function App() {
                         the success rate — their horizon hasn't fully played
                         out yet.
                       </span>
-                      <button onClick={() => setView('whereami')}>
-                        View as “Where Am I” →
+                      <button
+                        className="flex-shrink-0 text-sm py-[5px] px-[10px] border border-border-hover bg-surface text-primary rounded cursor-pointer hover:bg-surface-panel"
+                        onClick={() => setView('whereami')}
+                      >
+                        View as "Where Am I" →
                       </button>
                     </div>
                   )}
-                  <div className="single-scenario-charts">
-                    <div className="spaghetti-col">
+                  <div className="grid grid-cols-2 gap-3 items-start">
+                    <div className="min-w-0">
                       <SpaghettiChart
                         result={result}
                         overlay={snapshot?.result ?? null}
@@ -301,7 +298,7 @@ export function App() {
                         height={400}
                       />
                     </div>
-                    <div className="start-year-col">
+                    <div className="min-w-0">
                       <StartYearChart
                         result={result}
                         initialBalance={scenario.initialBalance}
@@ -336,7 +333,7 @@ export function App() {
               {view === 'whereami' && (
                 <>
                   <button
-                    className="back-link"
+                    className="border-none bg-transparent text-primary text-sm cursor-pointer pb-2 hover:underline"
                     onClick={() => setView('spaghetti')}
                   >
                     ← Back to spaghetti

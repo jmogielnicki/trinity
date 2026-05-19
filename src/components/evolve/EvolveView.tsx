@@ -91,9 +91,9 @@ export function EvolveView() {
     lastConfig && lastConfig.horizonYears !== scenario.horizonYears;
 
   return (
-    <div className="frontier-view evolve-view">
-      <div className="frontier-header">
-        <div>
+    <div className="flex flex-col gap-[14px] text-base">
+      <div className="flex justify-between items-start gap-4">
+        <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
           <strong>Evolve strategies</strong> — a genetic algorithm runs four
           independent "islands" in parallel, each optimizing for a different
           definition of best (balanced, safety-first, max spending, ramp-up).
@@ -101,11 +101,20 @@ export function EvolveView() {
           strategies. Genome: glide-path + a 4-point withdrawal curve, with all
           withdrawal rates kept at or above your minimum-SWR floor.
         </div>
-        <div className="frontier-actions">
+        <div className="flex gap-1.5 flex-shrink-0">
           {running ? (
-            <button onClick={cancel}>Stop</button>
+            <button
+              className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover"
+              onClick={cancel}
+            >
+              Stop
+            </button>
           ) : (
-            <button onClick={startRun} disabled={!pool || !data}>
+            <button
+              className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={startRun}
+              disabled={!pool || !data}
+            >
               {history.length ? 'Re-run evolution' : 'Run evolution'}
             </button>
           )}
@@ -125,20 +134,20 @@ export function EvolveView() {
       />
 
       {(running || history.length > 0) && (
-        <div className="evolve-progress">
-          <div className="evolve-progress-label">
+        <div className="flex flex-col gap-1">
+          <div className="text-xs text-text-muted">
             Gen {currentGen} / {totalGens}
             {running ? ' · running…' : ` · done · ${computeMs.toFixed(0)} ms`}
             {horizonStale && (
-              <span className="frontier-stale">
+              <span className="text-stale">
                 {' '}
                 · horizon changed since last run — re-run to refresh
               </span>
             )}
           </div>
-          <div className="evolve-progress-bar">
+          <div className="h-1.5 bg-border-light rounded-[3px] overflow-hidden">
             <div
-              className="evolve-progress-fill"
+              className="h-full bg-chart-blue transition-[width] duration-[120ms] linear"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -154,7 +163,7 @@ export function EvolveView() {
             selectedId={selected ? genomeId(selected.genome) : null}
             onSelect={(id) => setSelected(id)}
           />
-          <div className="evolve-split">
+          <div className="grid [grid-template-columns:minmax(0,2fr)_minmax(0,1fr)] gap-3 max-[1100px]:[grid-template-columns:1fr]">
             <IslandTables
               islands={latest.islands}
               selectedId={selected ? genomeId(selected.genome) : null}
@@ -197,13 +206,13 @@ function FitnessControls({
   onPopulation: (n: number) => void;
 }) {
   return (
-    <div className="evolve-controls">
-      <div className="evolve-controls-title">
+    <div className="border border-border-light rounded p-[10px_12px] bg-surface-page">
+      <div className="text-xs text-text-secondary mb-2">
         Constraints &amp; the "Balanced" island weights — adjust then re-run.
         The Safety-first / Spend-it-down / Ramp-up islands use fixed goal
         profiles (success floor is shared across all).
       </div>
-      <div className="evolve-controls-grid">
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] gap-[8px_16px]">
         <Slider
           label="Min withdrawal (SWR floor)"
           value={minWithdrawalRate}
@@ -308,8 +317,11 @@ function Slider({
   help?: string;
 }) {
   return (
-    <label className="evolve-slider" title={help}>
-      <span className="evolve-slider-label">{label}</span>
+    <label
+      className="grid [grid-template-columns:130px_1fr_50px] items-center gap-2 text-sm text-text-secondary"
+      title={help}
+    >
+      <span className="text-text-secondary">{label}</span>
       <input
         type="range"
         min={min}
@@ -317,9 +329,10 @@ function Slider({
         step={step}
         value={value}
         disabled={disabled}
+        className="w-full"
         onChange={(e) => onChange(parseFloat(e.target.value))}
       />
-      <span className="evolve-slider-value">{format(value)}</span>
+      <span className="tabular-nums text-text text-right text-xs">{format(value)}</span>
     </label>
   );
 }
@@ -362,8 +375,8 @@ function ConvergenceChart({ history }: { history: GenerationSnapshot[] }) {
       .join(' ');
 
   return (
-    <div className="frontier-scatter-wrap">
-      <div className="frontier-bars-title">
+    <div className="border border-border-light rounded p-2 bg-surface-page">
+      <div className="text-xs text-text-secondary mb-1.5">
         Best fitness per generation, per island
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
@@ -412,11 +425,11 @@ function ConvergenceChart({ history }: { history: GenerationSnapshot[] }) {
           />
         ))}
       </svg>
-      <div className="frontier-legend">
+      <div className="flex gap-4 text-xs text-text-secondary mt-1.5 px-1.5">
         {history[0]?.islands.map((isl, idx) => (
           <span key={isl.profile.id}>
             <span
-              className="dot"
+              className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1"
               style={{ background: islandColor(idx) }}
             />{' '}
             {isl.profile.name}
@@ -443,27 +456,24 @@ function ChampionRow({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="evolve-champions">
+    <div className="grid [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] gap-[10px]">
       {champions.map((c, idx) => {
         const id = genomeId(c.individual.genome);
         const m = c.individual.metrics!;
         return (
           <div
             key={c.islandId}
-            className={
-              'evolve-champion-card' +
-              (selectedId === id ? ' evolve-champion-selected' : '')
-            }
+            className={`border border-border rounded border-t-[3px] p-[8px_10px] bg-surface cursor-pointer flex flex-col gap-[5px] hover:bg-surface-page${selectedId === id ? ' shadow-[inset_0_0_0_2px_var(--color-chart-blue)]' : ''}`}
             style={{ borderTopColor: islandColor(idx) }}
             onClick={() => onSelect(id)}
           >
             <div
-              className="evolve-champion-name"
+              className="text-sm font-semibold"
               style={{ color: islandColor(idx) }}
             >
               {c.islandName}
             </div>
-            <div className="evolve-champion-label">
+            <div className="text-2xs text-text-faint leading-[1.3]">
               {genomeLabel(c.individual.genome)}
             </div>
             <WithdrawalSpark
@@ -472,7 +482,7 @@ function ChampionRow({
               color={islandColor(idx)}
               compact
             />
-            <div className="evolve-champion-stats">
+            <div className="flex flex-wrap gap-[2px_10px] text-2xs text-text-secondary">
               <span>success {(m.successRate * 100).toFixed(1)}%</span>
               <span>safety p5 {(m.safetyP5 * 100).toFixed(0)}%</span>
               <span>spend {m.spendingMedian.toFixed(2)}×</span>
@@ -499,26 +509,28 @@ function IslandTables({
   onSelect: (id: string) => void;
 }) {
   const TOP = 5;
+  const thCls = 'px-2 py-1.5 text-left border-b border-border-light whitespace-nowrap text-text-muted font-medium text-xs uppercase tracking-[0.04em] bg-surface-hover';
+  const tdCls = 'px-2 py-1.5 text-left border-b border-border-light whitespace-nowrap text-sm';
   return (
-    <div className="evolve-island-tables">
+    <div className="flex flex-col gap-[14px]">
       {islands.map((isl, idx) => (
-        <div key={isl.profile.id} className="frontier-table-wrap">
+        <div key={isl.profile.id} className="overflow-x-auto">
           <div
-            className="frontier-bars-title"
+            className="text-xs text-text-secondary mb-1.5"
             style={{ color: islandColor(idx) }}
           >
             {isl.profile.name} — top {Math.min(TOP, isl.population.length)}{' '}
-            <span className="evolve-island-blurb">({isl.profile.blurb})</span>
+            <span className="text-text-placeholder font-normal normal-case tracking-normal">({isl.profile.blurb})</span>
           </div>
-          <table className="frontier-table">
+          <table className="w-full border-collapse text-sm [&_tbody_tr:hover]:bg-surface-panel">
             <thead>
               <tr>
-                <th>Strategy</th>
-                <th>Fit</th>
-                <th>Success</th>
-                <th>Safety</th>
-                <th>Spend</th>
-                <th>Ramp</th>
+                <th className={thCls}>Strategy</th>
+                <th className={thCls}>Fit</th>
+                <th className={thCls}>Success</th>
+                <th className={thCls}>Safety</th>
+                <th className={thCls}>Spend</th>
+                <th className={thCls}>Ramp</th>
               </tr>
             </thead>
             <tbody>
@@ -529,17 +541,15 @@ function IslandTables({
                   <tr
                     key={id}
                     onClick={() => onSelect(id)}
-                    className={
-                      selectedId === id ? 'evolve-row-selected' : ''
-                    }
+                    className={selectedId === id ? 'bg-surface-code' : ''}
                     style={{ cursor: 'pointer' }}
                   >
-                    <td>{genomeLabel(ind.genome)}</td>
-                    <td>{(ind.fitness ?? 0).toFixed(3)}</td>
-                    <td>{(m.successRate * 100).toFixed(1)}%</td>
-                    <td>{(m.safetyP5 * 100).toFixed(0)}%</td>
-                    <td>{m.spendingMedian.toFixed(2)}×</td>
-                    <td>{m.slopeMedian.toFixed(2)}×</td>
+                    <td className={tdCls}>{genomeLabel(ind.genome)}</td>
+                    <td className={`${tdCls} text-right tabular-nums`}>{(ind.fitness ?? 0).toFixed(3)}</td>
+                    <td className={`${tdCls} text-right tabular-nums`}>{(m.successRate * 100).toFixed(1)}%</td>
+                    <td className={`${tdCls} text-right tabular-nums`}>{(m.safetyP5 * 100).toFixed(0)}%</td>
+                    <td className={`${tdCls} text-right tabular-nums`}>{m.spendingMedian.toFixed(2)}×</td>
+                    <td className={`${tdCls} text-right tabular-nums`}>{m.slopeMedian.toFixed(2)}×</td>
                   </tr>
                 );
               })}
@@ -566,10 +576,10 @@ function StrategyPreview({
   const g = individual.genome;
   const m = individual.metrics;
   return (
-    <div className="evolve-preview">
-      <div className="frontier-bars-title">Selected strategy</div>
-      <div className="evolve-preview-label">{genomeLabel(g)}</div>
-      <div className="evolve-spark-row">
+    <div className="border border-border-light rounded p-[10px] bg-surface-page flex flex-col gap-1.5">
+      <div className="text-xs text-text-secondary mb-1.5">Selected strategy</div>
+      <div className="text-sm text-text-body">{genomeLabel(g)}</div>
+      <div className="flex flex-col gap-2">
         <WithdrawalSpark
           genome={g}
           horizonYears={horizonYears}
@@ -577,7 +587,7 @@ function StrategyPreview({
         />
         <GlideSpark genome={g} horizonYears={horizonYears} />
       </div>
-      <div className="evolve-preview-stats">
+      <div className="text-xs text-text-muted">
         success {((m?.successRate ?? 0) * 100).toFixed(1)}% · spending median{' '}
         {m?.spendingMedian.toFixed(2)}× initial · late/early{' '}
         {m?.slopeMedian.toFixed(2)}× · worst start {m?.worstStartYear ?? '—'}
@@ -613,9 +623,9 @@ function WithdrawalSpark({
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${xScale(p.t)},${yScale(p.rate)}`)
     .join(' ');
   return (
-    <div className="evolve-spark">
+    <div className="bg-surface rounded-[3px] p-1">
       {!compact && (
-        <div className="evolve-spark-title">
+        <div className="text-2xs text-text-faint px-1 pb-0.5">
           Withdrawal rate (% of initial)
         </div>
       )}
@@ -690,8 +700,8 @@ function GlideSpark({
     years.map((t) => `L${xScale(t)},${yScale(stockAt(t))}`).join(' ') +
     ` L${xScale(horizonYears - 1)},${yScale(0)} Z`;
   return (
-    <div className="evolve-spark">
-      <div className="evolve-spark-title">
+    <div className="bg-surface rounded-[3px] p-1">
+      <div className="text-2xs text-text-faint px-1 pb-0.5">
         Glide path (stock = green, bond = blue)
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>

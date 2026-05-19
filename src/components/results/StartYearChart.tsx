@@ -182,7 +182,7 @@ export function StartYearChart({
   const dotR = Math.max(2, Math.min(3.5, colW * 0.45));
 
   return (
-    <div ref={wrapRef} className="start-year-chart-wrap">
+    <div ref={wrapRef} className="block">
       <svg
         ref={svgRef}
         width={W}

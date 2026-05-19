@@ -57,7 +57,11 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
   const rows = axes[0].ticks.length;
   const cols = axes[1].ticks.length;
   if (rows === 0 || cols === 0) {
-    return <p className="frontier-empty">No variants — widen the sweep ranges.</p>;
+    return (
+      <p className="text-sm text-text-faint p-3 text-center border border-dashed border-text-disabled rounded">
+        No variants — widen the sweep ranges.
+      </p>
+    );
   }
 
   const selected = selectedId
@@ -65,16 +69,16 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
     : null;
 
   return (
-    <div className="study-heatmaps">
-      <div className="study-heatmaps-caption">
+    <div className="flex flex-col gap-3">
+      <div className="text-sm text-text-secondary">
         Rows: <strong>{axes[0].label}</strong> · Columns:{' '}
         <strong>{axes[1].label}</strong> · click a cell to apply or save that
         variant.
       </div>
       {selected && (
-        <div className="study-heatmap-detail">
-          <div className="study-heatmap-detail-info">
-            <strong>{selected.candidate.label}</strong>
+        <div className="flex justify-between items-center gap-4 border border-border-hover rounded-md px-3 py-[10px] bg-surface flex-wrap sticky top-2 z-[5] shadow-sticky">
+          <div className="flex flex-col gap-0.5 text-sm text-text-secondary">
+            <strong className="text-text text-base">{selected.candidate.label}</strong>
             <span>
               {selected.candidate.params.allocation} ·{' '}
               {selected.candidate.params.withdrawal} ·{' '}
@@ -89,13 +93,21 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
               {fmtMoney(selected.metrics.minBalance)}
             </span>
           </div>
-          <div className="study-heatmap-detail-actions">
-            <button onClick={() => onApply(selected)}>
+          <div className="flex gap-1.5 items-center">
+            <button
+              className="text-sm px-[10px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-surface-muted"
+              onClick={() => onApply(selected)}
+            >
               Apply to single scenario
             </button>
-            <button onClick={() => onSave(selected)}>Save to library</button>
             <button
-              className="frontier-remove"
+              className="text-sm px-[10px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-surface-muted"
+              onClick={() => onSave(selected)}
+            >
+              Save to library
+            </button>
+            <button
+              className="bg-transparent border-none text-stale cursor-pointer text-base leading-none px-1 hover:text-error"
               onClick={() => setSelectedId(null)}
               title="dismiss"
             >
@@ -104,7 +116,7 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
           </div>
         </div>
       )}
-      <div className="study-heatmap-grid">
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(360px,1fr))] gap-4">
         {METRICS.map((m) => (
           <MetricHeatmap
             key={m.key}
@@ -163,15 +175,19 @@ function MetricHeatmap({
   };
 
   return (
-    <div className="study-heatmap">
-      <div className="study-heatmap-title">{spec.label}</div>
-      <div className="study-heatmap-scroll">
-        <table className="study-heatmap-table">
+    <div className="border border-border rounded-md p-2 bg-surface min-w-0">
+      <div className="text-sm font-semibold text-text-body mb-1.5">{spec.label}</div>
+      <div className="overflow-x-auto">
+        <table className="border-collapse text-2xs">
           <thead>
             <tr>
-              <th className="study-heatmap-corner" />
+              <th className="bg-surface font-medium text-text-muted text-2xs p-[2px_4px] text-left" />
               {axes[1].ticks.map((t, c) => (
-                <th key={c} title={t}>
+                <th
+                  key={c}
+                  title={t}
+                  className="font-medium text-text-muted text-2xs p-[2px_4px] text-left max-w-16 overflow-hidden text-ellipsis whitespace-nowrap"
+                >
                   {t}
                 </th>
               ))}
@@ -180,7 +196,10 @@ function MetricHeatmap({
           <tbody>
             {axes[0].ticks.map((rowTick, r) => (
               <tr key={r}>
-                <th className="study-heatmap-rowlabel" title={rowTick}>
+                <th
+                  title={rowTick}
+                  className="font-medium text-text-muted text-2xs p-[2px_4px] text-left max-w-24 overflow-hidden text-ellipsis whitespace-nowrap sticky left-0 bg-surface"
+                >
                   {rowTick}
                 </th>
                 {Array.from({ length: cols }, (_, c) => {
@@ -192,7 +211,7 @@ function MetricHeatmap({
                   return (
                     <td
                       key={c}
-                      className={`study-heatmap-cell${isSel ? ' selected' : ''}`}
+                      className={`p-[3px_5px] text-center cursor-pointer whitespace-nowrap tabular-nums min-w-10 hover:brightness-[1.12]${isSel ? ' outline outline-[3px] outline-text -outline-offset-[3px] font-bold' : ''}`}
                       style={{
                         background,
                         color,

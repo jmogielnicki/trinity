@@ -73,50 +73,54 @@ export function CompareScenariosView() {
 
   if (saved.length === 0) {
     return (
-      <div className="compare-view">
-        <div className="compare-header">
+      <div className="flex flex-col gap-[14px] text-base">
+        <div className="text-text-secondary text-sm leading-[1.4] max-w-[760px]">
           <strong>Compare scenarios</strong> — pit several saved scenarios
           against one another.
         </div>
-        <p className="compare-empty">
-          No saved scenarios yet. Build a scenario, then use “Scenario library”
-          in the sidebar to save it. Save a few and they’ll show up here.
+        <p className="text-sm text-text-faint py-4 text-center border border-dashed border-text-disabled rounded">
+          No saved scenarios yet. Build a scenario, then use "Scenario library"
+          in the sidebar to save it. Save a few and they'll show up here.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="compare-view">
-      <div className="compare-header">
+    <div className="flex flex-col gap-[14px] text-base">
+      <div className="text-text-secondary text-sm leading-[1.4] max-w-[760px]">
         <strong>Compare scenarios</strong> — runs each picked scenario across
         all historical start years (using its own balance, horizon, and tail
         method) and lines them up side by side. Pick up to {COMPARE_MAX}.
       </div>
 
-      <div className="compare-pick-wrap">
-        <div className="compare-pick-head">
+      <div className="border border-border-light rounded p-[10px] bg-surface-page">
+        <div className="flex justify-between items-center text-xs text-text-faint mb-2">
           <span>
             {selectedIds.length} of {saved.length} selected
           </span>
-          <div className="compare-pick-head-actions">
+          <div className="flex gap-1.5">
             <button
+              className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer hover:bg-surface-hover"
               onClick={() =>
                 setSelection(saved.slice(0, COMPARE_MAX).map((s) => s.id))
               }
             >
               Select first {Math.min(COMPARE_MAX, saved.length)}
             </button>
-            <button onClick={clear}>Clear</button>
+            <button
+              className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer hover:bg-surface-hover"
+              onClick={clear}
+            >Clear</button>
           </div>
         </div>
-        <ul className="compare-pick-list">
+        <ul className="list-none p-0 m-0 grid [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))] gap-y-0.5 gap-x-[14px]">
           {saved.map((s) => {
             const checked = selectedIds.includes(s.id);
             const color = colorById.get(s.id);
             return (
-              <li key={s.id}>
-                <label>
+              <li key={s.id} className="text-sm">
+                <label className="flex items-center gap-1.5 cursor-pointer py-[3px] px-0.5 min-w-0">
                   <input
                     type="checkbox"
                     checked={checked}
@@ -124,11 +128,11 @@ export function CompareScenariosView() {
                     onChange={() => toggle(s.id)}
                   />
                   <span
-                    className="compare-pick-swatch"
+                    className="inline-block w-[10px] h-[10px] rounded-sm flex-shrink-0"
                     style={{ background: checked && color ? color : '#ddd' }}
                   />
-                  <span className="compare-pick-name">{s.name}</span>
-                  <span className="compare-pick-desc">
+                  <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">{s.name}</span>
+                  <span className="text-text-placeholder text-xs whitespace-nowrap ml-auto pl-2">
                     {describeWithdrawal(s.state.withdrawal)} ·{' '}
                     {describeAllocation(s.state.allocation)} ·{' '}
                     {s.state.horizonYears}y
@@ -141,21 +145,21 @@ export function CompareScenariosView() {
       </div>
 
       {entries.length > 0 && (
-        <div className="compare-meta">
+        <div className="text-xs text-text-faint">
           {entries.length} scenario{entries.length === 1 ? '' : 's'} compared ·
           compute {computeMs.toFixed(0)} ms{running ? ' · updating…' : ''}
         </div>
       )}
 
       {entries.length === 0 ? (
-        <p className="compare-empty">
+        <p className="text-sm text-text-faint py-4 text-center border border-dashed border-text-disabled rounded">
           Select at least one scenario above to compare.
         </p>
       ) : (
         <>
           <ComparisonTable entries={entries} />
           <SharedLegend entries={entries} />
-          <div className="compare-charts-row compare-charts-row-3">
+          <div className="grid grid-cols-3 gap-3 items-start">
             <TerminalBalanceChart entries={entries} />
             <AverageSpendChart entries={entries} />
             <ScatterPlot entries={entries} />
@@ -172,11 +176,11 @@ export function CompareScenariosView() {
 
 function SharedLegend({ entries }: { entries: CompareEntry[] }) {
   return (
-    <div className="compare-shared-legend">
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 py-1.5 pb-[10px] text-sm text-text-body">
       {entries.map((e, i) => (
-        <span key={e.saved.id} className="compare-legend-item">
+        <span key={e.saved.id} className="flex items-center gap-1.5">
           <span
-            className="compare-legend-swatch"
+            className="inline-block w-6 h-[3px] rounded-sm flex-shrink-0"
             style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }}
           />
           {e.saved.name}
@@ -207,71 +211,72 @@ function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
   const bestAvgWd = best((e) => e.metrics.avgAnnualWithdrawal);
   const bestMin = best((e) => e.metrics.minBalance);
 
+  const numCls = 'text-right tabular-nums';
+  const leadCls = 'text-right tabular-nums font-semibold text-success';
+  const thCls = 'px-2 py-1.5 text-left text-xs font-medium text-text-muted uppercase tracking-[0.04em] bg-surface-hover border-b border-border-light whitespace-nowrap';
+  const tdCls = 'px-2 py-1.5 border-b border-border-light whitespace-nowrap';
+
   return (
-    <div className="compare-table-wrap">
-      <table className="compare-table">
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th></th>
-            <th>Scenario</th>
-            <th>Withdrawal</th>
-            <th>Allocation</th>
-            <th className="num">Horizon</th>
-            <th className="num">Start $</th>
-            <th className="num">Success</th>
-            <th className="num">P5 final</th>
-            <th className="num">Median final</th>
-            <th className="num">P95 final</th>
-            <th className="num">Avg withdrawal</th>
-            <th className="num">Min balance</th>
-            <th className="num">Worst start</th>
+            <th className={thCls}></th>
+            <th className={thCls}>Scenario</th>
+            <th className={thCls}>Withdrawal</th>
+            <th className={thCls}>Allocation</th>
+            <th className={`${thCls} text-right`}>Horizon</th>
+            <th className={`${thCls} text-right`}>Start $</th>
+            <th className={`${thCls} text-right`}>Success</th>
+            <th className={`${thCls} text-right`}>P5 final</th>
+            <th className={`${thCls} text-right`}>Median final</th>
+            <th className={`${thCls} text-right`}>P95 final</th>
+            <th className={`${thCls} text-right`}>Avg withdrawal</th>
+            <th className={`${thCls} text-right`}>Min balance</th>
+            <th className={`${thCls} text-right`}>Worst start</th>
           </tr>
         </thead>
         <tbody>
           {entries.map((e, i) => {
             const m = e.metrics;
             const lead = (v: number, b: number) =>
-              Number.isFinite(v) && v === b ? 'num lead' : 'num';
+              Number.isFinite(v) && v === b ? leadCls : numCls;
             return (
               <tr key={e.saved.id}>
-                <td>
+                <td className={tdCls}>
                   <span
-                    className="series-swatch"
+                    className="inline-block w-3 h-3 rounded-sm"
                     style={{
                       background: SERIES_COLORS[i % SERIES_COLORS.length],
                     }}
                   />
                 </td>
-                <td>{e.saved.name}</td>
-                <td>{describeWithdrawal(e.saved.state.withdrawal)}</td>
-                <td>{describeAllocation(e.saved.state.allocation)}</td>
-                <td className="num">{e.saved.state.horizonYears}y</td>
-                <td className="num">{fmtMoney(e.saved.state.initialBalance)}</td>
-                <td className={lead(m.successRate, bestSuccess)}>
+                <td className={tdCls}>{e.saved.name}</td>
+                <td className={tdCls}>{describeWithdrawal(e.saved.state.withdrawal)}</td>
+                <td className={tdCls}>{describeAllocation(e.saved.state.allocation)}</td>
+                <td className={`${tdCls} ${numCls}`}>{e.saved.state.horizonYears}y</td>
+                <td className={`${tdCls} ${numCls}`}>{fmtMoney(e.saved.state.initialBalance)}</td>
+                <td className={`${tdCls} ${lead(m.successRate, bestSuccess)}`}>
                   {Number.isFinite(m.successRate)
                     ? `${(m.successRate * 100).toFixed(1)}%`
                     : '—'}
                 </td>
-                <td className={lead(m.p5Final, bestP5)}>
+                <td className={`${tdCls} ${lead(m.p5Final, bestP5)}`}>
                   {fmtMoney(m.p5Final)}
                 </td>
-                <td className={lead(m.p50Final, bestP50)}>
+                <td className={`${tdCls} ${lead(m.p50Final, bestP50)}`}>
                   {fmtMoney(m.p50Final)}
                 </td>
-                <td className={lead(m.p95Final, bestP95)}>
+                <td className={`${tdCls} ${lead(m.p95Final, bestP95)}`}>
                   {fmtMoney(m.p95Final)}
                 </td>
-                <td className={lead(m.avgAnnualWithdrawal, bestAvgWd)}>
+                <td className={`${tdCls} ${lead(m.avgAnnualWithdrawal, bestAvgWd)}`}>
                   {fmtMoney(m.avgAnnualWithdrawal)}
                 </td>
-                <td
-                  className={
-                    bestMin > 0 ? lead(m.minBalance, bestMin) : 'num'
-                  }
-                >
+                <td className={`${tdCls} ${bestMin > 0 ? lead(m.minBalance, bestMin) : numCls}`}>
                   {fmtMoney(m.minBalance)}
                 </td>
-                <td className="num">{m.worstStartYear ?? '—'}</td>
+                <td className={`${tdCls} ${numCls}`}>{m.worstStartYear ?? '—'}</td>
               </tr>
             );
           })}
@@ -380,8 +385,8 @@ function AverageSpendChart({ entries }: { entries: CompareEntry[] }) {
   );
 
   return (
-    <div className="compare-chart-wrap compare-chart-third">
-      <div className="compare-chart-title">
+    <div className="border border-border-light rounded p-2 bg-surface-page min-w-0">
+      <div className="flex justify-between items-center gap-3 text-xs text-text-secondary mb-1.5">
         <span>Avg annual spend by start year</span>
       </div>
       <HighchartsReact
@@ -491,8 +496,8 @@ function TerminalBalanceChart({ entries }: { entries: CompareEntry[] }) {
   );
 
   return (
-    <div className="compare-chart-wrap compare-chart-third">
-      <div className="compare-chart-title">
+    <div className="border border-border-light rounded p-2 bg-surface-page min-w-0">
+      <div className="flex justify-between items-center gap-3 text-xs text-text-secondary mb-1.5">
         <span>Terminal balance by start year</span>
       </div>
       <HighchartsReact
@@ -614,13 +619,14 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
   if (xVals.length === 0 || yVals.length === 0) return null;
 
   return (
-    <div className="compare-chart-wrap compare-chart-third">
-      <div className="compare-chart-title">
+    <div className="border border-border-light rounded p-2 bg-surface-page min-w-0">
+      <div className="flex justify-between items-center gap-3 text-xs text-text-secondary mb-1.5">
         <span>Scenarios plotted on two metrics</span>
-        <div className="frontier-axes">
-          <label>
+        <div className="flex gap-4 text-sm text-text-secondary">
+          <label className="flex gap-1.5 items-center">
             x:
             <select
+              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
               value={xAxis}
               onChange={(e) => setXAxis(e.target.value as MetricKey)}
             >
@@ -631,9 +637,10 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
               ))}
             </select>
           </label>
-          <label>
+          <label className="flex gap-1.5 items-center">
             y:
             <select
+              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
               value={yAxis}
               onChange={(e) => setYAxis(e.target.value as MetricKey)}
             >

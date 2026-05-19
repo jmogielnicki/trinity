@@ -50,22 +50,22 @@ export function ScenarioActions() {
   }, [result]);
 
   return (
-    <div className="control-group actions">
-      <button onClick={onShare} title="Copy a shareable URL">
+    <div className="flex flex-row flex-wrap gap-1.5">
+      <button className="text-sm px-[9px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" onClick={onShare} title="Copy a shareable URL">
         copy share link
       </button>
-      <button onClick={onCsv} disabled={!result}>
+      <button className="text-sm px-[9px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" onClick={onCsv} disabled={!result}>
         export csv
       </button>
       {snapshot ? (
-        <button onClick={() => setSnapshot(null)}>
+        <button className="text-sm px-[9px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" onClick={() => setSnapshot(null)}>
           clear comparison
-          <span className="dot" style={{ background: SNAPSHOT_COLOR }} />
+          <span className="inline-block w-[10px] h-[10px] rounded-full" style={{ background: SNAPSHOT_COLOR }} />
         </button>
       ) : (
-        <button onClick={onSnapshot} disabled={!result}>
+        <button className="text-sm px-[9px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" onClick={onSnapshot} disabled={!result}>
           snapshot current
-          <span className="dot" style={{ background: CURRENT_COLOR }} />
+          <span className="inline-block w-[10px] h-[10px] rounded-full" style={{ background: CURRENT_COLOR }} />
         </button>
       )}
     </div>

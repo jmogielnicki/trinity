@@ -37,12 +37,12 @@ export function CalendarHeatmap({ result, initialBalance, width = 800 }: Props) 
 
   return (
     <div>
-      <div className="heatmap-meta">
+      <div className="text-sm text-text-secondary mb-2">
         Calendar heatmap — each row is a retirement start year. Color = balance
         as fraction of initial (red ≤ 0, yellow ≈ 1×, green ≥ 2×). Black =
         depleted.
       </div>
-      <svg width={width} height={height} className="heatmap">
+      <svg width={width} height={height} className="block">
         {yearLabels.map(({ year, i }) => (
           <text
             key={year}

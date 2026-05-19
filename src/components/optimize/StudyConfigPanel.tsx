@@ -109,9 +109,12 @@ export function StudyConfigPanel() {
     update({ varying: [...study.varying, key] });
   };
 
+  const modeBtnCls = (active: boolean) =>
+    `inline-flex items-center gap-1 text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed${active ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`;
+
   return (
-    <div className="study-panel">
-      <div className="study-panel-intro">
+    <div className="flex flex-col gap-2 border border-border rounded-md p-3 bg-surface-page">
+      <div className="text-sm text-text-muted leading-[1.4]">
         Pin the dimensions you want held constant and sweep the rest. Sweep one
         for a scatter / trajectory comparison, or two for a heatmap grid (max
         two).
@@ -122,15 +125,15 @@ export function StudyConfigPanel() {
         const role =
           swept && sweptCount === 2 ? (sweepIdx === 0 ? 'rows' : 'columns') : null;
         return (
-          <div key={key} className={`study-row${swept ? ' varying' : ''}`}>
-            <div className="study-row-head">
-              <span className="study-dim-name">
+          <div key={key} className={`border rounded-[5px] bg-surface px-[10px] py-2${swept ? ' border-chart-blue shadow-[0_0_0_1px_var(--color-chart-blue)_inset]' : ' border-border'}`}>
+            <div className="flex justify-between items-center gap-3">
+              <span className="text-base font-semibold text-text-body">
                 {label}
-                {role && <span className="study-dim-role"> · {role}</span>}
+                {role && <span className="font-medium text-text-faint text-xs"> · {role}</span>}
               </span>
-              <div className="mode-toggle study-dim-toggle">
+              <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] flex-shrink-0">
                 <button
-                  className={!swept ? 'active' : ''}
+                  className={modeBtnCls(!swept)}
                   onClick={() => setPinned(key)}
                   disabled={swept && sweptCount <= 1}
                   title="Hold this dimension constant"
@@ -138,7 +141,7 @@ export function StudyConfigPanel() {
                   <PinIcon /> pinned
                 </button>
                 <button
-                  className={swept ? 'active' : ''}
+                  className={modeBtnCls(swept)}
                   onClick={() => setSwept(key)}
                   disabled={!swept && sweptCount >= 2}
                   title="Sweep this dimension across many variants"
@@ -147,7 +150,7 @@ export function StudyConfigPanel() {
                 </button>
               </div>
             </div>
-            <div className="study-row-body">
+            <div className="mt-2">
               {swept ? (
                 <VaryEditor
                   dim={key}
@@ -233,15 +236,15 @@ function VaryEditor({
     update({ varyMode: { ...study.varyMode, [dim]: m } });
   return (
     <>
-      <div className="mode-toggle study-vary-mode">
+      <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none mb-2">
         <button
-          className={mode === 'range' ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'range' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setMode('range')}
         >
           range
         </button>
         <button
-          className={mode === 'list' ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'list' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setMode('list')}
         >
           hand-picked list
@@ -286,7 +289,7 @@ function VariantCount({
     n = study.sourcePresetIds.length;
   }
   return (
-    <div className="rule-hint">
+    <div className="text-xs text-text-faint py-[2px] pb-1">
       {n} variant{n === 1 ? '' : 's'} on this axis.
     </div>
   );
@@ -310,8 +313,8 @@ function RangeEditor({
     const set = (patch: Partial<AllocationRangeSpec>) =>
       update({ allocationRange: { ...r, ...patch } });
     return (
-      <div className="study-range">
-        <div className="rule-hint">
+      <div className="flex flex-col gap-2">
+        <div className="text-xs text-text-faint py-[2px] pb-1">
           Sweeps every stock × bond combination; cash fills the remainder.
           Combinations over 100% are skipped.
         </div>
@@ -340,10 +343,10 @@ function RangeEditor({
     return <WithdrawalRangeEditor spec={study.withdrawalRange} update={update} />;
   }
   return (
-    <div className="study-range">
-      <div className="rule-hint">Race these withdrawal-source strategies:</div>
+    <div className="flex flex-col gap-2">
+      <div className="text-xs text-text-faint py-[2px] pb-1">Race these withdrawal-source strategies:</div>
       {SOURCE_PRESETS.map((p) => (
-        <label key={p.id} className="rebalance-row">
+        <label key={p.id} className="flex items-center gap-1.5 text-sm text-text-secondary">
           <input
             type="checkbox"
             checked={study.sourcePresetIds.includes(p.id)}
@@ -374,10 +377,11 @@ function WithdrawalRangeEditor({
 }) {
   const setSpec = (s: WithdrawalRangeSpec) => update({ withdrawalRange: s });
   return (
-    <div className="study-range">
-      <label className="study-field">
+    <div className="flex flex-col gap-2">
+      <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
         Family
         <select
+          className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
           value={spec.family}
           onChange={(e) =>
             setSpec(familyDefault(e.target.value as WithdrawalFamily))
@@ -393,7 +397,7 @@ function WithdrawalRangeEditor({
 
       {spec.family === 'fixedPercent' && (
         <>
-          <div className="rule-hint">Sweep the fixed withdrawal rate.</div>
+          <div className="text-xs text-text-faint py-[2px] pb-1">Sweep the fixed withdrawal rate.</div>
           <PctRange
             from={spec.from}
             to={spec.to}
@@ -407,7 +411,7 @@ function WithdrawalRangeEditor({
 
       {spec.family === 'percentOfBalance' && (
         <>
-          <div className="rule-hint">
+          <div className="text-xs text-text-faint py-[2px] pb-1">
             Sweep the % of current balance withdrawn; the floor is pinned.
           </div>
           <PctNum
@@ -426,9 +430,10 @@ function WithdrawalRangeEditor({
 
       {spec.family === 'floorAndUpside' && (
         <>
-          <label className="study-field">
+          <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
             Sweep
             <select
+              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
               value={spec.sweep}
               onChange={(e) =>
                 setSpec({
@@ -475,9 +480,10 @@ function WithdrawalRangeEditor({
 
       {spec.family === 'ratchet' && (
         <>
-          <label className="study-field">
+          <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
             Sweep
             <select
+              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
               value={spec.sweep}
               onChange={(e) =>
                 setSpec({
@@ -640,6 +646,8 @@ const parsePct = (s: string) => { const n = parseFloat(s); return isNaN(n) ? nul
 const fmtMarginal = (v: number) => String(+(v * 1000).toFixed(3));
 const parseMarginal = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n / 1000; };
 
+const axisNumCls = 'w-14 px-[6px] py-[3px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover';
+
 function PctRange({
   label,
   from,
@@ -654,12 +662,12 @@ function PctRange({
   onChange: (from: number, to: number, step: number) => void;
 }) {
   return (
-    <div className="study-range-row">
-      {label && <span className="study-range-label">{label}</span>}
-      <label>
+    <div className="flex gap-3 flex-wrap items-center">
+      {label && <span className="text-sm font-semibold text-text-secondary min-w-[52px]">{label}</span>}
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
         from
         <NumericInput
-          className="axis-num"
+          className={axisNumCls}
           value={from}
           format={fmtPct}
           parse={parsePct}
@@ -667,10 +675,10 @@ function PctRange({
         />
         %
       </label>
-      <label>
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
         to
         <NumericInput
-          className="axis-num"
+          className={axisNumCls}
           value={to}
           format={fmtPct}
           parse={parsePct}
@@ -678,10 +686,10 @@ function PctRange({
         />
         %
       </label>
-      <label>
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
         step
         <NumericInput
-          className="axis-num"
+          className={axisNumCls}
           value={step}
           format={fmtPct}
           parse={(s) => { const n = parseFloat(s); return isNaN(n) ? null : Math.max(0.0005, n / 100); }}
@@ -707,11 +715,11 @@ function MarginalRange({
 }) {
   // marginalSpend is stored as $ per $ over initial; display as $k per $1M.
   return (
-    <div className="study-range-row">
-      <label>
+    <div className="flex gap-3 flex-wrap items-center">
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
         from
         <NumericInput
-          className="axis-num"
+          className={axisNumCls}
           value={from}
           format={fmtMarginal}
           parse={parseMarginal}
@@ -719,10 +727,10 @@ function MarginalRange({
         />
         k
       </label>
-      <label>
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
         to
         <NumericInput
-          className="axis-num"
+          className={axisNumCls}
           value={to}
           format={fmtMarginal}
           parse={parseMarginal}
@@ -730,10 +738,10 @@ function MarginalRange({
         />
         k
       </label>
-      <label>
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
         step
         <NumericInput
-          className="axis-num"
+          className={axisNumCls}
           value={step}
           format={fmtMarginal}
           parse={(s) => { const n = parseFloat(s); return isNaN(n) ? null : Math.max(0.0005, n / 1000); }}
@@ -756,10 +764,10 @@ function PctNum({
   onChange: (v: number) => void;
 }) {
   return (
-    <label className="study-field">
+    <label className="flex items-center gap-1 text-sm text-text-secondary">
       {label}
       <NumericInput
-        className="axis-num"
+        className={axisNumCls}
         value={value}
         format={fmtPct}
         parse={parsePct}
@@ -779,10 +787,10 @@ function MarginalNum({
   onChange: (v: number) => void;
 }) {
   return (
-    <label className="study-field">
+    <label className="flex items-center gap-1 text-sm text-text-secondary">
       {label}
       <NumericInput
-        className="axis-num"
+        className={axisNumCls}
         value={value}
         format={fmtMarginal}
         parse={parseMarginal}

@@ -147,15 +147,15 @@ export function WithdrawalCurve({
   const yTicks = [0.02, 0.04, 0.06, 0.08, 0.1];
 
   return (
-    <div className="control-group">
-      <div className="control-label">
+    <div className="flex flex-col gap-2">
+      <div className="text-sm text-text-secondary">
         Withdrawal curve — drag handles. Snaps at 3, 3.5, 4, 4.5, 5%.
       </div>
       <svg
         ref={svgRef}
         width={width}
         height={height}
-        className="curve-editor"
+        className="block touch-none select-none"
       >
         {yTicks.map((t) => (
           <g key={t}>

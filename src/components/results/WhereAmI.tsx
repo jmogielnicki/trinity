@@ -74,7 +74,7 @@ export function WhereAmI({
 
   if (recentByYear.length === 0) {
     return (
-      <div className="where-empty">
+      <div className="text-base text-text-faint px-4 py-4 text-center">
         No in-progress retirees with this horizon — every start year has
         finished playing out.
       </div>
@@ -83,11 +83,11 @@ export function WhereAmI({
 
   return (
     <div>
-      <div className="heatmap-meta">
+      <div className="text-sm text-text-secondary mb-2">
         Where Am I — recent retirees whose horizon hasn't fully played out yet,
         plotted against historical peers at the same year-into-retirement.
       </div>
-      <div className="multiples-grid">
+      <div className="grid [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))] gap-3 mt-2">
         {recentByYear.map(([startYear, sim]) => (
           <Card
             key={startYear}
@@ -242,8 +242,8 @@ function Card({
   }, [histBand, prefix, tCurrent, currentBalance, horizonYears, yMax, dataEnd]);
 
   return (
-    <div className="multiple where-card">
-      <div className="multiple-title">
+    <div className="border border-border-light rounded p-2 p-[8px]">
+      <div className="text-xs text-text-secondary mb-1">
         Started {startYear}. At year {tCurrent + 1} ({startYear + tCurrent}),
         currently tracking the {Number.isFinite(rank) ? Math.round(rank * 100) : '—'}
         th percentile of historical {tCurrent + 1}-year-in trajectories.
