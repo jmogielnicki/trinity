@@ -19,7 +19,7 @@ export function StudyTrajectories({ results }: { results: CandidateResult[] }) {
                 ? `${(cr.metrics.successRate * 100).toFixed(0)}%`
                 : '—'}
             </div>
-            <SpaghettiChart result={cr.result} width={300} height={160} />
+            <SpaghettiChart result={cr.result} height={160} />
           </div>
         ))}
       </div>
