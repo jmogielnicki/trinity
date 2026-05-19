@@ -154,7 +154,10 @@ export function CompareScenariosView() {
       ) : (
         <>
           <ComparisonTable entries={entries} />
-          <ScatterPlot entries={entries} />
+          <div className="compare-charts-row">
+            <TerminalBalanceChart entries={entries} />
+            <ScatterPlot entries={entries} />
+          </div>
           <TrajectoryChart entries={entries} />
           <DistributionBars entries={entries} />
         </>
@@ -254,6 +257,117 @@ function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Terminal balance by start year — one line per scenario
+// ---------------------------------------------------------------------------
+
+function TerminalBalanceChart({ entries }: { entries: CompareEntry[] }) {
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
+
+  const seriesArr = useMemo(() => {
+    return entries.map((e, i) => {
+      const color = SERIES_COLORS[i % SERIES_COLORS.length];
+      const completed = e.result.sims
+        .filter((s) => !s.inProgress)
+        .sort((a, b) => a.startYear - b.startYear);
+      const inProgress = e.result.sims
+        .filter((s) => s.inProgress)
+        .sort((a, b) => a.startYear - b.startYear);
+
+      const completedData = completed.map((s) => [
+        s.startYear,
+        s.success ? (s.finalBalance ?? 0) : 0,
+      ]);
+      const inProgressData = inProgress.map((s) => [s.startYear, s.finalBalance ?? 0]);
+
+      const series: any[] = [
+        {
+          type: 'line',
+          name: truncate(e.saved.name, 28),
+          color,
+          lineWidth: 1.5,
+          marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
+          data: completedData,
+          zIndex: 2,
+        },
+      ];
+
+      if (inProgressData.length > 0) {
+        series.push({
+          type: 'line',
+          name: `${truncate(e.saved.name, 24)} (in-progress)`,
+          color,
+          lineWidth: 1.5,
+          dashStyle: 'Dash',
+          opacity: 0.45,
+          marker: { enabled: false },
+          showInLegend: false,
+          linkedTo: ':previous',
+          data:
+            completedData.length > 0
+              ? [completedData[completedData.length - 1], ...inProgressData]
+              : inProgressData,
+          zIndex: 1,
+        });
+      }
+
+      return series;
+    }).flat();
+  }, [entries]);
+
+  const options: Options = useMemo(
+    () => ({
+      chart: {
+        type: 'line',
+        width: null as any,
+        height: 360,
+        margin: [16, 16, 48, 80],
+      },
+      xAxis: {
+        title: { text: 'retirement start year' },
+        labels: { style: { fontSize: '10px' } },
+      },
+      yAxis: {
+        min: 0,
+        title: { text: '' },
+        labels: {
+          formatter() {
+            const v = this.value as number;
+            if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+            if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}k`;
+            return `$${v}`;
+          },
+        },
+      },
+      tooltip: {
+        shared: false,
+        formatter() {
+          const v = this.y ?? 0;
+          const yr = this.x ?? 0;
+          return `<b>${this.series.name}</b><br/>Start ${yr}: ${fmtMoney(v)} terminal balance`;
+        },
+      },
+      legend: { enabled: true },
+      series: seriesArr,
+    }),
+    [seriesArr],
+  );
+
+  return (
+    <div className="compare-chart-wrap compare-chart-half">
+      <div className="compare-chart-title">
+        <span>Terminal balance by start year</span>
+      </div>
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        ref={chartRef}
+        immutable={false}
+      />
     </div>
   );
 }
@@ -366,7 +480,7 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
   if (xVals.length === 0 || yVals.length === 0) return null;
 
   return (
-    <div className="compare-chart-wrap">
+    <div className="compare-chart-wrap compare-chart-half">
       <div className="compare-chart-title">
         <span>Scenarios plotted on two metrics</span>
         <div className="frontier-axes">

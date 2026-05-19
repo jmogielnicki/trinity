@@ -375,6 +375,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .legend-note { color: #888; }
 
 .outcome-strip-wrap { display: block; }
+.start-year-chart-wrap { display: block; }
 
 .rule-hint { font-size: 11px; color: #777; padding: 2px 0 4px; }
 
@@ -526,6 +527,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .compare-chart-wrap { border: 1px solid #eee; border-radius: 4px; padding: 8px; background: #fafafa; }
 .compare-chart-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 11px; color: #555; margin-bottom: 6px; }
 .compare-chart-title label { display: flex; align-items: center; gap: 4px; cursor: pointer; color: #666; }
+.compare-charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.compare-chart-half { min-width: 0; }
 
 /* Evolve view */
 .evolve-controls { border: 1px solid #eee; border-radius: 4px; padding: 10px 12px; background: #fafafa; }

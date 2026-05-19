@@ -10,6 +10,7 @@ import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
 import { Legend } from './components/results/Legend';
 import { OutcomeStrip } from './components/results/OutcomeStrip';
+import { StartYearChart } from './components/results/StartYearChart';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { WhereAmI } from './components/results/WhereAmI';
@@ -306,8 +307,9 @@ export function App() {
                       onClear={clearSelection}
                     />
                   </div>
-                  <OutcomeStrip
+                  <StartYearChart
                     result={result}
+                    initialBalance={scenario.initialBalance}
                     selectedYears={selectedYears}
                     onToggle={toggleYear}
                     onMarquee={marqueeYears}
