@@ -916,10 +916,10 @@ function ColorBar({
   const H = 10;
   const stops = 12;
   return (
-    <span className="frontier-colorbar">
-      <span className="frontier-colorbar-label">{COLOR_BY_LABELS[colorBy]}:</span>
-      <span className="frontier-colorbar-min">{formatColorValue(colorBy, cMin)}</span>
-      <svg width={W} height={H} className="frontier-colorbar-svg">
+    <span className="inline-flex items-center gap-1.5 text-xs text-text-secondary">
+      <span className="text-[#444]">{COLOR_BY_LABELS[colorBy]}:</span>
+      <span className="tabular-nums">{formatColorValue(colorBy, cMin)}</span>
+      <svg width={W} height={H} className="border border-text-disabled rounded-sm align-middle inline-block">
         {Array.from({ length: stops }, (_, i) => (
           <rect
             key={i}
@@ -931,7 +931,7 @@ function ColorBar({
           />
         ))}
       </svg>
-      <span className="frontier-colorbar-max">{formatColorValue(colorBy, cMax)}</span>
+      <span className="tabular-nums">{formatColorValue(colorBy, cMax)}</span>
     </span>
   );
 }
