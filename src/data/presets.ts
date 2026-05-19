@@ -58,6 +58,28 @@ export const PRESETS: Preset[] = [
 		},
 	},
 	{
+		id: "ratchet-swr",
+		name: "Ratcheting SWR 3.25% — 70/20/10",
+		description:
+			"Start conservatively at 3.25% (inflation-adjusted). Each time the portfolio grows 50% above " +
+			"its starting value, permanently raise real spending by 10%. Gains are locked in — " +
+			"a subsequent crash does not cut the elevated floor.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.7, 0.2, 0.1),
+			withdrawal: {
+				type: "ratchet",
+				baseRate: 0.0325,
+				stepSize: 0.5,
+				stepBoost: 0.1,
+			},
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
 		id: "cash-bucket",
 		name: "Cash bucket — 50/40/10 waterfall",
 		description:
@@ -130,28 +152,6 @@ export const PRESETS: Preset[] = [
 		},
 	},
 	{
-		id: "front-loaded",
-		name: "Front-loaded spend 5%→3% — 60/40",
-		description:
-			"Spend more early (go-go years), less later (slow-go). Linear ramp from 5% in year 0 to 3% in year horizon.",
-		state: {
-			initialBalance: STARTING,
-			horizonYears: HORIZON,
-			allocation: flatStatic(0.6, 0.4, 0),
-			withdrawal: {
-				type: "piecewiseLinear",
-				points: [
-					{ t: 0, rate: 0.05 },
-					{ t: HORIZON / 2, rate: 0.04 },
-					{ t: HORIZON - 1, rate: 0.03 },
-				],
-			},
-			withdrawalSource: { type: "proportional", rebalance: true },
-			tailMethod: { type: "truncate" },
-			axes: PINNED_AXES,
-		},
-	},
-	{
 		id: "cape-withdrawal",
 		name: "CAPE-based withdrawal — 60/40",
 		description:
@@ -167,28 +167,6 @@ export const PRESETS: Preset[] = [
 				a: 0.0175,
 				b: 0.5,
 				fallbackCape: 20,
-			},
-			withdrawalSource: { type: "proportional", rebalance: true },
-			tailMethod: { type: "truncate" },
-			axes: PINNED_AXES,
-		},
-	},
-	{
-		id: "ratchet-swr",
-		name: "Ratcheting SWR 3.25% — 60/40",
-		description:
-			"Start conservatively at 3.25% (inflation-adjusted). Each time the portfolio grows 50% above " +
-			"its starting value, permanently raise real spending by 10%. Gains are locked in — " +
-			"a subsequent crash does not cut the elevated floor.",
-		state: {
-			initialBalance: STARTING,
-			horizonYears: HORIZON,
-			allocation: flatStatic(0.6, 0.4, 0),
-			withdrawal: {
-				type: "ratchet",
-				baseRate: 0.0325,
-				stepSize: 0.5,
-				stepBoost: 0.1,
 			},
 			withdrawalSource: { type: "proportional", rebalance: true },
 			tailMethod: { type: "truncate" },
