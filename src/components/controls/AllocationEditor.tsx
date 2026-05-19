@@ -83,6 +83,7 @@ export function AllocationEditor({ horizonYears, allocation, onChange }: Props) 
         <CustomScriptEditor
           label="Allocation script — return { stock, bond, cash }."
           signature="state"
+          kind="allocation"
           initial={allocation.type === 'customSrc' ? allocation.src : DEFAULT_SCRIPT}
           onChange={(src) => onChange({ type: 'customSrc', src })}
         />

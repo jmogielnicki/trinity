@@ -336,6 +336,20 @@ input[type="number"] { -moz-appearance: textfield; }
 .script-warn { font-size: 10px; color: #888; }
 .apply-btn { font-size: 12px; padding: 4px 8px; border: 1px solid #ccc; background: #fff; border-radius: 3px; cursor: pointer; align-self: flex-start; }
 
+.script-label-row { display: flex; align-items: center; gap: 6px; }
+.script-help-btn { flex-shrink: 0; width: 17px; height: 17px; border-radius: 50%; border: 1px solid #bbb; background: #f5f5f5; color: #555; font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
+.script-help-btn:hover { background: #e8eef7; border-color: #357; color: #357; }
+
+.script-docs-backdrop { position: fixed; inset: 0; z-index: 99; }
+.script-docs { position: absolute; z-index: 100; left: 0; right: 0; background: #fff; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.14); padding: 0; overflow: hidden; }
+.script-docs-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 6px; background: #f0f4f8; border-bottom: 1px solid #dde3ea; font-size: 12px; font-weight: 600; color: #1a2733; }
+.script-docs-close { border: none; background: transparent; font-size: 16px; line-height: 1; cursor: pointer; color: #777; padding: 0 2px; }
+.script-docs-close:hover { color: #c33; }
+.script-docs-section { padding: 7px 10px 4px; border-bottom: 1px solid #f0f0f0; }
+.script-docs-section:last-child { border-bottom: none; }
+.script-docs-heading { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #888; margin-bottom: 3px; }
+.script-docs-pre { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; color: #1a1a1a; white-space: pre-wrap; line-height: 1.5; }
+
 .rule-row { border: 1px solid #eee; border-radius: 4px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
 .rule-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
 .rule-line select { font-size: 13px; padding: 6px 6px; border: 1.5px solid #d1d5db; border-radius: 6px; font-family: inherit; color: #111; background: #fff; outline: none; }
