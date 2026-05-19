@@ -292,11 +292,11 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
   const statusCls = failed
     ? 'bg-error-bg text-error'
     : inProgress
-      ? 'bg-[#f0f0f0] text-text-muted'
+      ? 'bg-surface-muted text-text-muted'
       : 'bg-success-bg text-success';
 
   return (
-    <div className="mt-4 border border-[#dde] rounded-md bg-[#fafbff] px-[14px] py-3">
+    <div className="mt-4 border border-border-light rounded-md bg-surface-page px-[14px] py-3">
       <div className="flex items-start justify-between gap-3 mb-[10px]">
         <div className="flex flex-wrap items-center gap-[10px] text-base">
           <span className="font-semibold text-text">Start {startYear}</span>
@@ -325,7 +325,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         immutable={false}
       />
 
-      <ul className="list-none p-0 mt-1 flex flex-wrap gap-x-[14px] gap-y-1 text-xs text-[#444]">
+      <ul className="list-none p-0 mt-1 flex flex-wrap gap-x-[14px] gap-y-1 text-xs text-text-secondary">
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.stock }} /> stocks</li>
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.bond }} /> bonds</li>
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.cash }} /> cash</li>
@@ -333,7 +333,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       </ul>
 
       {showsAssumedCash && (
-        <p className="mt-1.5 mb-0 text-2xs leading-[1.4] text-[#999] max-w-[760px]">
+        <p className="mt-1.5 mb-0 text-2xs leading-[1.4] text-text-placeholder max-w-[760px]">
           Cash return data begins in {CASH_DATA_START_YEAR}. Earlier years
           (faded violet) hold the cash sleeve flat at 0% real — a conservative
           assumption, not measured data.
@@ -344,14 +344,14 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       <div className="flex items-center gap-[10px] mt-[10px] mb-1">
         <span className="text-xs text-text-muted uppercase tracking-[0.04em]">Year-by-year detail</span>
         <button
-          className={`text-xs px-[9px] py-0.5 border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-hover${detailMode ? ' bg-[#e8f1ff] border-[#6b9fce] text-[#1a5fa8]' : ''}`}
+          className={`text-xs px-[9px] py-0.5 border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-hover${detailMode ? ' bg-surface-code border-border-hover text-primary' : ''}`}
           onClick={() => setDetailMode((v) => !v)}
         >
           {detailMode ? 'Hide flows' : 'Show flows'}
         </button>
       </div>
       <div className="overflow-x-auto max-h-[260px] overflow-y-auto mt-[10px] border border-border-light rounded">
-        <table className="w-full border-collapse text-sm [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-surface-hover [&_thead]:z-[1] [&_th]:px-[10px] [&_th]:py-[5px] [&_th]:text-left [&_th]:text-xs [&_th]:font-medium [&_th]:text-text-muted [&_th]:uppercase [&_th]:tracking-[0.04em] [&_th]:border-b [&_th]:border-[#e0e0e0] [&_th]:whitespace-nowrap [&_td]:px-[10px] [&_td]:py-1 [&_td]:border-b [&_td]:border-[#f0f0f0] [&_td]:whitespace-nowrap [&_tbody_tr:hover_td]:bg-[#f0f4ff]">
+        <table className="w-full border-collapse text-sm [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-surface-hover [&_thead]:z-[1] [&_th]:px-[10px] [&_th]:py-[5px] [&_th]:text-left [&_th]:text-xs [&_th]:font-medium [&_th]:text-text-muted [&_th]:uppercase [&_th]:tracking-[0.04em] [&_th]:border-b [&_th]:border-border [&_th]:whitespace-nowrap [&_td]:px-[10px] [&_td]:py-1 [&_td]:border-b [&_td]:border-border-light [&_td]:whitespace-nowrap [&_tbody_tr:hover_td]:bg-surface-code">
           <thead>
             <tr>
               {/* Base columns */}
@@ -362,21 +362,21 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
               <th rowSpan={2} className="text-right tabular-nums">W/D %</th>
               <th rowSpan={2} className="text-right tabular-nums">Return</th>
               {/* Detail groups */}
-              {detailMode && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Start balance</th>}
-              {detailMode && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Withdrawn from</th>}
-              {detailMode && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Rebalanced (Δ)</th>}
-              {detailMode && hasRefill && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Bucket refill (Δ)</th>}
-              {detailMode && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Return earned</th>}
+              {detailMode && <th colSpan={3} className="text-center bg-surface-panel border-l border-border-light text-2xs px-1.5 py-[3px] tracking-[0.03em]">Start balance</th>}
+              {detailMode && <th colSpan={3} className="text-center bg-surface-panel border-l border-border-light text-2xs px-1.5 py-[3px] tracking-[0.03em]">Withdrawn from</th>}
+              {detailMode && <th colSpan={3} className="text-center bg-surface-panel border-l border-border-light text-2xs px-1.5 py-[3px] tracking-[0.03em]">Rebalanced (Δ)</th>}
+              {detailMode && hasRefill && <th colSpan={3} className="text-center bg-surface-panel border-l border-border-light text-2xs px-1.5 py-[3px] tracking-[0.03em]">Bucket refill (Δ)</th>}
+              {detailMode && <th colSpan={3} className="text-center bg-surface-panel border-l border-border-light text-2xs px-1.5 py-[3px] tracking-[0.03em]">Return earned</th>}
               {/* End sleeves (always shown in detail mode, simplified in basic) */}
-              <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">End balance</th>
+              <th colSpan={3} className="text-center bg-surface-panel border-l border-border-light text-2xs px-1.5 py-[3px] tracking-[0.03em]">End balance</th>
             </tr>
             <tr>
-              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
-              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
-              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
-              {detailMode && hasRefill && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
-              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
-              <th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th>
+              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Cash</th></>}
+              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Cash</th></>}
+              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Cash</th></>}
+              {detailMode && hasRefill && <><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Cash</th></>}
+              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Cash</th></>}
+              <th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-text-faint bg-surface-panel border-l border-border-light">Cash</th>
             </tr>
           </thead>
           <tbody>
@@ -388,7 +388,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
               const rf = r.refillFlow ?? zeroSleeves();
               const sl = r.sleeves;
               return (
-                <tr key={r.t} className={r.depleted ? '[&_td]:bg-[#fff0f0] [&_td]:text-error' : ''}>
+                <tr key={r.t} className={r.depleted ? '[&_td]:bg-error-bg [&_td]:text-error' : ''}>
                   <td>{r.t}</td>
                   <td>{r.calendarYear}</td>
                   <td className="text-right tabular-nums">{fmt$(r.balance)}</td>

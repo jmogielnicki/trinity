@@ -279,7 +279,7 @@ export function App() {
                         out yet.
                       </span>
                       <button
-                        className="flex-shrink-0 text-sm py-[5px] px-[10px] border border-[#6b8cce] bg-surface text-primary rounded cursor-pointer hover:bg-[#eef2fb]"
+                        className="flex-shrink-0 text-sm py-[5px] px-[10px] border border-border-hover bg-surface text-primary rounded cursor-pointer hover:bg-surface-panel"
                         onClick={() => setView('whereami')}
                       >
                         View as "Where Am I" →

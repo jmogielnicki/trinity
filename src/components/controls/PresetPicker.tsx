@@ -31,7 +31,7 @@ export function PresetPicker() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-[#444]">Presets</div>
+      <div className="text-sm text-text-secondary">Presets</div>
       <select
         className="w-full px-[10px] py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] bg-surface cursor-pointer text-text outline-none transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
         value={picked}
@@ -44,7 +44,7 @@ export function PresetPicker() {
           </option>
         ))}
       </select>
-      {description && <div className="text-xs text-[#777] py-[2px] pb-1">{description}</div>}
+      {description && <div className="text-xs text-text-faint py-[2px] pb-1">{description}</div>}
     </div>
   );
 }

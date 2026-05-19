@@ -12,7 +12,7 @@ export function StudyTrajectories({ results }: { results: CandidateResult[] }) {
       </div>
       <div className="grid [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))] gap-3 mt-2">
         {results.map((cr) => (
-          <div key={cr.candidate.id} className="border border-[#eee] rounded p-1.5">
+          <div key={cr.candidate.id} className="border border-border-light rounded p-1.5">
             <div className="text-xs text-text-secondary mb-1">
               {cr.candidate.label} —{' '}
               {Number.isFinite(cr.metrics.successRate)

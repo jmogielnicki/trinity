@@ -42,7 +42,7 @@ export function GlidePath({ horizonYears, allocation, onChange, width = 280, hei
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-[#444]">
+      <div className="text-sm text-text-secondary">
         Glide path — drag the band boundaries at year 0 (left) and year {horizonYears} (right).
       </div>
       <StackedBar

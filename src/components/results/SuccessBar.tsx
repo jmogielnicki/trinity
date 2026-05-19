@@ -109,7 +109,7 @@ export function SuccessBar({ result, height = 460 }: Props) {
       </div>
       {hover && (
         <div
-          className="fixed bg-surface border border-[#bbb] rounded-[3px] px-2 py-1 text-xs pointer-events-none z-10 shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
+          className="fixed bg-surface border border-text-disabled rounded-[3px] px-2 py-1 text-xs pointer-events-none z-10 shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
           style={{
             left: hover.px + 12,
             top: hover.py + 12,

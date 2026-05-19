@@ -37,7 +37,7 @@ export function ScenarioLibrary() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-[#444]">Scenario library (localStorage)</div>
+      <div className="text-sm text-text-secondary">Scenario library (localStorage)</div>
       <div className="flex gap-1.5">
         <input
           type="text"
@@ -56,10 +56,10 @@ export function ScenarioLibrary() {
         <ul className="list-none p-0 m-0 flex flex-col gap-1">
           {saved.map((s) => (
             <li key={s.id} className="flex items-center">
-              <button className="flex-1 text-left bg-surface-hover border border-border-light rounded-[3px] px-2 py-1 cursor-pointer text-sm hover:bg-[#eef]" onClick={() => onLoad(s)}>
+              <button className="flex-1 text-left bg-surface-hover border border-border-light rounded-[3px] px-2 py-1 cursor-pointer text-sm hover:bg-surface-code" onClick={() => onLoad(s)}>
                 {s.name}
               </button>
-              <button className="ml-auto border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-[#c33]" onClick={() => remove(s.id)}>
+              <button className="ml-auto border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-error" onClick={() => remove(s.id)}>
                 ×
               </button>
             </li>

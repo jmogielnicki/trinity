@@ -145,7 +145,7 @@ export function EvolveView() {
               </span>
             )}
           </div>
-          <div className="h-1.5 bg-[#eee] rounded-[3px] overflow-hidden">
+          <div className="h-1.5 bg-border-light rounded-[3px] overflow-hidden">
             <div
               className="h-full bg-chart-blue transition-[width] duration-[120ms] linear"
               style={{ width: `${progressPct}%` }}
@@ -318,7 +318,7 @@ function Slider({
 }) {
   return (
     <label
-      className="grid [grid-template-columns:130px_1fr_50px] items-center gap-2 text-sm text-[#444]"
+      className="grid [grid-template-columns:130px_1fr_50px] items-center gap-2 text-sm text-text-secondary"
       title={help}
     >
       <span className="text-text-secondary">{label}</span>
@@ -463,7 +463,7 @@ function ChampionRow({
         return (
           <div
             key={c.islandId}
-            className={`border border-[#e4e4e4] border-t-[3px] rounded p-[8px_10px] bg-surface cursor-pointer flex flex-col gap-[5px] hover:bg-[#fafcfe]${selectedId === id ? ' shadow-[inset_0_0_0_2px_var(--color-chart-blue)]' : ''}`}
+            className={`border border-border rounded border-t-[3px] p-[8px_10px] bg-surface cursor-pointer flex flex-col gap-[5px] hover:bg-surface-page${selectedId === id ? ' shadow-[inset_0_0_0_2px_var(--color-chart-blue)]' : ''}`}
             style={{ borderTopColor: islandColor(idx) }}
             onClick={() => onSelect(id)}
           >
@@ -473,7 +473,7 @@ function ChampionRow({
             >
               {c.islandName}
             </div>
-            <div className="text-2xs text-[#777] leading-[1.3]">
+            <div className="text-2xs text-text-faint leading-[1.3]">
               {genomeLabel(c.individual.genome)}
             </div>
             <WithdrawalSpark
@@ -520,9 +520,9 @@ function IslandTables({
             style={{ color: islandColor(idx) }}
           >
             {isl.profile.name} — top {Math.min(TOP, isl.population.length)}{' '}
-            <span className="text-[#999] font-normal normal-case tracking-normal">({isl.profile.blurb})</span>
+            <span className="text-text-placeholder font-normal normal-case tracking-normal">({isl.profile.blurb})</span>
           </div>
-          <table className="w-full border-collapse text-sm [&_tbody_tr:hover]:bg-[#f4f8fb]">
+          <table className="w-full border-collapse text-sm [&_tbody_tr:hover]:bg-surface-panel">
             <thead>
               <tr>
                 <th className={thCls}>Strategy</th>
@@ -541,7 +541,7 @@ function IslandTables({
                   <tr
                     key={id}
                     onClick={() => onSelect(id)}
-                    className={selectedId === id ? 'bg-[#e8f1f8]' : ''}
+                    className={selectedId === id ? 'bg-surface-code' : ''}
                     style={{ cursor: 'pointer' }}
                   >
                     <td className={tdCls}>{genomeLabel(ind.genome)}</td>
@@ -625,7 +625,7 @@ function WithdrawalSpark({
   return (
     <div className="bg-surface rounded-[3px] p-1">
       {!compact && (
-        <div className="text-2xs text-[#777] px-1 pb-0.5">
+        <div className="text-2xs text-text-faint px-1 pb-0.5">
           Withdrawal rate (% of initial)
         </div>
       )}
@@ -701,7 +701,7 @@ function GlideSpark({
     ` L${xScale(horizonYears - 1)},${yScale(0)} Z`;
   return (
     <div className="bg-surface rounded-[3px] p-1">
-      <div className="text-2xs text-[#777] px-1 pb-0.5">
+      <div className="text-2xs text-text-faint px-1 pb-0.5">
         Glide path (stock = green, bond = blue)
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>

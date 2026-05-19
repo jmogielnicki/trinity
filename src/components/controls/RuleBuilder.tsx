@@ -37,7 +37,7 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-[#444]">
+      <div className="text-sm text-text-secondary">
         Base rate{' '}
         <NumericInput
           className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
@@ -48,7 +48,7 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
         />
         % — applied when no rule matches.
       </div>
-      <div className="text-xs text-[#777] py-[2px] pb-1">
+      <div className="text-xs text-text-faint py-[2px] pb-1">
         Rules evaluate top-down each year; the <strong>last matching rule wins</strong>
         and overrides the rate.
       </div>
@@ -124,7 +124,7 @@ function RuleRow({
           }
         />
         <span>%</span>
-        <button className="ml-auto border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-[#c33]" onClick={onDelete}>
+        <button className="ml-auto border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-error" onClick={onDelete}>
           ×
         </button>
       </div>

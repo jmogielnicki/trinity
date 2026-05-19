@@ -16,7 +16,7 @@ export function Legend({
   className?: string;
 }) {
   return (
-    <ul className={`list-none p-0 mt-2 flex flex-wrap gap-x-[14px] gap-y-1 text-xs text-[#444] ${className}`}>
+    <ul className={`list-none p-0 mt-2 flex flex-wrap gap-x-[14px] gap-y-1 text-xs text-text-secondary ${className}`}>
       {items.map((it) => (
         <li key={it.label} title={it.note ?? ''} className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-sm" style={{ background: it.color }} />

@@ -174,11 +174,11 @@ function ModeToggle({
     { k: 'script', label: 'script' },
   ];
   return (
-    <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none">
+    <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none">
       {modes.map((m) => (
         <button
           key={m.k}
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer text-text-muted font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${current === m.k ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer text-text-muted font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${current === m.k ? ' bg-surface text-text shadow-card' : ' bg-transparent hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => onChange(m.k)}
         >
           {m.label}

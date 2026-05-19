@@ -148,7 +148,7 @@ export function WithdrawalCurve({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-[#444]">
+      <div className="text-sm text-text-secondary">
         Withdrawal curve — drag handles. Snaps at 3, 3.5, 4, 4.5, 5%.
       </div>
       <svg

@@ -173,7 +173,7 @@ export function CustomScriptEditor({
         spellCheck={false}
       />
       <div className="font-mono text-xs text-text-muted">{'}'}</div>
-      {error && <div className="text-[#c33] text-xs whitespace-pre-wrap">{error}</div>}
+      {error && <div className="text-error text-xs whitespace-pre-wrap">{error}</div>}
       <button onClick={apply} className="text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start">
         apply
       </button>

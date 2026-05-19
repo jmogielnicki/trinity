@@ -17,19 +17,19 @@ export function TailMethodInput() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-[#444]">
+      <div className="text-sm text-text-secondary">
         Recent retirees (data runs out before horizon)
       </div>
-      <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none">
+      <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none">
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${!isBootstrap ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${!isBootstrap ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setTailMethod({ type: 'truncate' })}
           title="Run only as far as data permits; mark as in-progress"
         >
           truncate
         </button>
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${isBootstrap ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${isBootstrap ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setTailMethod(DEFAULT_BOOTSTRAP)}
           title="Sample contiguous historical blocks to fill the unknown tail"
         >

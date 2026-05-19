@@ -49,10 +49,10 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
 
   return (
     <div className="flex flex-col gap-2">
-      {!hideLabel && <div className="text-sm text-[#444]">Withdrawal source</div>}
-      <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none">
+      {!hideLabel && <div className="text-sm text-text-secondary">Withdrawal source</div>}
+      <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none">
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'proportional' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'proportional' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() =>
             setWithdrawalSource({ type: 'proportional', rebalance: true })
           }
@@ -61,7 +61,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
           proportional
         </button>
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'waterfall' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'waterfall' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() =>
             setWithdrawalSource({
               type: 'waterfall',
@@ -73,7 +73,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
           waterfall
         </button>
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'bucket' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'bucket' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() =>
             setWithdrawalSource({
               type: 'bucket',
@@ -89,7 +89,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
 
       {mode === 'proportional' && (
         <>
-          <label className="flex items-center gap-1.5 text-sm text-[#444]">
+          <label className="flex items-center gap-1.5 text-sm text-text-secondary">
             <input
               type="checkbox"
               checked={
@@ -105,7 +105,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
             />
             rebalance to target weights each year
           </label>
-          <div className="text-xs text-[#777] py-[2px] pb-1">
+          <div className="text-xs text-text-faint py-[2px] pb-1">
             Sells proportionally; same outcome whether you check rebalance or
             not for static allocations.
           </div>
@@ -122,7 +122,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
               setWithdrawalSource({ type: 'waterfall', order })
             }
           />
-          <div className="text-xs text-[#777] py-[2px] pb-1">
+          <div className="text-xs text-text-faint py-[2px] pb-1">
             Cash-bucket strategy: sleeves drift, downturns spend the safer
             ones first.
           </div>
@@ -155,13 +155,13 @@ function WaterfallOrderEditor({
   };
   return (
     <div className="flex flex-col gap-1">
-      <div className="text-xs text-[#777] py-[2px] pb-1">draw order:</div>
+      <div className="text-xs text-text-faint py-[2px] pb-1">draw order:</div>
       <ol className="list-none p-0 m-0 flex flex-col gap-1">
         {order.map((s, i) => (
           <li key={s} className="flex items-center gap-1.5 text-sm">
             <span className="flex-1">{i + 1}. {SLEEVE_LABELS[s]}</span>
             <button
-              className="border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-text-body disabled:opacity-30 disabled:cursor-default"
+              className="border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-text-body disabled:opacity-30 disabled:cursor-default"
               disabled={i === 0}
               onClick={() => move(i, -1)}
               title="move earlier"
@@ -169,7 +169,7 @@ function WaterfallOrderEditor({
               ↑
             </button>
             <button
-              className="border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-text-body disabled:opacity-30 disabled:cursor-default"
+              className="border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-text-body disabled:opacity-30 disabled:cursor-default"
               disabled={i === order.length - 1}
               onClick={() => move(i, 1)}
               title="move later"
@@ -232,11 +232,11 @@ function BucketEditor({
         />
       ))}
       {source.refill.length < 3 && (
-        <button className="border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-text-body" onClick={addRule} style={{ marginTop: 4 }}>
+        <button className="border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-text-body" onClick={addRule} style={{ marginTop: 4 }}>
           + add refill rule
         </button>
       )}
-      <div className="text-xs text-[#777] py-[2px] pb-1">
+      <div className="text-xs text-text-faint py-[2px] pb-1">
         Rules run in order after returns. Each rule only fires when its target
         sleeve is below its floor threshold.
       </div>
@@ -267,26 +267,26 @@ function RefillRuleEditor({
 
   return (
     <div className="flex flex-col gap-2 border border-border-light rounded px-2 py-1.5">
-      <div className="text-sm text-[#444] flex justify-between">
+      <div className="text-sm text-text-secondary flex justify-between">
         <span>Refill rule {total > 1 ? index + 1 : ''}</span>
         {total > 1 && (
-          <button className="border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-[#c33]" onClick={onRemove} title="remove rule">
+          <button className="border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-error" onClick={onRemove} title="remove rule">
             ✕
           </button>
         )}
       </div>
 
       {/* Floor mode toggle */}
-      <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none" style={{ marginBottom: 6 }}>
+      <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none" style={{ marginBottom: 6 }}>
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${!isYears ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${!isYears ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => onChange({ floorMode: 'portfolioFraction' })}
           title="Express floor/ceiling as % of total portfolio"
         >
           % of portfolio
         </button>
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${isYears ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${isYears ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => onChange({ floorMode: 'withdrawalYears' })}
           title="Express floor/ceiling as years of annual expenses"
         >
@@ -354,7 +354,7 @@ function RefillRuleEditor({
       </div>
 
       {/* Return gate */}
-      <label className="flex items-center gap-1.5 text-sm text-[#444]">
+      <label className="flex items-center gap-1.5 text-sm text-text-secondary">
         <input
           type="checkbox"
           checked={hasReturnGate}
@@ -375,7 +375,7 @@ function RefillRuleEditor({
       </label>
 
       {/* Absolute-level gate */}
-      <label className="flex items-center gap-1.5 text-sm text-[#444]">
+      <label className="flex items-center gap-1.5 text-sm text-text-secondary">
         <input
           type="checkbox"
           checked={hasRatioGate}

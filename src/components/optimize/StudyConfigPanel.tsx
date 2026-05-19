@@ -110,10 +110,10 @@ export function StudyConfigPanel() {
   };
 
   const modeBtnCls = (active: boolean) =>
-    `inline-flex items-center gap-1 text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed${active ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`;
+    `inline-flex items-center gap-1 text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed${active ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`;
 
   return (
-    <div className="flex flex-col gap-2 border border-[#e4e4e4] rounded-md p-3 bg-surface-page">
+    <div className="flex flex-col gap-2 border border-border rounded-md p-3 bg-surface-page">
       <div className="text-sm text-text-muted leading-[1.4]">
         Pin the dimensions you want held constant and sweep the rest. Sweep one
         for a scatter / trajectory comparison, or two for a heatmap grid (max
@@ -125,13 +125,13 @@ export function StudyConfigPanel() {
         const role =
           swept && sweptCount === 2 ? (sweepIdx === 0 ? 'rows' : 'columns') : null;
         return (
-          <div key={key} className={`border rounded-[5px] bg-surface px-[10px] py-2${swept ? ' border-chart-blue shadow-[0_0_0_1px_var(--color-chart-blue)_inset]' : ' border-[#e8e8e8]'}`}>
+          <div key={key} className={`border rounded-[5px] bg-surface px-[10px] py-2${swept ? ' border-chart-blue shadow-[0_0_0_1px_var(--color-chart-blue)_inset]' : ' border-border'}`}>
             <div className="flex justify-between items-center gap-3">
               <span className="text-base font-semibold text-text-body">
                 {label}
                 {role && <span className="font-medium text-text-faint text-xs"> · {role}</span>}
               </span>
-              <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] flex-shrink-0">
+              <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] flex-shrink-0">
                 <button
                   className={modeBtnCls(!swept)}
                   onClick={() => setPinned(key)}
@@ -236,15 +236,15 @@ function VaryEditor({
     update({ varyMode: { ...study.varyMode, [dim]: m } });
   return (
     <>
-      <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none mb-2">
+      <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none mb-2">
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'range' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'range' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setMode('range')}
         >
           range
         </button>
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'list' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'list' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setMode('list')}
         >
           hand-picked list
@@ -289,7 +289,7 @@ function VariantCount({
     n = study.sourcePresetIds.length;
   }
   return (
-    <div className="text-xs text-[#777] py-[2px] pb-1">
+    <div className="text-xs text-text-faint py-[2px] pb-1">
       {n} variant{n === 1 ? '' : 's'} on this axis.
     </div>
   );
@@ -314,7 +314,7 @@ function RangeEditor({
       update({ allocationRange: { ...r, ...patch } });
     return (
       <div className="flex flex-col gap-2">
-        <div className="text-xs text-[#777] py-[2px] pb-1">
+        <div className="text-xs text-text-faint py-[2px] pb-1">
           Sweeps every stock × bond combination; cash fills the remainder.
           Combinations over 100% are skipped.
         </div>
@@ -344,9 +344,9 @@ function RangeEditor({
   }
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-xs text-[#777] py-[2px] pb-1">Race these withdrawal-source strategies:</div>
+      <div className="text-xs text-text-faint py-[2px] pb-1">Race these withdrawal-source strategies:</div>
       {SOURCE_PRESETS.map((p) => (
-        <label key={p.id} className="flex items-center gap-1.5 text-sm text-[#444]">
+        <label key={p.id} className="flex items-center gap-1.5 text-sm text-text-secondary">
           <input
             type="checkbox"
             checked={study.sourcePresetIds.includes(p.id)}
@@ -397,7 +397,7 @@ function WithdrawalRangeEditor({
 
       {spec.family === 'fixedPercent' && (
         <>
-          <div className="text-xs text-[#777] py-[2px] pb-1">Sweep the fixed withdrawal rate.</div>
+          <div className="text-xs text-text-faint py-[2px] pb-1">Sweep the fixed withdrawal rate.</div>
           <PctRange
             from={spec.from}
             to={spec.to}
@@ -411,7 +411,7 @@ function WithdrawalRangeEditor({
 
       {spec.family === 'percentOfBalance' && (
         <>
-          <div className="text-xs text-[#777] py-[2px] pb-1">
+          <div className="text-xs text-text-faint py-[2px] pb-1">
             Sweep the % of current balance withdrawn; the floor is pinned.
           </div>
           <PctNum
@@ -663,7 +663,7 @@ function PctRange({
 }) {
   return (
     <div className="flex gap-3 flex-wrap items-center">
-      {label && <span className="text-sm font-semibold text-[#444] min-w-[52px]">{label}</span>}
+      {label && <span className="text-sm font-semibold text-text-secondary min-w-[52px]">{label}</span>}
       <label className="flex items-center gap-1 text-sm text-text-secondary">
         from
         <NumericInput

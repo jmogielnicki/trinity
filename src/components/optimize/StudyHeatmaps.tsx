@@ -76,7 +76,7 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
         variant.
       </div>
       {selected && (
-        <div className="flex justify-between items-center gap-4 border border-[#c9c9c9] rounded-md px-3 py-[10px] bg-surface flex-wrap sticky top-2 z-[5] shadow-sticky">
+        <div className="flex justify-between items-center gap-4 border border-border-hover rounded-md px-3 py-[10px] bg-surface flex-wrap sticky top-2 z-[5] shadow-sticky">
           <div className="flex flex-col gap-0.5 text-sm text-text-secondary">
             <strong className="text-text text-base">{selected.candidate.label}</strong>
             <span>
@@ -95,19 +95,19 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
           </div>
           <div className="flex gap-1.5 items-center">
             <button
-              className="text-sm px-[10px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-[#f0f0f0]"
+              className="text-sm px-[10px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-surface-muted"
               onClick={() => onApply(selected)}
             >
               Apply to single scenario
             </button>
             <button
-              className="text-sm px-[10px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-[#f0f0f0]"
+              className="text-sm px-[10px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-surface-muted"
               onClick={() => onSave(selected)}
             >
               Save to library
             </button>
             <button
-              className="bg-transparent border-none text-stale cursor-pointer text-base leading-none px-1 hover:text-[#900]"
+              className="bg-transparent border-none text-stale cursor-pointer text-base leading-none px-1 hover:text-error"
               onClick={() => setSelectedId(null)}
               title="dismiss"
             >
@@ -175,7 +175,7 @@ function MetricHeatmap({
   };
 
   return (
-    <div className="border border-[#e8e8e8] rounded-md p-2 bg-surface min-w-0">
+    <div className="border border-border rounded-md p-2 bg-surface min-w-0">
       <div className="text-sm font-semibold text-text-body mb-1.5">{spec.label}</div>
       <div className="overflow-x-auto">
         <table className="border-collapse text-2xs">
@@ -211,7 +211,7 @@ function MetricHeatmap({
                   return (
                     <td
                       key={c}
-                      className={`p-[3px_5px] text-center cursor-pointer whitespace-nowrap tabular-nums min-w-10 hover:brightness-[1.12]${isSel ? ' outline outline-[3px] outline-[#111] -outline-offset-[3px] font-bold' : ''}`}
+                      className={`p-[3px_5px] text-center cursor-pointer whitespace-nowrap tabular-nums min-w-10 hover:brightness-[1.12]${isSel ? ' outline outline-[3px] outline-text -outline-offset-[3px] font-bold' : ''}`}
                       style={{
                         background,
                         color,
