@@ -143,36 +143,36 @@ export function App() {
   ]);
 
   return (
-    <div className=”max-w-[1280px] mx-auto p-6”>
+    <div className="max-w-[1280px] mx-auto p-6">
       <header>
-        <div className=”flex justify-between items-start gap-4”>
+        <div className="flex justify-between items-start gap-4">
           <div>
             <h1>Historical Withdrawal Simulator</h1>
-            <p className=”m-0 mb-6 text-text-muted text-base”>
+            <p className="m-0 mb-6 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
             </p>
           </div>
-          <div className=”flex items-center gap-2 flex-shrink-0”>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <ScenarioActions />
             <button
               className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${topMode === 'about' ? ' bg-primary text-surface border-primary' : ''}`}
               onClick={() =>
                 setTopMode((m) => (m === 'about' ? 'single' : 'about'))
               }
-              title=”About / methodology”
+              title="About / methodology"
             >
               ?
             </button>
           </div>
         </div>
       </header>
-      <div className=”flex items-center gap-5 bg-surface border border-border rounded-lg px-4 py-3 mb-4”>
-        <span className=”text-xs font-bold uppercase tracking-[0.05em] text-text-faint”>Context</span>
+      <div className="flex items-center gap-5 bg-surface border border-border rounded-lg px-4 py-3 mb-4">
+        <span className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint">Context</span>
         <PortfolioInput />
-        <span className=”text-xs text-text-placeholder ml-auto”>applies to every tab</span>
+        <span className="text-xs text-text-placeholder ml-auto">applies to every tab</span>
       </div>
-      <div className=”flex gap-1 mb-4 border-b border-border”>
+      <div className="flex gap-1 mb-4 border-b border-border">
         <button
           className={`bg-transparent border-none px-[14px] py-2 text-base text-text-muted cursor-pointer border-b-2 border-b-transparent -mb-px${topMode === 'single' ? ' text-text font-medium border-b-chart-blue' : ''}`}
           onClick={() => setTopMode('single')}
@@ -200,32 +200,32 @@ export function App() {
       </div>
       <div className={`grid gap-6${topMode === 'single' ? ' grid-cols-[280px_minmax(0,1fr)]' : ' grid-cols-[minmax(0,1fr)]'}`}>
         {topMode === 'single' && (
-          <aside className=”flex flex-col gap-5 bg-surface border border-border rounded-lg p-4 h-fit”>
-            <section className=”control-zone flex flex-col gap-5”>
-              <div className=”flex flex-col gap-0.5”>
-                <h2 className=”m-0 text-md font-bold text-[#111] uppercase tracking-[0.05em]”>Strategy</h2>
+          <aside className="flex flex-col gap-5 bg-surface border border-border rounded-lg p-4 h-fit">
+            <section className="control-zone flex flex-col gap-5">
+              <div className="flex flex-col gap-0.5">
+                <h2 className="m-0 text-md font-bold text-[#111] uppercase tracking-[0.05em]">Strategy</h2>
               </div>
               <PresetPicker />
-              <h3 className=”mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1”>Holdings mix</h3>
+              <h3 className="mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1">Holdings mix</h3>
               <AllocationEditor
                 horizonYears={scenario.horizonYears}
                 allocation={scenario.allocation}
                 onChange={scenario.setAllocation}
               />
-              <h3 className=”mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1”>Withdrawal strategy</h3>
+              <h3 className="mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1">Withdrawal strategy</h3>
               <WithdrawalEditor
                 horizonYears={scenario.horizonYears}
                 withdrawal={scenario.withdrawal}
                 onChange={scenario.setWithdrawal}
               />
-              <h3 className=”mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1”>Withdrawal source</h3>
+              <h3 className="mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
               <WithdrawalSourceInput />
               <TailMethodInput />
             </section>
             <ScenarioLibrary />
           </aside>
         )}
-        <main className=”bg-surface border border-border rounded-lg p-4”>
+        <main className="bg-surface border border-border rounded-lg p-4">
           {topMode === 'optimize' && (
             <FrontierView onApplied={() => setTopMode('single')} />
           )}
@@ -233,13 +233,13 @@ export function App() {
           {topMode === 'compare' && <CompareScenariosView />}
           {topMode === 'about' && <AboutPanel />}
           {topMode === 'single' && <>
-          {!data && <div className=”text-text-faint text-base”>Loading historical data…</div>}
+          {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
           {data && (
-            <div className=”text-xs text-[#999] mb-2”>
+            <div className="text-xs text-[#999] mb-2">
               Compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
-              {pool && <span className=”text-text-placeholder”> ({pool.size} workers)</span>}
+              {pool && <span className="text-text-placeholder"> ({pool.size} workers)</span>}
               {result && (
-                <span className=”ml-3”>
+                <span className="ml-3">
                   view:
                   <button
                     className={`text-xs px-2 py-[2px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ''}`}
@@ -270,24 +270,24 @@ export function App() {
               {view === 'spaghetti' && (
                 <>
                   {recentCohorts > 0 && (
-                    <div className=”flex items-center justify-between gap-3 flex-wrap bg-surface-panel border border-[#d6deec] rounded-md px-3 py-2 text-sm text-[#44506a] mb-3”>
+                    <div className="flex items-center justify-between gap-3 flex-wrap bg-surface-panel border border-[#d6deec] rounded-md px-3 py-2 text-sm text-[#44506a] mb-3">
                       <span>
                         {recentCohorts} in-progress cohort
                         {recentCohorts === 1 ? '' : 's'}{' '}
-                        {recentCohorts === 1 ? “isn't” : “aren't”} counted in
+                        {recentCohorts === 1 ? "isn't" : "aren't"} counted in
                         the success rate — their horizon hasn't fully played
                         out yet.
                       </span>
                       <button
-                        className=”flex-shrink-0 text-sm py-[5px] px-[10px] border border-[#6b8cce] bg-surface text-primary rounded cursor-pointer hover:bg-[#eef2fb]”
+                        className="flex-shrink-0 text-sm py-[5px] px-[10px] border border-[#6b8cce] bg-surface text-primary rounded cursor-pointer hover:bg-[#eef2fb]"
                         onClick={() => setView('whereami')}
                       >
-                        View as “Where Am I” →
+                        View as "Where Am I" →
                       </button>
                     </div>
                   )}
-                  <div className=”grid grid-cols-2 gap-3 items-start”>
-                    <div className=”min-w-0”>
+                  <div className="grid grid-cols-2 gap-3 items-start">
+                    <div className="min-w-0">
                       <SpaghettiChart
                         result={result}
                         overlay={snapshot?.result ?? null}
@@ -298,7 +298,7 @@ export function App() {
                         height={400}
                       />
                     </div>
-                    <div className=”min-w-0”>
+                    <div className="min-w-0">
                       <StartYearChart
                         result={result}
                         initialBalance={scenario.initialBalance}
@@ -333,7 +333,7 @@ export function App() {
               {view === 'whereami' && (
                 <>
                   <button
-                    className=”border-none bg-transparent text-primary text-sm cursor-pointer pb-2 hover:underline”
+                    className="border-none bg-transparent text-primary text-sm cursor-pointer pb-2 hover:underline"
                     onClick={() => setView('spaghetti')}
                   >
                     ← Back to spaghetti

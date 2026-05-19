@@ -63,10 +63,10 @@ export function SuccessBar({ result, height = 460 }: Props) {
   };
 
   return (
-    <div className="success-bar" style={{ height }}>
-      <div className="success-bar-label">
-        <div className="success-bar-pct">{successRateLabel}</div>
-        <div className="success-bar-meta">
+    <div className="flex flex-col items-center gap-1.5 pt-4" style={{ height }}>
+      <div className="text-center">
+        <div className="text-base font-medium text-text" style={{ fontSize: 16 }}>{successRateLabel}</div>
+        <div className="text-2xs text-text-faint">
           {hasProjection
             ? `${result.completedCount} observed · ${
                 result.projectedCohortCount ?? 0
@@ -76,15 +76,14 @@ export function SuccessBar({ result, height = 460 }: Props) {
               )} completed`}
         </div>
         {hasProjection && (
-          <div className="success-bar-meta">
+          <div className="text-2xs text-text-faint">
             {`${(result.projectedSuccessRate! * 100).toFixed(1)}% projected`}
           </div>
         )}
       </div>
-      <div className="success-bar-track">
+      <div className="flex-1 w-[18px] flex flex-col border border-text-disabled rounded-[3px] overflow-hidden bg-surface-hover">
         {survived > 0 && (
           <div
-            className="success-bar-seg"
             style={{ height: `${survPct}%`, background: OUTCOME.survived }}
             onMouseEnter={(e) => onHover(e, 'survived', survived)}
             onMouseMove={(e) => onHover(e, 'survived', survived)}
@@ -93,7 +92,6 @@ export function SuccessBar({ result, height = 460 }: Props) {
         )}
         {inProgress > 0 && (
           <div
-            className="success-bar-seg"
             style={{ height: `${ipPct}%`, background: OUTCOME.inProgress }}
             onMouseEnter={(e) => onHover(e, 'in-progress', inProgress)}
             onMouseMove={(e) => onHover(e, 'in-progress', inProgress)}
@@ -102,7 +100,6 @@ export function SuccessBar({ result, height = 460 }: Props) {
         )}
         {failed > 0 && (
           <div
-            className="success-bar-seg"
             style={{ height: `${failPct}%`, background: OUTCOME.depleted }}
             onMouseEnter={(e) => onHover(e, 'depleted', failed)}
             onMouseMove={(e) => onHover(e, 'depleted', failed)}
@@ -112,7 +109,7 @@ export function SuccessBar({ result, height = 460 }: Props) {
       </div>
       {hover && (
         <div
-          className="success-tip"
+          className="fixed bg-surface border border-[#bbb] rounded-[3px] px-2 py-1 text-xs pointer-events-none z-10 shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
           style={{
             left: hover.px + 12,
             top: hover.py + 12,

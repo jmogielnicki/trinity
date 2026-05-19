@@ -133,11 +133,11 @@ export function CustomScriptEditor({
   const docs = DOCS[kind];
 
   return (
-    <div className="control-group">
-      <div className="script-label-row">
-        <div className="control-label">{label}</div>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1.5">
+        <div className="text-sm text-[#444]">{label}</div>
         <button
-          className="script-help-btn"
+          className="flex-shrink-0 w-[17px] h-[17px] rounded-full border border-[#bbb] bg-surface-muted text-text-secondary text-xs font-bold leading-none cursor-pointer p-0 flex items-center justify-center hover:bg-[#e8eef7] hover:border-primary hover:text-primary"
           onClick={() => setShowDocs((v) => !v)}
           title="Show API reference"
           aria-expanded={showDocs}
@@ -148,36 +148,36 @@ export function CustomScriptEditor({
 
       {showDocs && (
         <>
-          <div className="script-docs-backdrop" onClick={() => setShowDocs(false)} />
-          <div className="script-docs" ref={docsRef}>
-            <div className="script-docs-header">
+          <div className="fixed inset-0 z-[99]" onClick={() => setShowDocs(false)} />
+          <div className="absolute z-[100] left-0 right-0 bg-surface border border-text-disabled rounded-md shadow-popover p-0 overflow-hidden" ref={docsRef}>
+            <div className="flex items-center justify-between px-[10px] py-2 bg-[#f0f4f8] border-b border-[#dde3ea] text-sm font-semibold text-[#1a2733]">
               <span>{docs.title}</span>
-              <button className="script-docs-close" onClick={() => setShowDocs(false)}>×</button>
+              <button className="border-none bg-transparent text-[16px] leading-none cursor-pointer text-[#777] px-[2px] hover:text-[#c33]" onClick={() => setShowDocs(false)}>×</button>
             </div>
             {docs.sections.map((s) => (
-              <div key={s.heading} className="script-docs-section">
-                <div className="script-docs-heading">{s.heading}</div>
-                <pre className="script-docs-pre">{s.content}</pre>
+              <div key={s.heading} className="px-[10px] py-[7px] border-b border-[#f0f0f0] last:border-b-0">
+                <div className="text-2xs font-bold uppercase tracking-[0.04em] text-text-faint mb-[3px]">{s.heading}</div>
+                <pre className="m-0 font-mono text-[10.5px] text-[#1a1a1a] whitespace-pre-wrap leading-[1.5]">{s.content}</pre>
               </div>
             ))}
           </div>
         </>
       )}
 
-      <div className="script-sig">function ({signature}) {'{'}</div>
+      <div className="font-mono text-xs text-text-muted">function ({signature}) {'{'}</div>
       <textarea
-        className="script-area"
+        className="w-full font-mono text-xs px-2 py-1.5 border border-text-disabled rounded resize-y"
         value={src}
         onChange={(e) => setSrc(e.target.value)}
         rows={6}
         spellCheck={false}
       />
-      <div className="script-sig">{'}'}</div>
-      {error && <div className="script-error">{error}</div>}
-      <button onClick={apply} className="apply-btn">
+      <div className="font-mono text-xs text-text-muted">{'}'}</div>
+      {error && <div className="text-[#c33] text-xs whitespace-pre-wrap">{error}</div>}
+      <button onClick={apply} className="text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start">
         apply
       </button>
-      <div className="script-warn">
+      <div className="text-2xs text-text-faint">
         ⚠ Runs untrusted JS in your browser. Only paste scripts you wrote.
       </div>
     </div>

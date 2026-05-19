@@ -61,7 +61,7 @@ export function AllocationEditor({ horizonYears, allocation, onChange }: Props) 
   };
 
   return (
-    <div className="editor-block">
+    <div className="flex flex-col gap-1.5">
       <ModeToggle current={mode} onChange={switchMode} />
       {mode === 'fixed' && (
         <FixedAllocationEditor
@@ -97,16 +97,16 @@ function FixedAllocationEditor({ weights, onChange }: { weights: Weights; onChan
   useEffect(() => { setLocal(weights); }, [weights]);
 
   return (
-    <div className="control-group">
-      <div className="control-label">Drag the band boundaries to set the allocation.</div>
+    <div className="flex flex-col gap-2">
+      <div className="text-sm text-[#444]">Drag the band boundaries to set the allocation.</div>
       <StackedBar
         weights={[local]}
         onChange={(ws) => { setLocal(ws[0]); onChange(ws[0]); }}
       />
-      <div className="legend">
-        <span><span className="sw" style={{ background: ASSET.stock }} /> stocks</span>
-        <span><span className="sw" style={{ background: ASSET.bond }} /> bonds</span>
-        <span><span className="sw" style={{ background: ASSET.cash }} /> cash</span>
+      <div className="flex gap-3 text-xs text-text-secondary">
+        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.stock }} /> stocks</span>
+        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.bond }} /> bonds</span>
+        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.cash }} /> cash</span>
       </div>
     </div>
   );
@@ -120,9 +120,9 @@ function ModeToggle({ current, onChange }: { current: Mode; onChange: (m: Mode) 
     { k: 'script', label: 'script' },
   ];
   return (
-    <div className="mode-toggle">
+    <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none">
       {modes.map((m) => (
-        <button key={m.k} className={current === m.k ? 'active' : ''} onClick={() => onChange(m.k)}>
+        <button key={m.k} className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer text-text-muted font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${current === m.k ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent hover:bg-white/60 hover:text-text-body'}`} onClick={() => onChange(m.k)}>
           {m.label}
         </button>
       ))}

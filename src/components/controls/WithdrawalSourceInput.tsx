@@ -48,11 +48,11 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
   const mode = withdrawalSource.type;
 
   return (
-    <div className="control-group">
-      {!hideLabel && <div className="control-label">Withdrawal source</div>}
-      <div className="mode-toggle">
+    <div className="flex flex-col gap-2">
+      {!hideLabel && <div className="text-sm text-[#444]">Withdrawal source</div>}
+      <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none">
         <button
-          className={mode === 'proportional' ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'proportional' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() =>
             setWithdrawalSource({ type: 'proportional', rebalance: true })
           }
@@ -61,7 +61,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
           proportional
         </button>
         <button
-          className={mode === 'waterfall' ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'waterfall' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() =>
             setWithdrawalSource({
               type: 'waterfall',
@@ -73,7 +73,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
           waterfall
         </button>
         <button
-          className={mode === 'bucket' ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'bucket' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() =>
             setWithdrawalSource({
               type: 'bucket',
@@ -89,7 +89,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
 
       {mode === 'proportional' && (
         <>
-          <label className="rebalance-row">
+          <label className="flex items-center gap-1.5 text-sm text-[#444]">
             <input
               type="checkbox"
               checked={
@@ -105,7 +105,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
             />
             rebalance to target weights each year
           </label>
-          <div className="rule-hint">
+          <div className="text-xs text-[#777] py-[2px] pb-1">
             Sells proportionally; same outcome whether you check rebalance or
             not for static allocations.
           </div>
@@ -122,7 +122,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
               setWithdrawalSource({ type: 'waterfall', order })
             }
           />
-          <div className="rule-hint">
+          <div className="text-xs text-[#777] py-[2px] pb-1">
             Cash-bucket strategy: sleeves drift, downturns spend the safer
             ones first.
           </div>
@@ -154,14 +154,14 @@ function WaterfallOrderEditor({
     onChange(next);
   };
   return (
-    <div className="waterfall-order">
-      <div className="rule-hint">draw order:</div>
-      <ol>
+    <div className="flex flex-col gap-1">
+      <div className="text-xs text-[#777] py-[2px] pb-1">draw order:</div>
+      <ol className="list-none p-0 m-0 flex flex-col gap-1">
         {order.map((s, i) => (
-          <li key={s}>
-            <span>{i + 1}. {SLEEVE_LABELS[s]}</span>
+          <li key={s} className="flex items-center gap-1.5 text-sm">
+            <span className="flex-1">{i + 1}. {SLEEVE_LABELS[s]}</span>
             <button
-              className="x-btn"
+              className="border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-text-body disabled:opacity-30 disabled:cursor-default"
               disabled={i === 0}
               onClick={() => move(i, -1)}
               title="move earlier"
@@ -169,7 +169,7 @@ function WaterfallOrderEditor({
               ↑
             </button>
             <button
-              className="x-btn"
+              className="border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-text-body disabled:opacity-30 disabled:cursor-default"
               disabled={i === order.length - 1}
               onClick={() => move(i, 1)}
               title="move later"
@@ -232,11 +232,11 @@ function BucketEditor({
         />
       ))}
       {source.refill.length < 3 && (
-        <button className="x-btn" onClick={addRule} style={{ marginTop: 4 }}>
+        <button className="border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-text-body" onClick={addRule} style={{ marginTop: 4 }}>
           + add refill rule
         </button>
       )}
-      <div className="rule-hint">
+      <div className="text-xs text-[#777] py-[2px] pb-1">
         Rules run in order after returns. Each rule only fires when its target
         sleeve is below its floor threshold.
       </div>
@@ -262,28 +262,31 @@ function RefillRuleEditor({
   const hasReturnGate = rule.sourceReturnGate != null;
   const hasRatioGate = rule.sourceMinRatio != null;
 
+  const axisNumCls = 'w-14 px-[6px] py-[3px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover';
+  const selectCls = 'text-base px-1.5 py-1.5 border-[1.5px] border-border-input rounded-md font-[inherit] text-text bg-surface outline-none';
+
   return (
-    <div className="bucket-refill">
-      <div className="control-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+    <div className="flex flex-col gap-2 border border-border-light rounded px-2 py-1.5">
+      <div className="text-sm text-[#444] flex justify-between">
         <span>Refill rule {total > 1 ? index + 1 : ''}</span>
         {total > 1 && (
-          <button className="x-btn" onClick={onRemove} title="remove rule">
+          <button className="border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-[#c33]" onClick={onRemove} title="remove rule">
             ✕
           </button>
         )}
       </div>
 
       {/* Floor mode toggle */}
-      <div className="mode-toggle" style={{ marginBottom: 6 }}>
+      <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none" style={{ marginBottom: 6 }}>
         <button
-          className={!isYears ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${!isYears ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => onChange({ floorMode: 'portfolioFraction' })}
           title="Express floor/ceiling as % of total portfolio"
         >
           % of portfolio
         </button>
         <button
-          className={isYears ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${isYears ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => onChange({ floorMode: 'withdrawalYears' })}
           title="Express floor/ceiling as years of annual expenses"
         >
@@ -291,9 +294,10 @@ function RefillRuleEditor({
         </button>
       </div>
 
-      <div className="rule-line">
+      <div className="flex items-center gap-1.5 flex-wrap text-base">
         <span>refill</span>
         <select
+          className={selectCls}
           value={rule.targetSleeve}
           onChange={(e) => onChange({ targetSleeve: e.target.value as Sleeve })}
         >
@@ -306,7 +310,7 @@ function RefillRuleEditor({
         <span>when below</span>
         <NumericInput
           key={`floor-${isYears ? 'y' : 'f'}`}
-          className="axis-num"
+          className={axisNumCls}
           value={rule.floor}
           format={isYears ? (v) => v.toFixed(1) : (v) => (v * 100).toFixed(1)}
           parse={isYears
@@ -320,7 +324,7 @@ function RefillRuleEditor({
         <span>{isYears ? 'yrs, up to' : '%, up to'}</span>
         <NumericInput
           key={`ceiling-${isYears ? 'y' : 'f'}`}
-          className="axis-num"
+          className={axisNumCls}
           value={rule.ceiling}
           format={isYears ? (v) => v.toFixed(1) : (v) => (v * 100).toFixed(1)}
           parse={isYears
@@ -334,9 +338,10 @@ function RefillRuleEditor({
         <span>{isYears ? 'yrs' : '%'}</span>
       </div>
 
-      <div className="rule-line">
+      <div className="flex items-center gap-1.5 flex-wrap text-base">
         <span>sell from</span>
         <select
+          className={selectCls}
           value={rule.sourceSleeve}
           onChange={(e) => onChange({ sourceSleeve: e.target.value as Sleeve })}
         >
@@ -349,7 +354,7 @@ function RefillRuleEditor({
       </div>
 
       {/* Return gate */}
-      <label className="rebalance-row">
+      <label className="flex items-center gap-1.5 text-sm text-[#444]">
         <input
           type="checkbox"
           checked={hasReturnGate}
@@ -359,7 +364,7 @@ function RefillRuleEditor({
         />
         only when source return &gt;
         <NumericInput
-          className="axis-num"
+          className={axisNumCls}
           disabled={!hasReturnGate}
           value={rule.sourceReturnGate ?? 0}
           format={(v) => String(Math.round(v * 100))}
@@ -370,7 +375,7 @@ function RefillRuleEditor({
       </label>
 
       {/* Absolute-level gate */}
-      <label className="rebalance-row">
+      <label className="flex items-center gap-1.5 text-sm text-[#444]">
         <input
           type="checkbox"
           checked={hasRatioGate}
@@ -380,7 +385,7 @@ function RefillRuleEditor({
         />
         only when source ≥
         <NumericInput
-          className="axis-num"
+          className={axisNumCls}
           disabled={!hasRatioGate}
           value={rule.sourceMinRatio ?? 1}
           format={(v) => String(Math.round(v * 100))}

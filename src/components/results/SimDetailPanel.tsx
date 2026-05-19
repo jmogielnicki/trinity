@@ -289,22 +289,32 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
 
   const showsAssumedCash = startYear < CASH_DATA_START_YEAR;
 
+  const statusCls = failed
+    ? 'bg-error-bg text-error'
+    : inProgress
+      ? 'bg-[#f0f0f0] text-text-muted'
+      : 'bg-success-bg text-success';
+
   return (
-    <div className="sim-detail-panel">
-      <div className="sim-detail-header">
-        <div className="sim-detail-title">
-          <span className="sim-detail-year">Start {startYear}</span>
-          <span className={`sim-detail-status ${failed ? 'status-failed' : inProgress ? 'status-inprogress' : 'status-survived'}`}>
+    <div className="mt-4 border border-[#dde] rounded-md bg-[#fafbff] px-[14px] py-3">
+      <div className="flex items-start justify-between gap-3 mb-[10px]">
+        <div className="flex flex-wrap items-center gap-[10px] text-base">
+          <span className="font-semibold text-text">Start {startYear}</span>
+          <span className={`text-sm px-2 py-0.5 rounded-[10px] font-medium ${statusCls}`}>
             {status}
           </span>
-          <span className="sim-detail-summary-stats">
-            {!failed && <span>Final: <strong>{fmt$(summary.finalBalance)}</strong></span>}
-            <span>Peak: <strong>{fmt$(summary.peakBalance)}</strong> (yr {summary.peakYear})</span>
-            <span>Total withdrawn: <strong>{fmt$(summary.totalWithdrawn)}</strong></span>
+          <span className="flex flex-wrap gap-[14px] text-sm text-text-secondary">
+            {!failed && <span>Final: <strong className="text-text">{fmt$(summary.finalBalance)}</strong></span>}
+            <span>Peak: <strong className="text-text">{fmt$(summary.peakBalance)}</strong> (yr {summary.peakYear})</span>
+            <span>Total withdrawn: <strong className="text-text">{fmt$(summary.totalWithdrawn)}</strong></span>
           </span>
         </div>
         {onClose && (
-          <button className="sim-detail-close" onClick={onClose} title="Close detail">×</button>
+          <button
+            className="flex-shrink-0 border border-text-disabled bg-surface rounded-[3px] px-[9px] py-0.5 text-[15px] leading-none cursor-pointer text-text-muted hover:bg-surface-hover hover:text-text"
+            onClick={onClose}
+            title="Close detail"
+          >×</button>
         )}
       </div>
 
@@ -315,15 +325,15 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         immutable={false}
       />
 
-      <ul className="legend-row sim-detail-legend">
-        <li><span className="sw" style={{ background: ASSET.stock }} /> stocks</li>
-        <li><span className="sw" style={{ background: ASSET.bond }} /> bonds</li>
-        <li><span className="sw" style={{ background: ASSET.cash }} /> cash</li>
-        <li className="legend-note">filled area = holdings · bars = withdrawals by source</li>
+      <ul className="list-none p-0 mt-1 flex flex-wrap gap-x-[14px] gap-y-1 text-xs text-[#444]">
+        <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.stock }} /> stocks</li>
+        <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.bond }} /> bonds</li>
+        <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.cash }} /> cash</li>
+        <li className="text-text-faint">filled area = holdings · bars = withdrawals by source</li>
       </ul>
 
       {showsAssumedCash && (
-        <p className="sim-detail-footnote">
+        <p className="mt-1.5 mb-0 text-2xs leading-[1.4] text-[#999] max-w-[760px]">
           Cash return data begins in {CASH_DATA_START_YEAR}. Earlier years
           (faded violet) hold the cash sleeve flat at 0% real — a conservative
           assumption, not measured data.
@@ -331,42 +341,42 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       )}
 
       {/* Year-by-year data table */}
-      <div className="sim-detail-table-header">
-        <span className="sim-detail-table-label">Year-by-year detail</span>
+      <div className="flex items-center gap-[10px] mt-[10px] mb-1">
+        <span className="text-xs text-text-muted uppercase tracking-[0.04em]">Year-by-year detail</span>
         <button
-          className={`sim-detail-mode-btn ${detailMode ? 'active' : ''}`}
+          className={`text-xs px-[9px] py-0.5 border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-hover${detailMode ? ' bg-[#e8f1ff] border-[#6b9fce] text-[#1a5fa8]' : ''}`}
           onClick={() => setDetailMode((v) => !v)}
         >
           {detailMode ? 'Hide flows' : 'Show flows'}
         </button>
       </div>
-      <div className="sim-detail-table-wrap">
-        <table className="sim-detail-table">
+      <div className="overflow-x-auto max-h-[260px] overflow-y-auto mt-[10px] border border-border-light rounded">
+        <table className="w-full border-collapse text-sm [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-surface-hover [&_thead]:z-[1] [&_th]:px-[10px] [&_th]:py-[5px] [&_th]:text-left [&_th]:text-xs [&_th]:font-medium [&_th]:text-text-muted [&_th]:uppercase [&_th]:tracking-[0.04em] [&_th]:border-b [&_th]:border-[#e0e0e0] [&_th]:whitespace-nowrap [&_td]:px-[10px] [&_td]:py-1 [&_td]:border-b [&_td]:border-[#f0f0f0] [&_td]:whitespace-nowrap [&_tbody_tr:hover_td]:bg-[#f0f4ff]">
           <thead>
             <tr>
               {/* Base columns */}
               <th rowSpan={2}>Yr</th>
               <th rowSpan={2}>Cal</th>
-              <th rowSpan={2} className="num">Balance</th>
-              <th rowSpan={2} className="num">W/D $</th>
-              <th rowSpan={2} className="num">W/D %</th>
-              <th rowSpan={2} className="num">Return</th>
+              <th rowSpan={2} className="text-right tabular-nums">Balance</th>
+              <th rowSpan={2} className="text-right tabular-nums">W/D $</th>
+              <th rowSpan={2} className="text-right tabular-nums">W/D %</th>
+              <th rowSpan={2} className="text-right tabular-nums">Return</th>
               {/* Detail groups */}
-              {detailMode && <th colSpan={3} className="group-header">Start balance</th>}
-              {detailMode && <th colSpan={3} className="group-header">Withdrawn from</th>}
-              {detailMode && <th colSpan={3} className="group-header">Rebalanced (Δ)</th>}
-              {detailMode && hasRefill && <th colSpan={3} className="group-header">Bucket refill (Δ)</th>}
-              {detailMode && <th colSpan={3} className="group-header">Return earned</th>}
+              {detailMode && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Start balance</th>}
+              {detailMode && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Withdrawn from</th>}
+              {detailMode && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Rebalanced (Δ)</th>}
+              {detailMode && hasRefill && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Bucket refill (Δ)</th>}
+              {detailMode && <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">Return earned</th>}
               {/* End sleeves (always shown in detail mode, simplified in basic) */}
-              <th colSpan={3} className="group-header">End balance</th>
+              <th colSpan={3} className="text-center bg-[#eff1f5] border-l border-[#dde] text-2xs px-1.5 py-[3px] tracking-[0.03em]">End balance</th>
             </tr>
             <tr>
-              {detailMode && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
-              {detailMode && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
-              {detailMode && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
-              {detailMode && hasRefill && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
-              {detailMode && <><th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th></>}
-              <th className="num sub">Stock</th><th className="num sub">Bond</th><th className="num sub">Cash</th>
+              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
+              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
+              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
+              {detailMode && hasRefill && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
+              {detailMode && <><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th></>}
+              <th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Stock</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Bond</th><th className="text-right tabular-nums text-2xs font-normal text-[#777] bg-[#f6f7fa] border-l border-border-light">Cash</th>
             </tr>
           </thead>
           <tbody>
@@ -378,21 +388,21 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
               const rf = r.refillFlow ?? zeroSleeves();
               const sl = r.sleeves;
               return (
-                <tr key={r.t} className={r.depleted ? 'row-depleted' : ''}>
+                <tr key={r.t} className={r.depleted ? '[&_td]:bg-[#fff0f0] [&_td]:text-error' : ''}>
                   <td>{r.t}</td>
                   <td>{r.calendarYear}</td>
-                  <td className="num">{fmt$(r.balance)}</td>
-                  <td className="num">{fmt$(r.withdrawal)}</td>
-                  <td className="num">{fmtPct(r.withdrawal / initialBalance)}</td>
-                  <td className={`num ${r.return != null ? (r.return < 0 ? 'neg' : 'pos') : ''}`}>
+                  <td className="text-right tabular-nums">{fmt$(r.balance)}</td>
+                  <td className="text-right tabular-nums">{fmt$(r.withdrawal)}</td>
+                  <td className="text-right tabular-nums">{fmtPct(r.withdrawal / initialBalance)}</td>
+                  <td className={`text-right tabular-nums ${r.return != null ? (r.return < 0 ? 'text-error' : 'text-success') : ''}`}>
                     {r.return != null ? fmtPct(r.return) : '—'}
                   </td>
-                  {detailMode && <><td className="num">{fmt$(ss.stock)}</td><td className="num">{fmt$(ss.bond)}</td><td className="num">{fmt$(ss.cash)}</td></>}
-                  {detailMode && <><td className="num neg">{wb.stock > 1 ? fmt$(wb.stock) : '—'}</td><td className="num neg">{wb.bond > 1 ? fmt$(wb.bond) : '—'}</td><td className="num neg">{wb.cash > 1 ? fmt$(wb.cash) : '—'}</td></>}
-                  {detailMode && <><td className={`num ${rb.stock > 1 ? 'pos' : rb.stock < -1 ? 'neg' : ''}`}>{fmtFlow(rb.stock)}</td><td className={`num ${rb.bond > 1 ? 'pos' : rb.bond < -1 ? 'neg' : ''}`}>{fmtFlow(rb.bond)}</td><td className={`num ${rb.cash > 1 ? 'pos' : rb.cash < -1 ? 'neg' : ''}`}>{fmtFlow(rb.cash)}</td></>}
-                  {detailMode && hasRefill && <><td className={`num ${rf.stock > 1 ? 'pos' : rf.stock < -1 ? 'neg' : ''}`}>{fmtFlow(rf.stock)}</td><td className={`num ${rf.bond > 1 ? 'pos' : rf.bond < -1 ? 'neg' : ''}`}>{fmtFlow(rf.bond)}</td><td className={`num ${rf.cash > 1 ? 'pos' : rf.cash < -1 ? 'neg' : ''}`}>{fmtFlow(rf.cash)}</td></>}
-                  {detailMode && <><td className={`num ${ret.stock >= 0 ? 'pos' : 'neg'}`}>{fmtFlow(ret.stock)}</td><td className={`num ${ret.bond >= 0 ? 'pos' : 'neg'}`}>{fmtFlow(ret.bond)}</td><td className={`num ${ret.cash >= 0 ? 'pos' : 'neg'}`}>{fmtFlow(ret.cash)}</td></>}
-                  <td className="num">{fmt$(sl.stock)}</td><td className="num">{fmt$(sl.bond)}</td><td className="num">{fmt$(sl.cash)}</td>
+                  {detailMode && <><td className="text-right tabular-nums">{fmt$(ss.stock)}</td><td className="text-right tabular-nums">{fmt$(ss.bond)}</td><td className="text-right tabular-nums">{fmt$(ss.cash)}</td></>}
+                  {detailMode && <><td className="text-right tabular-nums text-error">{wb.stock > 1 ? fmt$(wb.stock) : '—'}</td><td className="text-right tabular-nums text-error">{wb.bond > 1 ? fmt$(wb.bond) : '—'}</td><td className="text-right tabular-nums text-error">{wb.cash > 1 ? fmt$(wb.cash) : '—'}</td></>}
+                  {detailMode && <><td className={`text-right tabular-nums ${rb.stock > 1 ? 'text-success' : rb.stock < -1 ? 'text-error' : ''}`}>{fmtFlow(rb.stock)}</td><td className={`text-right tabular-nums ${rb.bond > 1 ? 'text-success' : rb.bond < -1 ? 'text-error' : ''}`}>{fmtFlow(rb.bond)}</td><td className={`text-right tabular-nums ${rb.cash > 1 ? 'text-success' : rb.cash < -1 ? 'text-error' : ''}`}>{fmtFlow(rb.cash)}</td></>}
+                  {detailMode && hasRefill && <><td className={`text-right tabular-nums ${rf.stock > 1 ? 'text-success' : rf.stock < -1 ? 'text-error' : ''}`}>{fmtFlow(rf.stock)}</td><td className={`text-right tabular-nums ${rf.bond > 1 ? 'text-success' : rf.bond < -1 ? 'text-error' : ''}`}>{fmtFlow(rf.bond)}</td><td className={`text-right tabular-nums ${rf.cash > 1 ? 'text-success' : rf.cash < -1 ? 'text-error' : ''}`}>{fmtFlow(rf.cash)}</td></>}
+                  {detailMode && <><td className={`text-right tabular-nums ${ret.stock >= 0 ? 'text-success' : 'text-error'}`}>{fmtFlow(ret.stock)}</td><td className={`text-right tabular-nums ${ret.bond >= 0 ? 'text-success' : 'text-error'}`}>{fmtFlow(ret.bond)}</td><td className={`text-right tabular-nums ${ret.cash >= 0 ? 'text-success' : 'text-error'}`}>{fmtFlow(ret.cash)}</td></>}
+                  <td className="text-right tabular-nums">{fmt$(sl.stock)}</td><td className="text-right tabular-nums">{fmt$(sl.bond)}</td><td className="text-right tabular-nums">{fmt$(sl.cash)}</td>
                 </tr>
               );
             })}

@@ -307,7 +307,7 @@ export function SpaghettiChart({
   // Highcharts handles this natively with zooming.type:'xy' and the selection event.
 
   return (
-    <div className="spaghetti-wrapper">
+    <div className="block w-full">
       <HighchartsReact
         highcharts={Highcharts}
         options={options}

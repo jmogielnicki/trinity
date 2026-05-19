@@ -16,12 +16,12 @@ export function Legend({
   className?: string;
 }) {
   return (
-    <ul className={`legend-row ${className}`}>
+    <ul className={`list-none p-0 mt-2 flex flex-wrap gap-x-[14px] gap-y-1 text-xs text-[#444] ${className}`}>
       {items.map((it) => (
-        <li key={it.label} title={it.note ?? ''}>
-          <span className="sw" style={{ background: it.color }} />
-          <span className="legend-label">{it.label}</span>
-          {it.note && <span className="legend-note">— {it.note}</span>}
+        <li key={it.label} title={it.note ?? ''} className="flex items-center gap-1">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: it.color }} />
+          <span className="font-medium">{it.label}</span>
+          {it.note && <span className="text-text-faint">— {it.note}</span>}
         </li>
       ))}
     </ul>

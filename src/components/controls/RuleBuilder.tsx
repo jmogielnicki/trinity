@@ -36,11 +36,11 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
   const update = (newRules: Rule[]) => onChange(base, newRules);
 
   return (
-    <div className="control-group">
-      <div className="control-label">
+    <div className="flex flex-col gap-2">
+      <div className="text-sm text-[#444]">
         Base rate{' '}
         <NumericInput
-          className="axis-num"
+          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
           value={base}
           format={fmtPct2}
           parse={parsePct}
@@ -48,7 +48,7 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
         />
         % — applied when no rule matches.
       </div>
-      <div className="rule-hint">
+      <div className="text-xs text-[#777] py-[2px] pb-1">
         Rules evaluate top-down each year; the <strong>last matching rule wins</strong>
         and overrides the rate.
       </div>
@@ -61,7 +61,7 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
         />
       ))}
       <button
-        className="apply-btn"
+        className="text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start"
         onClick={() => update([...rules, defaultRule()])}
       >
         + add rule
@@ -93,10 +93,11 @@ function RuleRow({
   const action = rule.then as Extract<Action, { type: 'setWithdrawal' }>;
 
   return (
-    <div className="rule-row">
-      <div className="rule-line">
+    <div className="border border-border-light rounded px-2 py-1.5 flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 flex-wrap text-base">
         <span>if</span>
         <select
+          className="text-base px-1.5 py-1.5 border-[1.5px] border-border-input rounded-md font-[inherit] text-text bg-surface outline-none"
           value={rule.if.type}
           onChange={(e) => setCondType(e.target.value as Condition['type'])}
         >
@@ -108,10 +109,10 @@ function RuleRow({
         </select>
         <CondInputs cond={rule.if} onChange={(c) => onChange({ ...rule, if: c })} />
       </div>
-      <div className="rule-line">
+      <div className="flex items-center gap-1.5 flex-wrap text-base">
         <span>then withdraw</span>
         <NumericInput
-          className="axis-num"
+          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
           value={action.rate}
           format={fmtPct2}
           parse={parsePct}
@@ -123,7 +124,7 @@ function RuleRow({
           }
         />
         <span>%</span>
-        <button className="x-btn" onClick={onDelete}>
+        <button className="ml-auto border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-[#c33]" onClick={onDelete}>
           ×
         </button>
       </div>
@@ -144,7 +145,7 @@ function CondInputs({
         <>
           <span>year</span>
           <NumericInput
-            className="axis-num"
+            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
             value={cond.from}
             format={fmtInt}
             parse={parseIntFn}
@@ -152,7 +153,7 @@ function CondInputs({
           />
           <span>–</span>
           <NumericInput
-            className="axis-num"
+            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
             value={cond.to}
             format={fmtInt}
             parse={parseIntFn}
@@ -165,7 +166,7 @@ function CondInputs({
         <>
           <span>last</span>
           <NumericInput
-            className="axis-num"
+            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
             value={cond.lookback}
             format={fmtInt}
             parse={parseIntFn}
@@ -173,7 +174,7 @@ function CondInputs({
           />
           <span>y ret &gt;</span>
           <NumericInput
-            className="axis-num"
+            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
             value={cond.threshold}
             format={fmtPct0}
             parse={parsePct}
@@ -187,6 +188,7 @@ function CondInputs({
         <>
           <span>balance/initial</span>
           <select
+            className="text-base px-1.5 py-1.5 border-[1.5px] border-border-input rounded-md font-[inherit] text-text bg-surface outline-none"
             value={cond.comparator}
             onChange={(e) =>
               onChange({ ...cond, comparator: e.target.value as '>' | '<' })
@@ -196,7 +198,7 @@ function CondInputs({
             <option value="<">&lt;</option>
           </select>
           <NumericInput
-            className="axis-num"
+            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
             value={cond.ratio}
             onChange={(v) => onChange({ ...cond, ratio: v })}
           />
@@ -207,7 +209,7 @@ function CondInputs({
         <>
           <span>inflation &gt;</span>
           <NumericInput
-            className="axis-num"
+            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
             value={cond.threshold}
             format={fmtPct0}
             parse={parsePct}

@@ -16,20 +16,20 @@ export function TailMethodInput() {
   const isBootstrap = tailMethod.type === 'bootstrap';
 
   return (
-    <div className="control-group">
-      <div className="control-label">
+    <div className="flex flex-col gap-2">
+      <div className="text-sm text-[#444]">
         Recent retirees (data runs out before horizon)
       </div>
-      <div className="mode-toggle">
+      <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none">
         <button
-          className={!isBootstrap ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${!isBootstrap ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setTailMethod({ type: 'truncate' })}
           title="Run only as far as data permits; mark as in-progress"
         >
           truncate
         </button>
         <button
-          className={isBootstrap ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${isBootstrap ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setTailMethod(DEFAULT_BOOTSTRAP)}
           title="Sample contiguous historical blocks to fill the unknown tail"
         >
@@ -37,11 +37,11 @@ export function TailMethodInput() {
         </button>
       </div>
       {isBootstrap && (
-        <div className="bootstrap-cfg">
-          <label>
+        <div className="flex gap-3 items-center text-xs text-text-secondary">
+          <label className="flex items-center gap-1">
             block (yrs){' '}
             <NumericInput
-              className="axis-num"
+              className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
               value={tailMethod.blockYears}
               format={fmtInt}
               parse={parseIntFn}
@@ -50,10 +50,10 @@ export function TailMethodInput() {
               onChange={(v) => setTailMethod({ ...tailMethod, blockYears: v })}
             />
           </label>
-          <label>
+          <label className="flex items-center gap-1">
             samples{' '}
             <NumericInput
-              className="axis-num"
+              className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
               value={tailMethod.samplesPerPrefix}
               format={fmtInt}
               parse={parseIntFn}

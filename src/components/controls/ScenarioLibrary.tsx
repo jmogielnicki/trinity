@@ -36,29 +36,30 @@ export function ScenarioLibrary() {
   };
 
   return (
-    <div className="control-group">
-      <div className="control-label">Scenario library (localStorage)</div>
-      <div className="lib-save">
+    <div className="flex flex-col gap-2">
+      <div className="text-sm text-[#444]">Scenario library (localStorage)</div>
+      <div className="flex gap-1.5">
         <input
           type="text"
           placeholder="name"
+          className="flex-1 px-1.5 py-1 border border-text-disabled rounded-[3px] text-sm"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <button className="apply-btn" onClick={onSave}>
+        <button className="text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start" onClick={onSave}>
           save current
         </button>
       </div>
       {saved.length === 0 ? (
-        <div className="lib-empty">no saved scenarios yet</div>
+        <div className="text-xs text-text-faint">no saved scenarios yet</div>
       ) : (
-        <ul className="lib-list">
+        <ul className="list-none p-0 m-0 flex flex-col gap-1">
           {saved.map((s) => (
-            <li key={s.id}>
-              <button className="lib-load" onClick={() => onLoad(s)}>
+            <li key={s.id} className="flex items-center">
+              <button className="flex-1 text-left bg-surface-hover border border-border-light rounded-[3px] px-2 py-1 cursor-pointer text-sm hover:bg-[#eef]" onClick={() => onLoad(s)}>
                 {s.name}
               </button>
-              <button className="x-btn" onClick={() => remove(s.id)}>
+              <button className="ml-auto border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-[#c33]" onClick={() => remove(s.id)}>
                 ×
               </button>
             </li>

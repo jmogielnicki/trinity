@@ -30,10 +30,10 @@ export function PresetPicker() {
   const description = PRESETS.find((p) => p.id === picked)?.description;
 
   return (
-    <div className="control-group">
-      <div className="control-label">Presets</div>
+    <div className="flex flex-col gap-2">
+      <div className="text-sm text-[#444]">Presets</div>
       <select
-        className="preset-select"
+        className="w-full px-[10px] py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] bg-surface cursor-pointer text-text outline-none transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
         value={picked}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -44,7 +44,7 @@ export function PresetPicker() {
           </option>
         ))}
       </select>
-      {description && <div className="rule-hint">{description}</div>}
+      {description && <div className="text-xs text-[#777] py-[2px] pb-1">{description}</div>}
     </div>
   );
 }

@@ -218,9 +218,9 @@ export function FrontierView({ onApplied }: Props) {
   };
 
   return (
-    <div className="frontier-view">
-      <div className="frontier-header">
-        <div>
+    <div className="flex flex-col gap-[14px] text-base">
+      <div className="flex justify-between items-start gap-4">
+        <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
           <strong>Strategy study</strong> — pin some of {`{`}holdings mix,
           withdrawal strategy, withdrawal source{`}`} and sweep the rest. Sweep
           one dimension for a scatter / trajectory comparison; sweep two for a
@@ -228,8 +228,12 @@ export function FrontierView({ onApplied }: Props) {
           Uses the current horizon ({scenario.horizonYears}y), starting
           balance, and tail method.
         </div>
-        <div className="frontier-actions">
-          <button onClick={runSearch} disabled={running || !pool || !data}>
+        <div className="flex gap-1.5 flex-shrink-0">
+          <button
+            className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={runSearch}
+            disabled={running || !pool || !data}
+          >
             {running
               ? 'Running…'
               : results.length
@@ -238,23 +242,23 @@ export function FrontierView({ onApplied }: Props) {
           </button>
           {!!results.length && (
             <>
-              <button onClick={selectAll}>Select all</button>
-              <button onClick={selectAllFrontier}>Select frontier</button>
-              <button onClick={clearSelection}>Clear</button>
+              <button className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover" onClick={selectAll}>Select all</button>
+              <button className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover" onClick={selectAllFrontier}>Select frontier</button>
+              <button className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover" onClick={clearSelection}>Clear</button>
             </>
           )}
         </div>
       </div>
       <StudyConfigPanel />
       {!!results.length && (
-        <div className="frontier-meta">
+        <div className="text-xs text-text-faint">
           {filteredResults.length}/{results.length} variants passing ·{' '}
           {frontier.length} on Pareto frontier · compute {computeMs.toFixed(0)} ms ·{' '}
           {selectedIds.length} selected
           {(studyDirty ||
             (lastConfig &&
               lastConfig.horizonYears !== scenario.horizonYears)) && (
-            <span className="frontier-stale">
+            <span className="text-stale">
               {' '}
               · config changed — re-run to refresh
             </span>
@@ -273,16 +277,16 @@ export function FrontierView({ onApplied }: Props) {
 
       {results.length > 0 && !is2D && (
         <>
-          <div className="frontier-controls">
-            <div className="mode-toggle study-view-toggle">
+          <div className="flex flex-wrap gap-[18px] text-sm text-[#444] items-center py-1">
+            <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] mr-1">
               <button
-                className={viewMode === 'scatter' ? 'active' : ''}
+                className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${viewMode === 'scatter' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
                 onClick={() => setViewMode('scatter')}
               >
                 scatter
               </button>
               <button
-                className={viewMode === 'trajectories' ? 'active' : ''}
+                className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${viewMode === 'trajectories' ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
                 onClick={() => setViewMode('trajectories')}
               >
                 trajectories
@@ -290,9 +294,10 @@ export function FrontierView({ onApplied }: Props) {
             </div>
             {viewMode === 'scatter' && (
               <>
-                <label className="frontier-axis-pick">
+                <label className="flex gap-1.5 items-center">
                   x:
                   <select
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
                     value={xAxis}
                     onChange={(e) => setXAxis(e.target.value as Axis)}
                   >
@@ -303,9 +308,10 @@ export function FrontierView({ onApplied }: Props) {
                     ))}
                   </select>
                 </label>
-                <label className="frontier-axis-pick">
+                <label className="flex gap-1.5 items-center">
                   y:
                   <select
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
                     value={yAxis}
                     onChange={(e) => setYAxis(e.target.value as Axis)}
                   >
@@ -316,9 +322,10 @@ export function FrontierView({ onApplied }: Props) {
                     ))}
                   </select>
                 </label>
-                <label className="frontier-axis-pick">
+                <label className="flex gap-1.5 items-center">
                   color:
                   <select
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
                     value={colorBy}
                     onChange={(e) => setColorBy(e.target.value as ColorBy)}
                   >
@@ -331,10 +338,11 @@ export function FrontierView({ onApplied }: Props) {
                     ))}
                   </select>
                 </label>
-                <label className="frontier-filter">
+                <label className="flex gap-1.5 items-center">
                   min success ≥
                   <input
                     type="range"
+                    className="w-[140px]"
                     min={0}
                     max={100}
                     step={1}
@@ -343,7 +351,7 @@ export function FrontierView({ onApplied }: Props) {
                       setMinSuccessRate(parseInt(e.target.value, 10) / 100)
                     }
                   />
-                  <span className="frontier-filter-val">
+                  <span className="tabular-nums min-w-[32px] text-text-body">
                     {(minSuccessRate * 100).toFixed(0)}%
                   </span>
                 </label>
@@ -561,23 +569,23 @@ function ScatterPlot({
   if (xVals.length === 0 || yVals.length === 0) return null;
 
   return (
-    <div className="frontier-scatter-wrap">
+    <div className="border border-border-light rounded p-2 bg-surface-page">
       <HighchartsReact
         highcharts={Highcharts}
         options={options}
         ref={chartRef}
         immutable={false}
       />
-      <div className="frontier-legend">
+      <div className="flex gap-4 text-xs text-text-secondary mt-1.5 px-1.5">
         {colorBy === 'frontier' ? (
           <>
-            <span><span className="dot dot-frontier" /> Pareto-optimal</span>
-            <span><span className="dot dot-other" /> dominated</span>
+            <span><span className="inline-block w-[10px] h-[10px] rounded-full align-middle mr-1" style={{ background: '#d62728' }} /> Pareto-optimal</span>
+            <span><span className="inline-block w-[10px] h-[10px] rounded-full align-middle mr-1 opacity-50" style={{ background: '#aaa' }} /> dominated</span>
           </>
         ) : (
           <ColorBar colorBy={colorBy} cMin={cMin} cMax={cMax} />
         )}
-        <span className="frontier-tip">
+        <span className="text-text-faint ml-auto italic">
           drag = marquee select · click = toggle · click empty = clear
         </span>
       </div>
@@ -602,7 +610,7 @@ function ComparisonTable({
 }) {
   if (selectedIds.length === 0) {
     return (
-      <p className="frontier-empty">
+      <p className="text-sm text-text-faint py-3 text-center border border-dashed border-text-disabled rounded">
         Drag a marquee or click points in the scatter plot — or use "Select
         frontier" — to populate the comparison.
       </p>
@@ -613,65 +621,68 @@ function ComparisonTable({
     .map((id) => byId.get(id))
     .filter((r): r is CandidateResult => !!r);
 
+  const thCls = 'px-2 py-1.5 text-left text-xs font-medium text-text-muted uppercase tracking-[0.04em] bg-surface-hover border-b border-border-light whitespace-nowrap';
+  const tdCls = 'px-2 py-1.5 border-b border-border-light whitespace-nowrap';
+
   return (
-    <div className="frontier-table-wrap">
-      <table className="frontier-table">
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th></th>
-            <th>Strategy</th>
-            <th>Withdrawal</th>
-            <th>Allocation</th>
-            <th>Source</th>
-            <th>Success</th>
-            <th>Avg wd/yr</th>
-            <th>P5 final</th>
-            <th>Median final</th>
-            <th>P95 final</th>
-            <th title={`# yrs/sim balance < ${NEAR_DEPLETION_FRACTION * 100}% of initial`}>
+            <th className={thCls}></th>
+            <th className={thCls}>Strategy</th>
+            <th className={thCls}>Withdrawal</th>
+            <th className={thCls}>Allocation</th>
+            <th className={thCls}>Source</th>
+            <th className={thCls}>Success</th>
+            <th className={thCls}>Avg wd/yr</th>
+            <th className={thCls}>P5 final</th>
+            <th className={thCls}>Median final</th>
+            <th className={thCls}>P95 final</th>
+            <th className={thCls} title={`# yrs/sim balance < ${NEAR_DEPLETION_FRACTION * 100}% of initial`}>
               Near-depl yrs
             </th>
-            <th>Worst start</th>
-            <th></th>
-            <th></th>
+            <th className={thCls}>Worst start</th>
+            <th className={thCls}></th>
+            <th className={thCls}></th>
           </tr>
         </thead>
         <tbody>
           {selected.map((r, i) => (
             <tr key={r.candidate.id}>
-              <td>
+              <td className={tdCls}>
                 <span
-                  className="series-swatch"
+                  className="inline-block w-3 h-3 rounded-sm"
                   style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }}
                 />
               </td>
-              <td>{r.candidate.label}</td>
-              <td>{r.candidate.params.withdrawal}</td>
-              <td>{r.candidate.params.allocation}</td>
-              <td>{r.candidate.params.source ?? '—'}</td>
-              <td>
+              <td className={tdCls}>{r.candidate.label}</td>
+              <td className={tdCls}>{r.candidate.params.withdrawal}</td>
+              <td className={tdCls}>{r.candidate.params.allocation}</td>
+              <td className={tdCls}>{r.candidate.params.source ?? '—'}</td>
+              <td className={tdCls}>
                 {Number.isFinite(r.metrics.successRate)
                   ? `${(r.metrics.successRate * 100).toFixed(1)}%`
                   : '—'}
               </td>
-              <td>{fmtMoney(r.metrics.avgAnnualWithdrawal)}</td>
-              <td>{fmtMoney(r.metrics.p5Final)}</td>
-              <td>{fmtMoney(r.metrics.p50Final)}</td>
-              <td>{fmtMoney(r.metrics.p95Final)}</td>
-              <td>{r.metrics.avgYearsNearDepletion.toFixed(1)}</td>
-              <td>{r.metrics.worstStartYear ?? '—'}</td>
-              <td>
+              <td className={tdCls}>{fmtMoney(r.metrics.avgAnnualWithdrawal)}</td>
+              <td className={tdCls}>{fmtMoney(r.metrics.p5Final)}</td>
+              <td className={tdCls}>{fmtMoney(r.metrics.p50Final)}</td>
+              <td className={tdCls}>{fmtMoney(r.metrics.p95Final)}</td>
+              <td className={tdCls}>{r.metrics.avgYearsNearDepletion.toFixed(1)}</td>
+              <td className={tdCls}>{r.metrics.worstStartYear ?? '—'}</td>
+              <td className={tdCls}>
                 <button
-                  className="frontier-apply"
+                  className="text-xs px-2 py-[3px] border border-[#bbb] bg-surface rounded-[3px] cursor-pointer text-chart-blue hover:bg-[#eef4ff] hover:border-chart-blue"
                   onClick={() => onApply(r)}
                   title="Load this strategy into the single-scenario view"
                 >
                   Apply
                 </button>
               </td>
-              <td>
+              <td className={tdCls}>
                 <button
-                  className="frontier-remove"
+                  className="bg-transparent border-none text-stale cursor-pointer text-base leading-none px-1 hover:text-[#900]"
                   onClick={() => onRemove(r.candidate.id)}
                   title="Remove from comparison"
                 >
@@ -818,8 +829,8 @@ function ComparisonBars({
   };
 
   return (
-    <div className="frontier-bars-wrap">
-      <div className="frontier-bars-title">
+    <div className="border border-border-light rounded p-[10px] bg-surface-page">
+      <div className="text-xs text-text-secondary mb-1.5">
         Final-balance distribution (P5 / Median / P95) per selected strategy
       </div>
       <HighchartsReact
@@ -841,47 +852,53 @@ function FrontierList({
   onToggle: (id: string) => void;
 }) {
   if (frontier.length === 0) return null;
+
+  const thCls = 'px-2 py-1.5 text-left text-xs font-medium text-text-muted uppercase tracking-[0.04em] bg-surface-hover border-b border-border-light whitespace-nowrap';
+  const tdCls = 'px-2 py-1.5 border-b border-border-light whitespace-nowrap';
+
   return (
-    <details className="frontier-list-wrap">
+    <details className="[&_summary]:cursor-pointer [&_summary]:text-sm [&_summary]:text-text-secondary [&_summary]:py-1 [&[open]_summary]:mb-1.5">
       <summary>Show all {frontier.length} frontier strategies</summary>
-      <table className="frontier-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Strategy</th>
-            <th>Success</th>
-            <th>Avg wd/yr</th>
-            <th>P5 final</th>
-            <th>Median final</th>
-            <th>P95 final</th>
-            <th>Near-depl yrs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {frontier.map((r) => (
-            <tr key={r.candidate.id}>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(r.candidate.id)}
-                  onChange={() => onToggle(r.candidate.id)}
-                />
-              </td>
-              <td>{r.candidate.label}</td>
-              <td>
-                {Number.isFinite(r.metrics.successRate)
-                  ? `${(r.metrics.successRate * 100).toFixed(1)}%`
-                  : '—'}
-              </td>
-              <td>{fmtMoney(r.metrics.avgAnnualWithdrawal)}</td>
-              <td>{fmtMoney(r.metrics.p5Final)}</td>
-              <td>{fmtMoney(r.metrics.p50Final)}</td>
-              <td>{fmtMoney(r.metrics.p95Final)}</td>
-              <td>{r.metrics.avgYearsNearDepletion.toFixed(1)}</td>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className={thCls}></th>
+              <th className={thCls}>Strategy</th>
+              <th className={thCls}>Success</th>
+              <th className={thCls}>Avg wd/yr</th>
+              <th className={thCls}>P5 final</th>
+              <th className={thCls}>Median final</th>
+              <th className={thCls}>P95 final</th>
+              <th className={thCls}>Near-depl yrs</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {frontier.map((r) => (
+              <tr key={r.candidate.id}>
+                <td className={tdCls}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(r.candidate.id)}
+                    onChange={() => onToggle(r.candidate.id)}
+                  />
+                </td>
+                <td className={tdCls}>{r.candidate.label}</td>
+                <td className={tdCls}>
+                  {Number.isFinite(r.metrics.successRate)
+                    ? `${(r.metrics.successRate * 100).toFixed(1)}%`
+                    : '—'}
+                </td>
+                <td className={tdCls}>{fmtMoney(r.metrics.avgAnnualWithdrawal)}</td>
+                <td className={tdCls}>{fmtMoney(r.metrics.p5Final)}</td>
+                <td className={tdCls}>{fmtMoney(r.metrics.p50Final)}</td>
+                <td className={tdCls}>{fmtMoney(r.metrics.p95Final)}</td>
+                <td className={tdCls}>{r.metrics.avgYearsNearDepletion.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </details>
   );
 }

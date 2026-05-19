@@ -41,8 +41,8 @@ export function GlidePath({ horizonYears, allocation, onChange, width = 280, hei
   };
 
   return (
-    <div className="control-group">
-      <div className="control-label">
+    <div className="flex flex-col gap-2">
+      <div className="text-sm text-[#444]">
         Glide path — drag the band boundaries at year 0 (left) and year {horizonYears} (right).
       </div>
       <StackedBar
@@ -52,10 +52,10 @@ export function GlidePath({ horizonYears, allocation, onChange, width = 280, hei
         width={width}
         height={height}
       />
-      <div className="legend">
-        <span><span className="sw" style={{ background: ASSET.stock }} /> stocks</span>
-        <span><span className="sw" style={{ background: ASSET.bond }} /> bonds</span>
-        <span><span className="sw" style={{ background: ASSET.cash }} /> cash</span>
+      <div className="flex gap-3 text-xs text-text-secondary">
+        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.stock }} /> stocks</span>
+        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.bond }} /> bonds</span>
+        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.cash }} /> cash</span>
       </div>
     </div>
   );

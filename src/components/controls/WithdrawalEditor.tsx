@@ -91,7 +91,7 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
   };
 
   return (
-    <div className="editor-block">
+    <div className="flex flex-col gap-1.5">
       <ModeToggle current={mode} onChange={switchMode} />
       {mode === 'fixed' && withdrawal.type === 'fixedPercent' && (
         <FixedWithdrawalSlider
@@ -174,11 +174,11 @@ function ModeToggle({
     { k: 'script', label: 'script' },
   ];
   return (
-    <div className="mode-toggle">
+    <div className="flex gap-0.5 bg-[#efefef] rounded-lg p-[3px] overflow-x-auto scrollbar-none">
       {modes.map((m) => (
         <button
           key={m.k}
-          className={current === m.k ? 'active' : ''}
+          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer text-text-muted font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${current === m.k ? ' bg-surface text-[#1a1a1a] shadow-card' : ' bg-transparent hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => onChange(m.k)}
         >
           {m.label}
@@ -297,14 +297,14 @@ function CapeWithdrawalEditor({
     return isNaN(n) ? null : Math.max(0, n / 100);
   };
   return (
-    <div className="floor-upside-editor">
-      <div className="floor-upside-hint">
+    <div className="flex flex-col gap-[10px]">
+      <div className="text-xs text-text-muted leading-[1.4]">
         Each year: withdraw <strong>rate × current balance</strong>, where{' '}
         <strong>rate = a + b ÷ CAPE</strong>. At CAPE {exampleCape.toFixed(1)},{' '}
         rate = {exampleRate.toFixed(2)}%. Adjusts automatically as markets move.
       </div>
-      <div className="floor-upside-grid">
-        <label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
           a — base rate (%)
           <NumericInput
             value={a}
@@ -315,7 +315,7 @@ function CapeWithdrawalEditor({
             onChange={(v) => onChange(v, b, fallbackCape)}
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
           b — CAPE sensitivity
           <NumericInput
             value={b}
@@ -330,7 +330,7 @@ function CapeWithdrawalEditor({
             onChange={(v) => onChange(a, v, fallbackCape)}
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
           Fallback CAPE (pre-1881)
           <NumericInput
             value={fallbackCape}
@@ -370,16 +370,16 @@ function RatchetEditor({
     return isNaN(n) ? null : Math.max(0, n / 100);
   };
   return (
-    <div className="floor-upside-editor">
-      <div className="floor-upside-hint">
+    <div className="flex flex-col gap-[10px]">
+      <div className="text-xs text-text-muted leading-[1.4]">
         Start at <strong>base rate</strong>. Each time the portfolio's
         all-time high clears another <strong>step %</strong> above initial,
         permanently boost spending by <strong>boost %</strong> — even if the
         portfolio later falls back. At +20%: {exampleSteps} step{exampleSteps !== 1 ? 's' : ''},{' '}
         withdrawal = {exampleWd}% of initial.
       </div>
-      <div className="floor-upside-grid">
-        <label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
           Base rate (% of initial)
           <NumericInput
             value={baseRate}
@@ -390,7 +390,7 @@ function RatchetEditor({
             onChange={(v) => onChange(v, stepSize, stepBoost)}
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
           Step size (% gain per ratchet click)
           <NumericInput
             value={stepSize}
@@ -405,7 +405,7 @@ function RatchetEditor({
             onChange={(v) => onChange(baseRate, v, stepBoost)}
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
           Boost per step (% spending increase)
           <NumericInput
             value={stepBoost}
@@ -435,14 +435,14 @@ function FloorUpsideEditor({
   onChange: (floor: number, marginalSpend: number) => void;
 }) {
   return (
-    <div className="floor-upside-editor">
-      <div className="floor-upside-hint">
+    <div className="flex flex-col gap-[10px]">
+      <div className="text-xs text-text-muted leading-[1.4]">
         Withdraw at least <strong>floor %</strong> of initial each year. For
         every $1M the portfolio is above its starting value, spend an extra{' '}
         <strong>marginal $</strong>.
       </div>
-      <div className="floor-upside-grid">
-        <label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
           Floor (% of initial)
           <NumericInput
             value={floor}
@@ -457,7 +457,7 @@ function FloorUpsideEditor({
             onChange={(v) => onChange(v, marginalSpend)}
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
           Marginal spend ($k per $1M above initial)
           <NumericInput
             value={marginalSpend}

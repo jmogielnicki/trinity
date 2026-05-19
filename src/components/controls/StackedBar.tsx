@@ -205,7 +205,7 @@ export function StackedBar({
   ));
 
   return (
-    <svg ref={svgRef} width={width} height={height} className="curve-editor">
+    <svg ref={svgRef} width={width} height={height} className="block touch-none select-none">
       {renderBands()}
       {renderLabels()}
       {renderHandles()}
