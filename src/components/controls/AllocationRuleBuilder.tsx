@@ -42,10 +42,10 @@ export function AllocationRuleBuilder({ base, rules, onChange }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-[#444]">
+      <div className="text-sm text-text-secondary">
         Base allocation (used when no rule matches; renormalized to 100%):
       </div>
-      <div className="text-xs text-[#777] py-[2px] pb-1">
+      <div className="text-xs text-text-faint py-[2px] pb-1">
         All matching rules <strong>compound</strong> their delta onto the base each year
         (e.g. two rules that each shift -10% stocks → -20% stocks).
       </div>
@@ -168,7 +168,7 @@ function RuleRow({
           parse={parseFloat2}
           onChange={(v) => updateDelta('cash', v)}
         />
-        <button className="ml-auto border-none bg-transparent text-[#999] text-base leading-none cursor-pointer px-1 hover:text-[#c33]" onClick={onDelete}>×</button>
+        <button className="ml-auto border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-error" onClick={onDelete}>×</button>
       </div>
     </div>
   );

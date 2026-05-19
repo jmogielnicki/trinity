@@ -132,7 +132,7 @@ export function CompareScenariosView() {
                     style={{ background: checked && color ? color : '#ddd' }}
                   />
                   <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">{s.name}</span>
-                  <span className="text-[#999] text-xs whitespace-nowrap ml-auto pl-2">
+                  <span className="text-text-placeholder text-xs whitespace-nowrap ml-auto pl-2">
                     {describeWithdrawal(s.state.withdrawal)} ·{' '}
                     {describeAllocation(s.state.allocation)} ·{' '}
                     {s.state.horizonYears}y
@@ -622,7 +622,7 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
     <div className="border border-border-light rounded p-2 bg-surface-page min-w-0">
       <div className="flex justify-between items-center gap-3 text-xs text-text-secondary mb-1.5">
         <span>Scenarios plotted on two metrics</span>
-        <div className="flex gap-4 text-sm text-[#444]">
+        <div className="flex gap-4 text-sm text-text-secondary">
           <label className="flex gap-1.5 items-center">
             x:
             <select

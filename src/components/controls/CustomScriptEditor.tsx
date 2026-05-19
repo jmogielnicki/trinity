@@ -135,9 +135,9 @@ export function CustomScriptEditor({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-1.5">
-        <div className="text-sm text-[#444]">{label}</div>
+        <div className="text-sm text-text-secondary">{label}</div>
         <button
-          className="flex-shrink-0 w-[17px] h-[17px] rounded-full border border-[#bbb] bg-surface-muted text-text-secondary text-xs font-bold leading-none cursor-pointer p-0 flex items-center justify-center hover:bg-[#e8eef7] hover:border-primary hover:text-primary"
+          className="flex-shrink-0 w-[17px] h-[17px] rounded-full border border-text-disabled bg-surface-muted text-text-secondary text-xs font-bold leading-none cursor-pointer p-0 flex items-center justify-center hover:bg-surface-panel hover:border-primary hover:text-primary"
           onClick={() => setShowDocs((v) => !v)}
           title="Show API reference"
           aria-expanded={showDocs}
@@ -150,14 +150,14 @@ export function CustomScriptEditor({
         <>
           <div className="fixed inset-0 z-[99]" onClick={() => setShowDocs(false)} />
           <div className="absolute z-[100] left-0 right-0 bg-surface border border-text-disabled rounded-md shadow-popover p-0 overflow-hidden" ref={docsRef}>
-            <div className="flex items-center justify-between px-[10px] py-2 bg-[#f0f4f8] border-b border-[#dde3ea] text-sm font-semibold text-[#1a2733]">
+            <div className="flex items-center justify-between px-[10px] py-2 bg-surface-panel border-b border-border text-sm font-semibold text-text">
               <span>{docs.title}</span>
-              <button className="border-none bg-transparent text-[16px] leading-none cursor-pointer text-[#777] px-[2px] hover:text-[#c33]" onClick={() => setShowDocs(false)}>×</button>
+              <button className="border-none bg-transparent text-[16px] leading-none cursor-pointer text-text-faint px-[2px] hover:text-error" onClick={() => setShowDocs(false)}>×</button>
             </div>
             {docs.sections.map((s) => (
-              <div key={s.heading} className="px-[10px] py-[7px] border-b border-[#f0f0f0] last:border-b-0">
+              <div key={s.heading} className="px-[10px] py-[7px] border-b border-border-light last:border-b-0">
                 <div className="text-2xs font-bold uppercase tracking-[0.04em] text-text-faint mb-[3px]">{s.heading}</div>
-                <pre className="m-0 font-mono text-[10.5px] text-[#1a1a1a] whitespace-pre-wrap leading-[1.5]">{s.content}</pre>
+                <pre className="m-0 font-mono text-[10.5px] text-text whitespace-pre-wrap leading-[1.5]">{s.content}</pre>
               </div>
             ))}
           </div>

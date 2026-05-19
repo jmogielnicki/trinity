@@ -203,22 +203,22 @@ export function App() {
           <aside className="flex flex-col gap-5 bg-surface border border-border rounded-lg p-4 h-fit">
             <section className="control-zone flex flex-col gap-5">
               <div className="flex flex-col gap-0.5">
-                <h2 className="m-0 text-md font-bold text-[#111] uppercase tracking-[0.05em]">Strategy</h2>
+                <h2 className="m-0 text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</h2>
               </div>
               <PresetPicker />
-              <h3 className="mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1">Holdings mix</h3>
+              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Holdings mix</h3>
               <AllocationEditor
                 horizonYears={scenario.horizonYears}
                 allocation={scenario.allocation}
                 onChange={scenario.setAllocation}
               />
-              <h3 className="mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1">Withdrawal strategy</h3>
+              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal strategy</h3>
               <WithdrawalEditor
                 horizonYears={scenario.horizonYears}
                 withdrawal={scenario.withdrawal}
                 onChange={scenario.setWithdrawal}
               />
-              <h3 className="mt-1 text-base font-bold text-[#111] tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
+              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
               <WithdrawalSourceInput />
               <TailMethodInput />
             </section>
@@ -235,20 +235,20 @@ export function App() {
           {topMode === 'single' && <>
           {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
           {data && (
-            <div className="text-xs text-[#999] mb-2">
+            <div className="text-xs text-text-placeholder mb-2">
               Compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
               {pool && <span className="text-text-placeholder"> ({pool.size} workers)</span>}
               {result && (
                 <span className="ml-3">
                   view:
                   <button
-                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-[#999]'}`}
+                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
                     onClick={() => setView('spaghetti')}
                   >
                     spaghetti
                   </button>
                   <button
-                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'calendar' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-[#999]'}`}
+                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'calendar' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
                     onClick={() => setView('calendar')}
                   >
                     calendar
@@ -270,7 +270,7 @@ export function App() {
               {view === 'spaghetti' && (
                 <>
                   {recentCohorts > 0 && (
-                    <div className="flex items-center justify-between gap-3 flex-wrap bg-surface-panel border border-[#d6deec] rounded-md px-3 py-2 text-sm text-[#44506a] mb-3">
+                    <div className="flex items-center justify-between gap-3 flex-wrap bg-surface-panel border border-border rounded-md px-3 py-2 text-sm text-text-body mb-3">
                       <span>
                         {recentCohorts} in-progress cohort
                         {recentCohorts === 1 ? '' : 's'}{' '}
