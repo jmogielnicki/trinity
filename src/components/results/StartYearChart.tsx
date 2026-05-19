@@ -1,4 +1,4 @@
-import { useLayoutEffect, useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useEffect, useRef, useState, useCallback } from 'react';
 import type { ScenarioResult, SimulationResult } from '../../engine/types';
 import { OUTCOME } from '../colors';
 
@@ -40,6 +40,8 @@ export function StartYearChart({
   const [drag, setDrag] = useState<null | { x0: number; x1: number }>(null);
   const dragRef = useRef<typeof drag>(null);
   dragRef.current = drag;
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
   // Measure container width synchronously then track changes.
   useLayoutEffect(() => {
@@ -148,10 +150,25 @@ export function StartYearChart({
     e.preventDefault();
   };
 
-  // ── Ticks ─────────────────────────────────────────────────────────────────
+  const onSvgMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    const r = svgRef.current?.getBoundingClientRect();
+    if (!r) return;
+    setMousePos({ x: e.clientX - r.left, y: e.clientY - r.top });
+  }, []);
+
+  const onSvgMouseLeave = useCallback(() => {
+    setHovered(null);
+    setMousePos(null);
+  }, []);
+
+  // ── Ticks (dynamic density based on available pixels) ────────────────────
+  const labelPx = 36; // ~4 chars × ~6px + padding
+  const maxLabels = Math.max(2, Math.floor(innerW / labelPx));
+  const rawStep = span / maxLabels;
+  const tickStep = [5, 10, 20, 25, 50].find((s) => s >= rawStep) ?? 50;
   const ticks: number[] = [];
-  const firstTick = Math.ceil(firstYear / 10) * 10;
-  for (let y = firstTick; y <= lastYear; y += 10) ticks.push(y);
+  const firstTick = Math.ceil(firstYear / tickStep) * tickStep;
+  for (let y = firstTick; y <= lastYear; y += tickStep) ticks.push(y);
 
   // ── Y grid levels ─────────────────────────────────────────────────────────
   const balGrid = [0, 0.5, 1.0].map((f) => ({ val: f * maxBalance, y: balYOf(f * maxBalance) }));
@@ -171,6 +188,8 @@ export function StartYearChart({
         width={W}
         height={totalH}
         onMouseDown={onSvgMouseDown}
+        onMouseMove={onSvgMouseMove}
+        onMouseLeave={onSvgMouseLeave}
         style={{ display: 'block', width: '100%', maxWidth: W, ...(drag ? { cursor: 'crosshair', userSelect: 'none' } : {}) }}
       >
         {/* ══ Avg annual spend ══════════════════════════════════════════════ */}
@@ -316,26 +335,17 @@ export function StartYearChart({
           );
         })}
 
-        {/* ══ Invisible click / drag targets ════════════════════════════════ */}
+        {/* ══ Invisible click / hover targets ══════════════════════════════ */}
         {sims.map((s) => {
           const x = ml + ((s.startYear - firstYear) / (span + 1)) * innerW;
-          const balance = s.inProgress ? (s.finalBalance ?? 0) : s.success ? (s.finalBalance ?? 0) : 0;
           return (
-            <g key={`hit-${s.startYear}`}>
-              <rect x={x} y={spendY0} width={Math.max(1, colW)} height={stripY0 + stripH - spendY0}
-                fill="transparent"
-                onClick={(e) => onToggle?.(s.startYear, e)}
-                style={{ cursor: onToggle ? 'pointer' : 'default' }} />
-              <title>
-                {s.startYear} —{' '}
-                {s.inProgress
-                  ? `in-progress (${fmt(balance)} so far, avg spend ${fmt(avgSpendOf(s))}/yr)`
-                  : s.success
-                    ? `terminal balance ${fmt(balance)}, avg spend ${fmt(avgSpendOf(s))}/yr`
-                    : `depleted at year ${s.depletedAt}, avg spend ${fmt(avgSpendOf(s))}/yr`}
-                {onToggle ? ' (click to highlight)' : ''}
-              </title>
-            </g>
+            <rect key={`hit-${s.startYear}`}
+              x={x} y={spendY0} width={Math.max(1, colW)} height={stripY0 + stripH - spendY0}
+              fill="transparent"
+              onClick={(e) => onToggle?.(s.startYear, e)}
+              onMouseEnter={() => setHovered(s.startYear)}
+              onMouseLeave={() => setHovered(null)}
+              style={{ cursor: onToggle ? 'pointer' : 'default' }} />
           );
         })}
 
@@ -347,6 +357,45 @@ export function StartYearChart({
             fill="#357" fillOpacity={0.1} stroke="#357" strokeWidth={1} strokeDasharray="3,3"
             pointerEvents="none" />
         )}
+
+        {/* ══ Hover tooltip ═════════════════════════════════════════════════ */}
+        {hovered !== null && mousePos && (() => {
+          const sim = sims.find((s) => s.startYear === hovered);
+          if (!sim) return null;
+          const balance = sim.inProgress ? (sim.finalBalance ?? 0) : sim.success ? (sim.finalBalance ?? 0) : 0;
+          const spend = avgSpendOf(sim);
+          const status = sim.inProgress
+            ? 'in-progress'
+            : sim.success
+              ? 'survived'
+              : `depleted yr ${sim.depletedAt}`;
+          const lines = [
+            { text: String(hovered), bold: true },
+            { text: status, bold: false },
+            { text: `terminal: ${fmt(balance)}`, bold: false },
+            { text: `avg spend: ${fmt(spend)}/yr`, bold: false },
+          ];
+          const ttW = 148, ttH = lines.length * 15 + 14;
+          let ttX = mousePos.x + 12;
+          let ttY = mousePos.y - ttH / 2;
+          if (ttX + ttW > W - mr) ttX = mousePos.x - ttW - 12;
+          if (ttY < mt) ttY = mt;
+          if (ttY + ttH > totalH - mb) ttY = totalH - mb - ttH;
+          return (
+            <g pointerEvents="none">
+              <rect x={ttX} y={ttY} width={ttW} height={ttH}
+                fill="white" stroke="#ccc" strokeWidth={1} rx={4}
+                filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))" />
+              {lines.map((l, i) => (
+                <text key={i} x={ttX + 9} y={ttY + 13 + i * 15}
+                  fontSize={10} fill={l.bold ? '#111' : '#555'}
+                  fontWeight={l.bold ? '600' : 'normal'}>
+                  {l.text}
+                </text>
+              ))}
+            </g>
+          );
+        })()}
       </svg>
     </div>
   );

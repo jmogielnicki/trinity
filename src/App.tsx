@@ -48,19 +48,12 @@ export function App() {
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
 
   const toggleYear = (year: number) => {
-    setSelectedYears((prev) => {
-      const next = new Set(prev);
-      if (next.has(year)) next.delete(year);
-      else next.add(year);
-      return next;
-    });
+    setSelectedYears((prev) =>
+      prev.size === 1 && prev.has(year) ? new Set() : new Set([year]),
+    );
   };
   const marqueeYears = (years: number[]) => {
-    setSelectedYears((prev) => {
-      const next = new Set(prev);
-      for (const y of years) next.add(y);
-      return next;
-    });
+    setSelectedYears(new Set(years));
   };
   const clearSelection = () => setSelectedYears(new Set());
 
