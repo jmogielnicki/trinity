@@ -73,7 +73,7 @@ export function CompareScenariosView() {
 
   if (saved.length === 0) {
     return (
-      <div className="flex flex-col gap-[14px] text-base">
+      <div className="flex flex-col gap-3.5 text-base">
         <div className="text-text-secondary text-sm leading-[1.4] max-w-[760px]">
           <strong>Compare scenarios</strong> — pit several saved scenarios
           against one another.
@@ -87,14 +87,14 @@ export function CompareScenariosView() {
   }
 
   return (
-    <div className="flex flex-col gap-[14px] text-base">
+    <div className="flex flex-col gap-3.5 text-base">
       <div className="text-text-secondary text-sm leading-[1.4] max-w-[760px]">
         <strong>Compare scenarios</strong> — runs each picked scenario across
         all historical start years (using its own balance, horizon, and tail
         method) and lines them up side by side. Pick up to {COMPARE_MAX}.
       </div>
 
-      <div className="border border-border-light rounded p-[10px] bg-surface-page">
+      <div className="border border-border-light rounded p-2.5 bg-surface-page">
         <div className="flex justify-between items-center text-xs text-text-faint mb-2">
           <span>
             {selectedIds.length} of {saved.length} selected
@@ -114,7 +114,7 @@ export function CompareScenariosView() {
             >Clear</button>
           </div>
         </div>
-        <ul className="list-none p-0 m-0 grid [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))] gap-y-0.5 gap-x-[14px]">
+        <ul className="list-none p-0 m-0 grid [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))] gap-y-0.5 gap-x-3.5">
           {saved.map((s) => {
             const checked = selectedIds.includes(s.id);
             const color = colorById.get(s.id);
@@ -128,7 +128,7 @@ export function CompareScenariosView() {
                     onChange={() => toggle(s.id)}
                   />
                   <span
-                    className="inline-block w-[10px] h-[10px] rounded-sm flex-shrink-0"
+                    className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
                     style={{ background: checked && color ? color : '#ddd' }}
                   />
                   <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">{s.name}</span>
@@ -176,7 +176,7 @@ export function CompareScenariosView() {
 
 function SharedLegend({ entries }: { entries: CompareEntry[] }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 py-1.5 pb-[10px] text-sm text-text-body">
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 py-1.5 pb-2.5 text-sm text-text-body">
       {entries.map((e, i) => (
         <span key={e.saved.id} className="flex items-center gap-1.5">
           <span

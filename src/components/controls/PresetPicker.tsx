@@ -3,6 +3,7 @@ import { PRESETS } from '../../data/presets';
 import type { SerializedState } from '../../data/urlState';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useSweepStore } from '../../store/sweepStore';
+import { FIELD_FULL } from '../ui/fieldCls';
 
 export function PresetPicker() {
   const scenario = useScenarioStore();
@@ -33,7 +34,7 @@ export function PresetPicker() {
     <div className="flex flex-col gap-2">
       <div className="text-sm text-text-secondary">Presets</div>
       <select
-        className="w-full px-[10px] py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] bg-surface cursor-pointer text-text outline-none transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+        className={`${FIELD_FULL} cursor-pointer`}
         value={picked}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -44,7 +45,7 @@ export function PresetPicker() {
           </option>
         ))}
       </select>
-      {description && <div className="text-xs text-text-faint py-[2px] pb-1">{description}</div>}
+      {description && <div className="text-xs text-text-faint py-0.5 pb-1">{description}</div>}
     </div>
   );
 }

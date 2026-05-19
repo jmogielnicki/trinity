@@ -242,7 +242,7 @@ function Card({
   }, [histBand, prefix, tCurrent, currentBalance, horizonYears, yMax, dataEnd]);
 
   return (
-    <div className="border border-border-light rounded p-2 p-[8px]">
+    <div className="border border-border-light rounded p-2">
       <div className="text-xs text-text-secondary mb-1">
         Started {startYear}. At year {tCurrent + 1} ({startYear + tCurrent}),
         currently tracking the {Number.isFinite(rank) ? Math.round(rank * 100) : '—'}

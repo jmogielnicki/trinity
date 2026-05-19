@@ -57,7 +57,7 @@ export function StatPanel({ result }: Props) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-surface-muted px-3 py-[10px] rounded-md">
+    <div className="bg-surface-muted px-3 py-2.5 rounded-md">
       <div className="text-xs text-text-muted uppercase tracking-[0.04em]">{label}</div>
       <div className="text-lg font-medium mt-0.5">{value}</div>
     </div>

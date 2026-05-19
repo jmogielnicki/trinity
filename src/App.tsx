@@ -174,25 +174,25 @@ export function App() {
       </div>
       <div className="flex gap-1 mb-4 border-b border-border">
         <button
-          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('single')}
         >
           Single scenario
         </button>
         <button
-          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('optimize')}
         >
           Study / optimize
         </button>
         <button
-          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('evolve')}
         >
           Evolve
         </button>
         <button
-          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('compare')}
         >
           Compare scenarios
@@ -242,13 +242,13 @@ export function App() {
                 <span className="ml-3">
                   view:
                   <button
-                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
+                    className={`text-xs px-2 py-0.5 border rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
                     onClick={() => setView('spaghetti')}
                   >
                     spaghetti
                   </button>
                   <button
-                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'calendar' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
+                    className={`text-xs px-2 py-0.5 border rounded-[3px] cursor-pointer ml-1${view === 'calendar' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
                     onClick={() => setView('calendar')}
                   >
                     calendar
@@ -279,7 +279,7 @@ export function App() {
                         out yet.
                       </span>
                       <button
-                        className="flex-shrink-0 text-sm py-[5px] px-[10px] border border-border-hover bg-surface text-primary rounded cursor-pointer hover:bg-surface-panel"
+                        className="flex-shrink-0 text-sm py-[5px] px-2.5 border border-border-hover bg-surface text-primary rounded cursor-pointer hover:bg-surface-panel"
                         onClick={() => setView('whereami')}
                       >
                         View as "Where Am I" →

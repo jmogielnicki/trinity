@@ -60,12 +60,12 @@ export function ScenarioActions() {
       {snapshot ? (
         <button className="text-sm px-[9px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" onClick={() => setSnapshot(null)}>
           clear comparison
-          <span className="inline-block w-[10px] h-[10px] rounded-full" style={{ background: SNAPSHOT_COLOR }} />
+          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: SNAPSHOT_COLOR }} />
         </button>
       ) : (
         <button className="text-sm px-[9px] py-[5px] border border-text-disabled bg-surface rounded cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" onClick={onSnapshot} disabled={!result}>
           snapshot current
-          <span className="inline-block w-[10px] h-[10px] rounded-full" style={{ background: CURRENT_COLOR }} />
+          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: CURRENT_COLOR }} />
         </button>
       )}
     </div>

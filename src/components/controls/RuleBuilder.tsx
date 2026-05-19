@@ -1,5 +1,6 @@
 import type { Action, Condition, Rule } from '../../engine/rules';
 import { NumericInput } from './NumericInput';
+import { FIELD_SM } from '../ui/fieldCls';
 
 type Props = {
   base: number;
@@ -40,7 +41,7 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
       <div className="text-sm text-text-secondary">
         Base rate{' '}
         <NumericInput
-          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+          className={FIELD_SM}
           value={base}
           format={fmtPct2}
           parse={parsePct}
@@ -48,7 +49,7 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
         />
         % — applied when no rule matches.
       </div>
-      <div className="text-xs text-text-faint py-[2px] pb-1">
+      <div className="text-xs text-text-faint py-0.5 pb-1">
         Rules evaluate top-down each year; the <strong>last matching rule wins</strong>
         and overrides the rate.
       </div>
@@ -112,7 +113,7 @@ function RuleRow({
       <div className="flex items-center gap-1.5 flex-wrap text-base">
         <span>then withdraw</span>
         <NumericInput
-          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+          className={FIELD_SM}
           value={action.rate}
           format={fmtPct2}
           parse={parsePct}
@@ -145,7 +146,7 @@ function CondInputs({
         <>
           <span>year</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.from}
             format={fmtInt}
             parse={parseIntFn}
@@ -153,7 +154,7 @@ function CondInputs({
           />
           <span>–</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.to}
             format={fmtInt}
             parse={parseIntFn}
@@ -166,7 +167,7 @@ function CondInputs({
         <>
           <span>last</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.lookback}
             format={fmtInt}
             parse={parseIntFn}
@@ -174,7 +175,7 @@ function CondInputs({
           />
           <span>y ret &gt;</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.threshold}
             format={fmtPct0}
             parse={parsePct}
@@ -198,7 +199,7 @@ function CondInputs({
             <option value="<">&lt;</option>
           </select>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.ratio}
             onChange={(v) => onChange({ ...cond, ratio: v })}
           />
@@ -209,7 +210,7 @@ function CondInputs({
         <>
           <span>inflation &gt;</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.threshold}
             format={fmtPct0}
             parse={parsePct}

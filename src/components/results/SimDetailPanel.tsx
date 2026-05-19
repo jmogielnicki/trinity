@@ -296,14 +296,14 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       : 'bg-success-bg text-success';
 
   return (
-    <div className="mt-4 border border-border-light rounded-md bg-surface-page px-[14px] py-3">
-      <div className="flex items-start justify-between gap-3 mb-[10px]">
-        <div className="flex flex-wrap items-center gap-[10px] text-base">
+    <div className="mt-4 border border-border-light rounded-md bg-surface-page px-3.5 py-3">
+      <div className="flex items-start justify-between gap-3 mb-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 text-base">
           <span className="font-semibold text-text">Start {startYear}</span>
           <span className={`text-sm px-2 py-0.5 rounded-[10px] font-medium ${statusCls}`}>
             {status}
           </span>
-          <span className="flex flex-wrap gap-[14px] text-sm text-text-secondary">
+          <span className="flex flex-wrap gap-3.5 text-sm text-text-secondary">
             {!failed && <span>Final: <strong className="text-text">{fmt$(summary.finalBalance)}</strong></span>}
             <span>Peak: <strong className="text-text">{fmt$(summary.peakBalance)}</strong> (yr {summary.peakYear})</span>
             <span>Total withdrawn: <strong className="text-text">{fmt$(summary.totalWithdrawn)}</strong></span>
@@ -325,7 +325,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         immutable={false}
       />
 
-      <ul className="list-none p-0 mt-1 flex flex-wrap gap-x-[14px] gap-y-1 text-xs text-text-secondary">
+      <ul className="list-none p-0 mt-1 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-text-secondary">
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.stock }} /> stocks</li>
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.bond }} /> bonds</li>
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.cash }} /> cash</li>
@@ -341,7 +341,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       )}
 
       {/* Year-by-year data table */}
-      <div className="flex items-center gap-[10px] mt-[10px] mb-1">
+      <div className="flex items-center gap-2.5 mt-2.5 mb-1">
         <span className="text-xs text-text-muted uppercase tracking-[0.04em]">Year-by-year detail</span>
         <button
           className={`text-xs px-[9px] py-0.5 border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-hover${detailMode ? ' bg-surface-code border-border-hover text-primary' : ''}`}
@@ -350,8 +350,8 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
           {detailMode ? 'Hide flows' : 'Show flows'}
         </button>
       </div>
-      <div className="overflow-x-auto max-h-[260px] overflow-y-auto mt-[10px] border border-border-light rounded">
-        <table className="w-full border-collapse text-sm [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-surface-hover [&_thead]:z-[1] [&_th]:px-[10px] [&_th]:py-[5px] [&_th]:text-left [&_th]:text-xs [&_th]:font-medium [&_th]:text-text-muted [&_th]:uppercase [&_th]:tracking-[0.04em] [&_th]:border-b [&_th]:border-border [&_th]:whitespace-nowrap [&_td]:px-[10px] [&_td]:py-1 [&_td]:border-b [&_td]:border-border-light [&_td]:whitespace-nowrap [&_tbody_tr:hover_td]:bg-surface-code">
+      <div className="overflow-x-auto max-h-[260px] overflow-y-auto mt-2.5 border border-border-light rounded">
+        <table className="w-full border-collapse text-sm [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-surface-hover [&_thead]:z-[1] [&_th]:px-2.5 [&_th]:py-[5px] [&_th]:text-left [&_th]:text-xs [&_th]:font-medium [&_th]:text-text-muted [&_th]:uppercase [&_th]:tracking-[0.04em] [&_th]:border-b [&_th]:border-border [&_th]:whitespace-nowrap [&_td]:px-2.5 [&_td]:py-1 [&_td]:border-b [&_td]:border-border-light [&_td]:whitespace-nowrap [&_tbody_tr:hover_td]:bg-surface-code">
           <thead>
             <tr>
               {/* Base columns */}

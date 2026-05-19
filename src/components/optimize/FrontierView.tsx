@@ -3,6 +3,8 @@ import { interpolatePlasma } from 'd3-scale-chromatic';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
+import { TabBar } from '../ui/TabBar';
+import { ToggleButton } from '../ui/ToggleButton';
 
 /**
  * Plasma clamped to its darker portion (skips the bright pale-yellow end so
@@ -218,7 +220,7 @@ export function FrontierView({ onApplied }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-[14px] text-base">
+    <div className="flex flex-col gap-3.5 text-base">
       <div className="flex justify-between items-start gap-4">
         <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
           <strong>Strategy study</strong> — pin some of {`{`}holdings mix,
@@ -278,19 +280,15 @@ export function FrontierView({ onApplied }: Props) {
       {results.length > 0 && !is2D && (
         <>
           <div className="flex flex-wrap gap-[18px] text-sm text-text-secondary items-center py-1">
-            <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] mr-1">
-              <button
-                className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${viewMode === 'scatter' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-                onClick={() => setViewMode('scatter')}
-              >
-                scatter
-              </button>
-              <button
-                className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${viewMode === 'trajectories' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-                onClick={() => setViewMode('trajectories')}
-              >
-                trajectories
-              </button>
+            <div className="mr-1">
+              <TabBar>
+                <ToggleButton active={viewMode === 'scatter'} onClick={() => setViewMode('scatter')}>
+                  scatter
+                </ToggleButton>
+                <ToggleButton active={viewMode === 'trajectories'} onClick={() => setViewMode('trajectories')}>
+                  trajectories
+                </ToggleButton>
+              </TabBar>
             </div>
             {viewMode === 'scatter' && (
               <>
@@ -579,8 +577,8 @@ function ScatterPlot({
       <div className="flex gap-4 text-xs text-text-secondary mt-1.5 px-1.5">
         {colorBy === 'frontier' ? (
           <>
-            <span><span className="inline-block w-[10px] h-[10px] rounded-full align-middle mr-1" style={{ background: '#d62728' }} /> Pareto-optimal</span>
-            <span><span className="inline-block w-[10px] h-[10px] rounded-full align-middle mr-1 opacity-50" style={{ background: '#aaa' }} /> dominated</span>
+            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1" style={{ background: '#d62728' }} /> Pareto-optimal</span>
+            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1 opacity-50" style={{ background: '#aaa' }} /> dominated</span>
           </>
         ) : (
           <ColorBar colorBy={colorBy} cMin={cMin} cMax={cMax} />
@@ -829,7 +827,7 @@ function ComparisonBars({
   };
 
   return (
-    <div className="border border-border-light rounded p-[10px] bg-surface-page">
+    <div className="border border-border-light rounded p-2.5 bg-surface-page">
       <div className="text-xs text-text-secondary mb-1.5">
         Final-balance distribution (P5 / Median / P95) per selected strategy
       </div>
