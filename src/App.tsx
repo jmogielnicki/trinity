@@ -305,13 +305,14 @@ export function App() {
                         onToggle={toggleYear}
                         onMarquee={marqueeYears}
                         onClear={clearSelection}
-                        height={368}
+                        height={400}
                       />
                     </div>
                     <div className="start-year-col">
                       <StartYearChart
                         result={result}
                         initialBalance={scenario.initialBalance}
+                        height={400}
                         selectedYears={selectedYears}
                         onToggle={toggleYear}
                         onMarquee={marqueeYears}

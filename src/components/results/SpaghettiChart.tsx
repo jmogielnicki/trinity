@@ -206,7 +206,7 @@ export function SpaghettiChart({
   const options: Options = useMemo(
     () => ({
       chart: {
-        width,
+        width: null as any,
         height,
         margin: [16, 16, 36, 72],
         zooming: { type: 'xy' } as any,
@@ -258,7 +258,7 @@ export function SpaghettiChart({
       },
       series: seriesData,
     }),
-    [width, height, horizon, maxBalance, seriesData, clickHandler, selectionHandler, seriesClickHandler],
+    [height, horizon, maxBalance, seriesData, clickHandler, selectionHandler, seriesClickHandler],
   );
 
   // Marquee: shift+mousedown on the chart container starts a native drag
