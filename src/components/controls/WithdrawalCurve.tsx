@@ -23,6 +23,30 @@ const SNAP_TOL = 0.0025;
 
 type Handle = { tFrac: number; rate: number };
 
+function interpolatePiecewiseLinear(
+  points: { t: number; rate: number }[],
+  horizonYears: number,
+): Handle[] {
+  const lastT = Math.max(1, horizonYears - 1);
+  // Sort by t ascending
+  const sorted = [...points].sort((a, b) => a.t - b.t);
+  return Array.from({ length: N_HANDLES }, (_, i) => {
+    const tFrac = i / (N_HANDLES - 1);
+    const t = tFrac * lastT;
+    // Find surrounding segment and linearly interpolate rate
+    if (t <= sorted[0].t) return { tFrac, rate: sorted[0].rate };
+    if (t >= sorted[sorted.length - 1].t) return { tFrac, rate: sorted[sorted.length - 1].rate };
+    for (let j = 0; j < sorted.length - 1; j++) {
+      if (t >= sorted[j].t && t <= sorted[j + 1].t) {
+        const span = sorted[j + 1].t - sorted[j].t;
+        const alpha = span === 0 ? 0 : (t - sorted[j].t) / span;
+        return { tFrac, rate: sorted[j].rate + alpha * (sorted[j + 1].rate - sorted[j].rate) };
+      }
+    }
+    return { tFrac, rate: sorted[sorted.length - 1].rate };
+  });
+}
+
 function strategyToHandles(
   w: WithdrawalStrategy,
   horizonYears: number,
@@ -35,15 +59,14 @@ function strategyToHandles(
         : w.type === 'piecewise'
           ? (w.pieces[0]?.rate ?? 0.04)
           : 0.04;
-  if (
-    w.type === 'piecewiseLinear' &&
-    w.points.length === N_HANDLES &&
-    horizonYears > 0
-  ) {
-    return w.points.map((p, i) => ({
-      tFrac: horizonYears <= 1 ? i / (N_HANDLES - 1) : p.t / (horizonYears - 1),
-      rate: p.rate,
-    }));
+  if (w.type === 'piecewiseLinear' && w.points.length > 0 && horizonYears > 0) {
+    if (w.points.length === N_HANDLES) {
+      return w.points.map((p, i) => ({
+        tFrac: horizonYears <= 1 ? i / (N_HANDLES - 1) : p.t / (horizonYears - 1),
+        rate: p.rate,
+      }));
+    }
+    return interpolatePiecewiseLinear(w.points, horizonYears);
   }
   return Array.from({ length: N_HANDLES }, (_, i) => ({
     tFrac: i / (N_HANDLES - 1),
@@ -82,10 +105,16 @@ export function WithdrawalCurve({
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   // Re-sync if external changes arrive (e.g. horizon change or external strategy load).
+  // Include a stable serialization of piecewiseLinear points so preset switches with
+  // the same withdrawal type (but different point values) also trigger a re-sync.
+  const pointsKey =
+    withdrawal.type === 'piecewiseLinear'
+      ? withdrawal.points.map((p) => `${p.t}:${p.rate}`).join(',')
+      : '';
   useEffect(() => {
     setHandles(strategyToHandles(withdrawal, horizonYears));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [withdrawal.type, horizonYears]);
+  }, [withdrawal.type, pointsKey, horizonYears]);
 
   const margin = { top: 12, right: 12, bottom: 24, left: 36 };
   const innerW = width - margin.left - margin.right;

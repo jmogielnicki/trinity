@@ -20,6 +20,10 @@ function modeOf(w: WithdrawalStrategy): Mode {
   if (w.type === 'ratchet') return 'ratchet';
   if (w.type === 'capeWithdrawal') return 'cape';
   if (w.type === 'fixedPercent') return 'fixed';
+  // Legacy structured types that have been superseded by customSrc scripts —
+  // route to script tab so old saved scenarios still display something useful.
+  if (w.type === 'guardrails' || w.type === 'endowment' || w.type === 'vanguardDynamic')
+    return 'script';
   // 'curve' covers piecewiseLinear (what WithdrawalCurve emits) and the
   // legacy 'piecewise' type so old saved scenarios still resolve.
   return 'curve';

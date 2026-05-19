@@ -296,11 +296,23 @@ export const PRESETS: Preset[] = [
       horizonYears: HORIZON,
       allocation: flatStatic(0.65, 0.35, 0),
       withdrawal: {
-        type: 'guardrails',
-        base: 0.05,
-        trigger: 0.2,
-        floor: 0.8,
-        ceiling: 1.25,
+        type: 'customSrc',
+        src:
+`// Guyton-Klinger guardrails
+// Start at base rate; each year adjust if implied rate drifts ±trigger from base.
+const base = 0.05;    // initial withdrawal rate
+const trigger = 0.2;  // drift band (±20% of base rate)
+const floor = 0.8;    // min spending as fraction of base amount
+const ceiling = 1.25; // max spending as fraction of base amount
+
+const baseAmt = base * initial;
+const prev = state.trajectory[state.trajectory.length - 1];
+if (!prev) return baseAmt;
+
+const impliedRate = prev.withdrawal / state.balance;
+if (impliedRate > base * (1 + trigger)) return Math.max(floor * baseAmt, prev.withdrawal * 0.9);
+if (impliedRate < base * (1 - trigger)) return Math.min(ceiling * baseAmt, prev.withdrawal * 1.1);
+return prev.withdrawal;`,
       },
       withdrawalSource: { type: 'proportional', rebalance: true },
       tailMethod: { type: 'truncate' },
@@ -317,7 +329,24 @@ export const PRESETS: Preset[] = [
       initialBalance: STARTING,
       horizonYears: HORIZON,
       allocation: flatStatic(0.65, 0.35, 0),
-      withdrawal: { type: 'endowment', rate: 0.05, lookbackYears: 10, floorFraction: 0.9 },
+      withdrawal: {
+        type: 'customSrc',
+        src:
+`// Endowment method
+// Withdraw rate% of the rolling lookback-year average balance.
+// Floor: spending can't fall below floorFraction of last year's amount.
+const rate = 0.05;
+const lookbackYears = 10;
+const floorFraction = 0.9;
+
+const window = state.trajectory.slice(-lookbackYears);
+const avg = window.length
+  ? window.reduce((s, r) => s + r.balance, 0) / window.length
+  : state.balance;
+const target = rate * avg;
+const prev = state.trajectory[state.trajectory.length - 1];
+return prev ? Math.max(target, floorFraction * prev.withdrawal) : target;`,
+      },
       withdrawalSource: { type: 'proportional', rebalance: true },
       tailMethod: { type: 'truncate' },
       axes: PINNED_AXES,
@@ -334,7 +363,23 @@ export const PRESETS: Preset[] = [
       initialBalance: STARTING,
       horizonYears: HORIZON,
       allocation: flatStatic(0.6, 0.4, 0),
-      withdrawal: { type: 'vanguardDynamic', rate: 0.05, ceiling: 0.05, floor: -0.025 },
+      withdrawal: {
+        type: 'customSrc',
+        src:
+`// Vanguard Dynamic Spending
+// Baseline: rate% of current balance. Constrain YoY change to [floor, ceiling].
+const rate = 0.05;
+const ceiling = 0.05;   // max +5% from prior year
+const floor = -0.025;   // max -2.5% from prior year
+
+const baseline = rate * state.balance;
+const prev = state.trajectory[state.trajectory.length - 1];
+if (!prev) return baseline;
+return Math.min(
+  prev.withdrawal * (1 + ceiling),
+  Math.max(prev.withdrawal * (1 + floor), baseline)
+);`,
+      },
       withdrawalSource: { type: 'proportional', rebalance: true },
       tailMethod: { type: 'truncate' },
       axes: PINNED_AXES,

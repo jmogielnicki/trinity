@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Props = {
   label: string;
@@ -20,6 +20,9 @@ export function CustomScriptEditor({
 }: Props) {
   const [src, setSrc] = useState(initial);
   const [error, setError] = useState<string | null>(null);
+
+  // Re-sync when an external source (e.g. a preset) replaces the script.
+  useEffect(() => { setSrc(initial); }, [initial]);
 
   const apply = () => {
     try {
