@@ -24,8 +24,6 @@ import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
-import './App.css';
-
 type View = 'spaghetti' | 'calendar' | 'whereami';
 type TopMode = 'single' | 'optimize' | 'evolve' | 'compare' | 'about';
 
