@@ -146,6 +146,7 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
         <CustomScriptEditor
           label="Withdrawal script — return real $ to withdraw."
           signature="state, initial"
+          kind="withdrawal"
           initial={
             withdrawal.type === 'customSrc' ? withdrawal.src : DEFAULT_SCRIPT
           }
