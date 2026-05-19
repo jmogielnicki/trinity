@@ -154,11 +154,34 @@ export function CompareScenariosView() {
       ) : (
         <>
           <ComparisonTable entries={entries} />
-          <ScatterPlot entries={entries} />
-          <TrajectoryChart entries={entries} />
-          <DistributionBars entries={entries} />
+          <SharedLegend entries={entries} />
+          <div className="compare-charts-row compare-charts-row-3">
+            <TerminalBalanceChart entries={entries} />
+            <AverageSpendChart entries={entries} />
+            <ScatterPlot entries={entries} />
+          </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared legend — one row of color swatches + names for all entries
+// ---------------------------------------------------------------------------
+
+function SharedLegend({ entries }: { entries: CompareEntry[] }) {
+  return (
+    <div className="compare-shared-legend">
+      {entries.map((e, i) => (
+        <span key={e.saved.id} className="compare-legend-item">
+          <span
+            className="compare-legend-swatch"
+            style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }}
+          />
+          {e.saved.name}
+        </span>
+      ))}
     </div>
   );
 }
@@ -259,6 +282,230 @@ function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
 }
 
 // ---------------------------------------------------------------------------
+// Average annual spend by start year — one line per scenario
+// ---------------------------------------------------------------------------
+
+function AverageSpendChart({ entries }: { entries: CompareEntry[] }) {
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
+
+  const seriesArr = useMemo(() => {
+    return entries.map((e, i) => {
+      const color = SERIES_COLORS[i % SERIES_COLORS.length];
+      const completed = e.result.sims
+        .filter((s) => !s.inProgress)
+        .sort((a, b) => a.startYear - b.startYear);
+      const inProgress = e.result.sims
+        .filter((s) => s.inProgress)
+        .sort((a, b) => a.startYear - b.startYear);
+
+      const avgSpend = (s: typeof completed[number]) =>
+        s.trajectory.length > 0
+          ? s.trajectory.reduce((sum, y) => sum + y.withdrawal, 0) / s.trajectory.length
+          : 0;
+
+      const completedData = completed.map((s) => [s.startYear, avgSpend(s)]);
+      const inProgressData = inProgress.map((s) => [s.startYear, avgSpend(s)]);
+
+      const series: any[] = [
+        {
+          type: 'line',
+          name: truncate(e.saved.name, 28),
+          color,
+          lineWidth: 1.5,
+          marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
+          data: completedData,
+          zIndex: 2,
+        },
+      ];
+
+      if (inProgressData.length > 0) {
+        series.push({
+          type: 'line',
+          name: `${truncate(e.saved.name, 24)} (in-progress)`,
+          color,
+          lineWidth: 1.5,
+          dashStyle: 'Dash',
+          opacity: 0.45,
+          marker: { enabled: false },
+          showInLegend: false,
+          linkedTo: ':previous',
+          data:
+            completedData.length > 0
+              ? [completedData[completedData.length - 1], ...inProgressData]
+              : inProgressData,
+          zIndex: 1,
+        });
+      }
+
+      return series;
+    }).flat();
+  }, [entries]);
+
+  const options: Options = useMemo(
+    () => ({
+      chart: {
+        type: 'line',
+        width: null as any,
+        height: 360,
+        margin: [16, 16, 48, 80],
+      },
+      xAxis: {
+        title: { text: 'retirement start year' },
+        labels: { style: { fontSize: '10px' } },
+      },
+      yAxis: {
+        min: 0,
+        title: { text: '' },
+        labels: {
+          formatter() {
+            const v = this.value as number;
+            if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+            if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}k`;
+            return `$${v}`;
+          },
+        },
+      },
+      tooltip: {
+        shared: false,
+        formatter() {
+          const v = this.y ?? 0;
+          const yr = this.x ?? 0;
+          return `<b>${this.series.name}</b><br/>Start ${yr}: ${fmtMoney(v)} avg annual spend`;
+        },
+      },
+      legend: { enabled: false },
+      series: seriesArr,
+    }),
+    [seriesArr],
+  );
+
+  return (
+    <div className="compare-chart-wrap compare-chart-third">
+      <div className="compare-chart-title">
+        <span>Avg annual spend by start year</span>
+      </div>
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        ref={chartRef}
+        immutable={false}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Terminal balance by start year — one line per scenario
+// ---------------------------------------------------------------------------
+
+function TerminalBalanceChart({ entries }: { entries: CompareEntry[] }) {
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
+
+  const seriesArr = useMemo(() => {
+    return entries.map((e, i) => {
+      const color = SERIES_COLORS[i % SERIES_COLORS.length];
+      const completed = e.result.sims
+        .filter((s) => !s.inProgress)
+        .sort((a, b) => a.startYear - b.startYear);
+      const inProgress = e.result.sims
+        .filter((s) => s.inProgress)
+        .sort((a, b) => a.startYear - b.startYear);
+
+      const completedData = completed.map((s) => [
+        s.startYear,
+        s.success ? (s.finalBalance ?? 0) : 0,
+      ]);
+      const inProgressData = inProgress.map((s) => [s.startYear, s.finalBalance ?? 0]);
+
+      const series: any[] = [
+        {
+          type: 'line',
+          name: truncate(e.saved.name, 28),
+          color,
+          lineWidth: 1.5,
+          marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
+          data: completedData,
+          zIndex: 2,
+        },
+      ];
+
+      if (inProgressData.length > 0) {
+        series.push({
+          type: 'line',
+          name: `${truncate(e.saved.name, 24)} (in-progress)`,
+          color,
+          lineWidth: 1.5,
+          dashStyle: 'Dash',
+          opacity: 0.45,
+          marker: { enabled: false },
+          showInLegend: false,
+          linkedTo: ':previous',
+          data:
+            completedData.length > 0
+              ? [completedData[completedData.length - 1], ...inProgressData]
+              : inProgressData,
+          zIndex: 1,
+        });
+      }
+
+      return series;
+    }).flat();
+  }, [entries]);
+
+  const options: Options = useMemo(
+    () => ({
+      chart: {
+        type: 'line',
+        width: null as any,
+        height: 360,
+        margin: [16, 16, 48, 80],
+      },
+      xAxis: {
+        title: { text: 'retirement start year' },
+        labels: { style: { fontSize: '10px' } },
+      },
+      yAxis: {
+        min: 0,
+        title: { text: '' },
+        labels: {
+          formatter() {
+            const v = this.value as number;
+            if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+            if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}k`;
+            return `$${v}`;
+          },
+        },
+      },
+      tooltip: {
+        shared: false,
+        formatter() {
+          const v = this.y ?? 0;
+          const yr = this.x ?? 0;
+          return `<b>${this.series.name}</b><br/>Start ${yr}: ${fmtMoney(v)} terminal balance`;
+        },
+      },
+      legend: { enabled: false },
+      series: seriesArr,
+    }),
+    [seriesArr],
+  );
+
+  return (
+    <div className="compare-chart-wrap compare-chart-third">
+      <div className="compare-chart-title">
+        <span>Terminal balance by start year</span>
+      </div>
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        ref={chartRef}
+        immutable={false}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Scatter plot — each scenario as a point on two selectable metric axes
 // ---------------------------------------------------------------------------
 
@@ -353,6 +600,7 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
           },
         },
       },
+      legend: { enabled: false },
       series: [
         {
           type: 'scatter',
@@ -366,7 +614,7 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
   if (xVals.length === 0 || yVals.length === 0) return null;
 
   return (
-    <div className="compare-chart-wrap">
+    <div className="compare-chart-wrap compare-chart-third">
       <div className="compare-chart-title">
         <span>Scenarios plotted on two metrics</span>
         <div className="frontier-axes">
@@ -404,192 +652,6 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
         ref={chartRef}
         immutable={false}
       />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Trajectory chart — median balance over time, one line per scenario
-// ---------------------------------------------------------------------------
-
-function TrajectoryChart({ entries }: { entries: CompareEntry[] }) {
-  const [showBand, setShowBand] = useState(false);
-  const chartRef = useRef<HighchartsReact.RefObject>(null);
-
-  const seriesArr = useMemo(() => {
-    const out: any[] = [];
-    entries.forEach((e, i) => {
-      const color = SERIES_COLORS[i % SERIES_COLORS.length];
-      const name = truncate(e.saved.name, 28);
-
-      // Median line
-      out.push({
-        type: 'line',
-        name,
-        color,
-        lineWidth: 2,
-        opacity: 0.9,
-        marker: { enabled: false },
-        data: e.result.percentiles.map((b) => [b.t, b.values.p50]),
-        zIndex: 2,
-      });
-
-      // P5–P95 band (arearange)
-      if (showBand) {
-        out.push({
-          type: 'arearange',
-          name: `${name} P5–P95`,
-          color,
-          fillOpacity: 0.07,
-          lineWidth: 0,
-          marker: { enabled: false },
-          enableMouseTracking: false,
-          showInLegend: false,
-          linkedTo: ':previous',
-          data: e.result.percentiles.map((b) => [b.t, b.values.p5, b.values.p95]),
-          zIndex: 1,
-        });
-      }
-    });
-    return out;
-  }, [entries, showBand]);
-
-  const options: Options = useMemo(() => ({
-    chart: {
-      type: 'line',
-      width: null as any,
-      height: 360,
-      margin: [16, 16, 48, 80],
-    },
-    xAxis: {
-      title: { text: 'years into retirement' },
-      labels: {
-        formatter() {
-          return `y${this.value}`;
-        },
-      },
-    },
-    yAxis: {
-      min: 0,
-      title: { text: '' },
-      labels: {
-        formatter() {
-          const v = this.value as number;
-          return `$${(v / 1e6).toFixed(1)}M`;
-        },
-      },
-    },
-    tooltip: {
-      shared: false,
-      formatter() {
-        const v = this.y ?? 0;
-        const yr = this.x ?? 0;
-        return `<b>${this.series.name}</b><br/>Year ${yr}: ${fmtMoney(v)}`;
-      },
-    },
-    legend: {
-      enabled: true,
-    },
-    series: seriesArr,
-  }), [seriesArr]);
-
-  return (
-    <div className="compare-chart-wrap">
-      <div className="compare-chart-title">
-        <span>Median portfolio balance over retirement</span>
-        <label>
-          <input
-            type="checkbox"
-            checked={showBand}
-            onChange={(e) => setShowBand(e.target.checked)}
-          />
-          show P5–P95 range
-        </label>
-      </div>
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        ref={chartRef}
-        immutable={false}
-      />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Distribution bars — final-balance P5 / median / P95 per scenario
-// ---------------------------------------------------------------------------
-
-function DistributionBars({ entries }: { entries: CompareEntry[] }) {
-  const maxVal = Math.max(
-    1,
-    ...entries.flatMap((e) => [
-      e.metrics.p5Final,
-      e.metrics.p50Final,
-      e.metrics.p95Final,
-    ]).filter(Number.isFinite),
-  );
-
-  const W = 720;
-  const rowH = 30;
-  const labelW = 220;
-  const padR = 70;
-  const H = rowH * entries.length + 20;
-  const barAreaW = W - labelW - padR;
-
-  return (
-    <div className="frontier-bars-wrap">
-      <div className="frontier-bars-title">
-        Final-balance distribution (P5 — Median — P95) per scenario
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
-        {entries.map((e, i) => {
-          const m = e.metrics;
-          const y = i * rowH + 8;
-          const color = SERIES_COLORS[i % SERIES_COLORS.length];
-          const sx = (v: number) =>
-            labelW + (Number.isFinite(v) ? (v / maxVal) * barAreaW : 0);
-          return (
-            <g key={e.saved.id}>
-              <text
-                x={labelW - 8}
-                y={y + rowH / 2 + 3}
-                fontSize="11"
-                textAnchor="end"
-                fill="#333"
-              >
-                {truncate(e.saved.name, 30)}
-              </text>
-              <line
-                x1={sx(m.p5Final)}
-                x2={sx(m.p95Final)}
-                y1={y + rowH / 2}
-                y2={y + rowH / 2}
-                stroke={color}
-                strokeWidth={2}
-                opacity={0.5}
-              />
-              <circle cx={sx(m.p5Final)} cy={y + rowH / 2} r={4} fill={color} opacity={0.55} />
-              <circle cx={sx(m.p95Final)} cy={y + rowH / 2} r={4} fill={color} opacity={0.55} />
-              <rect
-                x={sx(m.p50Final) - 3}
-                y={y + 5}
-                width={6}
-                height={rowH - 10}
-                fill={color}
-              />
-              <text
-                x={sx(m.p95Final) + 6}
-                y={y + rowH / 2 + 3}
-                fontSize="10"
-                fill="#666"
-              >
-                {fmtMoney(m.p50Final)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
     </div>
   );
 }

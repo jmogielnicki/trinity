@@ -9,7 +9,7 @@ import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInp
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
 import { Legend } from './components/results/Legend';
-import { OutcomeStrip } from './components/results/OutcomeStrip';
+import { StartYearChart } from './components/results/StartYearChart';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { WhereAmI } from './components/results/WhereAmI';
@@ -48,19 +48,12 @@ export function App() {
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
 
   const toggleYear = (year: number) => {
-    setSelectedYears((prev) => {
-      const next = new Set(prev);
-      if (next.has(year)) next.delete(year);
-      else next.add(year);
-      return next;
-    });
+    setSelectedYears((prev) =>
+      prev.size === 1 && prev.has(year) ? new Set() : new Set([year]),
+    );
   };
   const marqueeYears = (years: number[]) => {
-    setSelectedYears((prev) => {
-      const next = new Set(prev);
-      for (const y of years) next.add(y);
-      return next;
-    });
+    setSelectedYears(new Set(years));
   };
   const clearSelection = () => setSelectedYears(new Set());
 
@@ -296,22 +289,29 @@ export function App() {
                       </button>
                     </div>
                   )}
-                  <div className="spaghetti-row">
-                    <SpaghettiChart
-                      result={result}
-                      overlay={snapshot?.result ?? null}
-                      selectedYears={selectedYears}
-                      onToggle={toggleYear}
-                      onMarquee={marqueeYears}
-                      onClear={clearSelection}
-                    />
+                  <div className="single-scenario-charts">
+                    <div className="spaghetti-col">
+                      <SpaghettiChart
+                        result={result}
+                        overlay={snapshot?.result ?? null}
+                        selectedYears={selectedYears}
+                        onToggle={toggleYear}
+                        onMarquee={marqueeYears}
+                        onClear={clearSelection}
+                        height={400}
+                      />
+                    </div>
+                    <div className="start-year-col">
+                      <StartYearChart
+                        result={result}
+                        initialBalance={scenario.initialBalance}
+                        height={400}
+                        selectedYears={selectedYears}
+                        onToggle={toggleYear}
+                        onMarquee={marqueeYears}
+                      />
+                    </div>
                   </div>
-                  <OutcomeStrip
-                    result={result}
-                    selectedYears={selectedYears}
-                    onToggle={toggleYear}
-                    onMarquee={marqueeYears}
-                  />
                   {selectedYears.size > 0 && (
                     [...selectedYears].sort((a, b) => a - b).map((year) => {
                       const sim = result.sims.find(s => s.startYear === year);
