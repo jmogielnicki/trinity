@@ -280,13 +280,13 @@ export function FrontierView({ onApplied }: Props) {
           <div className="flex flex-wrap gap-[18px] text-sm text-text-secondary items-center py-1">
             <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] mr-1">
               <button
-                className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${viewMode === 'scatter' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+                className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${viewMode === 'scatter' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
                 onClick={() => setViewMode('scatter')}
               >
                 scatter
               </button>
               <button
-                className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${viewMode === 'trajectories' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+                className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${viewMode === 'trajectories' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
                 onClick={() => setViewMode('trajectories')}
               >
                 trajectories

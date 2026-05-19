@@ -104,9 +104,9 @@ function FixedAllocationEditor({ weights, onChange }: { weights: Weights; onChan
         onChange={(ws) => { setLocal(ws[0]); onChange(ws[0]); }}
       />
       <div className="flex gap-3 text-xs text-text-secondary">
-        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.stock }} /> stocks</span>
-        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.bond }} /> bonds</span>
-        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.cash }} /> cash</span>
+        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.stock }} /> stocks</span>
+        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.bond }} /> bonds</span>
+        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.cash }} /> cash</span>
       </div>
     </div>
   );
@@ -122,7 +122,7 @@ function ModeToggle({ current, onChange }: { current: Mode; onChange: (m: Mode) 
   return (
     <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none">
       {modes.map((m) => (
-        <button key={m.k} className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer text-text-muted font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${current === m.k ? ' bg-surface text-text shadow-card' : ' bg-transparent hover:bg-white/60 hover:text-text-body'}`} onClick={() => onChange(m.k)}>
+        <button key={m.k} className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer text-text-muted font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${current === m.k ? ' bg-surface text-text shadow-card' : ' bg-transparent hover:bg-white/60 hover:text-text-body'}`} onClick={() => onChange(m.k)}>
           {m.label}
         </button>
       ))}

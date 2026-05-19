@@ -53,9 +53,9 @@ export function GlidePath({ horizonYears, allocation, onChange, width = 280, hei
         height={height}
       />
       <div className="flex gap-3 text-xs text-text-secondary">
-        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.stock }} /> stocks</span>
-        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.bond }} /> bonds</span>
-        <span><span className="inline-block w-[10px] h-[10px] align-middle mr-1 rounded-sm" style={{ background: ASSET.cash }} /> cash</span>
+        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.stock }} /> stocks</span>
+        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.bond }} /> bonds</span>
+        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.cash }} /> cash</span>
       </div>
     </div>
   );

@@ -110,7 +110,7 @@ export function StudyConfigPanel() {
   };
 
   const modeBtnCls = (active: boolean) =>
-    `inline-flex items-center gap-1 text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed${active ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`;
+    `inline-flex items-center gap-1 text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed${active ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`;
 
   return (
     <div className="flex flex-col gap-2 border border-border rounded-md p-3 bg-surface-page">
@@ -125,7 +125,7 @@ export function StudyConfigPanel() {
         const role =
           swept && sweptCount === 2 ? (sweepIdx === 0 ? 'rows' : 'columns') : null;
         return (
-          <div key={key} className={`border rounded-[5px] bg-surface px-[10px] py-2${swept ? ' border-chart-blue shadow-[0_0_0_1px_var(--color-chart-blue)_inset]' : ' border-border'}`}>
+          <div key={key} className={`border rounded-[5px] bg-surface px-2.5 py-2${swept ? ' border-chart-blue shadow-[0_0_0_1px_var(--color-chart-blue)_inset]' : ' border-border'}`}>
             <div className="flex justify-between items-center gap-3">
               <span className="text-base font-semibold text-text-body">
                 {label}
@@ -238,13 +238,13 @@ function VaryEditor({
     <>
       <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none mb-2">
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'range' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'range' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setMode('range')}
         >
           range
         </button>
         <button
-          className={`text-xs px-[10px] py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'list' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
+          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'list' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
           onClick={() => setMode('list')}
         >
           hand-picked list

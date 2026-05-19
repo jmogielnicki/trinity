@@ -150,12 +150,12 @@ export function CustomScriptEditor({
         <>
           <div className="fixed inset-0 z-[99]" onClick={() => setShowDocs(false)} />
           <div className="absolute z-[100] left-0 right-0 bg-surface border border-text-disabled rounded-md shadow-popover p-0 overflow-hidden" ref={docsRef}>
-            <div className="flex items-center justify-between px-[10px] py-2 bg-surface-panel border-b border-border text-sm font-semibold text-text">
+            <div className="flex items-center justify-between px-2.5 py-2 bg-surface-panel border-b border-border text-sm font-semibold text-text">
               <span>{docs.title}</span>
               <button className="border-none bg-transparent text-[16px] leading-none cursor-pointer text-text-faint px-[2px] hover:text-error" onClick={() => setShowDocs(false)}>×</button>
             </div>
             {docs.sections.map((s) => (
-              <div key={s.heading} className="px-[10px] py-[7px] border-b border-border-light last:border-b-0">
+              <div key={s.heading} className="px-2.5 py-[7px] border-b border-border-light last:border-b-0">
                 <div className="text-2xs font-bold uppercase tracking-[0.04em] text-text-faint mb-[3px]">{s.heading}</div>
                 <pre className="m-0 font-mono text-[10.5px] text-text whitespace-pre-wrap leading-[1.5]">{s.content}</pre>
               </div>
