@@ -9,7 +9,6 @@ import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInp
 import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
 import { Legend } from './components/results/Legend';
-import { OutcomeStrip } from './components/results/OutcomeStrip';
 import { StartYearChart } from './components/results/StartYearChart';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
