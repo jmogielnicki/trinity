@@ -59,7 +59,6 @@ function buildSeriesForSim(
     lineWidth,
     marker: { enabled: false },
     enableMouseTracking: true,
-    states: { hover: { lineWidthPlus: 0 } },
     custom: { sim, source },
     turboThreshold: 0,
   } as SeriesLineOptions;
@@ -251,11 +250,15 @@ export function SpaghettiChart({
       plotOptions: {
         series: {
           cursor: 'pointer',
+          // Only track mouse when cursor is actually over a line; hides tooltip
+          // and clears hover state when cursor moves to empty chart space.
+          stickyTracking: false,
           events: { click: seriesClickHandler },
-          // Disable Highcharts' built-in inactive-state dimming so our
-          // imperative series.update() calls are the sole opacity authority.
           states: {
-            inactive: { opacity: 1 },
+            hover: { lineWidthPlus: 0 },
+            // Disable Highcharts' automatic inactive-state management so it
+            // never overrides our imperatively-set opacity values.
+            inactive: { enabled: false },
           },
         },
       },
