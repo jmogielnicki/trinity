@@ -154,15 +154,34 @@ export function CompareScenariosView() {
       ) : (
         <>
           <ComparisonTable entries={entries} />
+          <SharedLegend entries={entries} />
           <div className="compare-charts-row compare-charts-row-3">
             <TerminalBalanceChart entries={entries} />
             <AverageSpendChart entries={entries} />
             <ScatterPlot entries={entries} />
           </div>
-          <TrajectoryChart entries={entries} />
-          <DistributionBars entries={entries} />
         </>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared legend — one row of color swatches + names for all entries
+// ---------------------------------------------------------------------------
+
+function SharedLegend({ entries }: { entries: CompareEntry[] }) {
+  return (
+    <div className="compare-shared-legend">
+      {entries.map((e, i) => (
+        <span key={e.saved.id} className="compare-legend-item">
+          <span
+            className="compare-legend-swatch"
+            style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }}
+          />
+          {e.saved.name}
+        </span>
+      ))}
     </div>
   );
 }
@@ -354,7 +373,7 @@ function AverageSpendChart({ entries }: { entries: CompareEntry[] }) {
           return `<b>${this.series.name}</b><br/>Start ${yr}: ${fmtMoney(v)} avg annual spend`;
         },
       },
-      legend: { enabled: true },
+      legend: { enabled: false },
       series: seriesArr,
     }),
     [seriesArr],
@@ -465,7 +484,7 @@ function TerminalBalanceChart({ entries }: { entries: CompareEntry[] }) {
           return `<b>${this.series.name}</b><br/>Start ${yr}: ${fmtMoney(v)} terminal balance`;
         },
       },
-      legend: { enabled: true },
+      legend: { enabled: false },
       series: seriesArr,
     }),
     [seriesArr],
@@ -581,6 +600,7 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
           },
         },
       },
+      legend: { enabled: false },
       series: [
         {
           type: 'scatter',
