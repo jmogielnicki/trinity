@@ -2,6 +2,9 @@ import type { ReactNode } from 'react';
 import type { AllocationStrategy, WithdrawalStrategy } from '../../engine/strategies';
 import type { WithdrawalSource } from '../../engine/withdrawalSource';
 import { NumericInput } from '../controls/NumericInput';
+import { TabBar } from '../ui/TabBar';
+import { ToggleButton } from '../ui/ToggleButton';
+import { FIELD_AXIS } from '../ui/fieldCls';
 import {
   SOURCE_PRESETS,
   allocationRangeVariants,
@@ -109,8 +112,7 @@ export function StudyConfigPanel() {
     update({ varying: [...study.varying, key] });
   };
 
-  const modeBtnCls = (active: boolean) =>
-    `inline-flex items-center gap-1 text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed${active ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`;
+  const TOGGLE_EXTRA = 'inline-flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
     <div className="flex flex-col gap-2 border border-border rounded-md p-3 bg-surface-page">
@@ -131,23 +133,27 @@ export function StudyConfigPanel() {
                 {label}
                 {role && <span className="font-medium text-text-faint text-xs"> · {role}</span>}
               </span>
-              <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] flex-shrink-0">
-                <button
-                  className={modeBtnCls(!swept)}
-                  onClick={() => setPinned(key)}
-                  disabled={swept && sweptCount <= 1}
-                  title="Hold this dimension constant"
-                >
-                  <PinIcon /> pinned
-                </button>
-                <button
-                  className={modeBtnCls(swept)}
-                  onClick={() => setSwept(key)}
-                  disabled={!swept && sweptCount >= 2}
-                  title="Sweep this dimension across many variants"
-                >
-                  <SweepIcon /> sweep
-                </button>
+              <div className="flex-shrink-0">
+                <TabBar>
+                  <ToggleButton
+                    active={!swept}
+                    onClick={() => setPinned(key)}
+                    disabled={swept && sweptCount <= 1}
+                    title="Hold this dimension constant"
+                    className={TOGGLE_EXTRA}
+                  >
+                    <PinIcon /> pinned
+                  </ToggleButton>
+                  <ToggleButton
+                    active={swept}
+                    onClick={() => setSwept(key)}
+                    disabled={!swept && sweptCount >= 2}
+                    title="Sweep this dimension across many variants"
+                    className={TOGGLE_EXTRA}
+                  >
+                    <SweepIcon /> sweep
+                  </ToggleButton>
+                </TabBar>
               </div>
             </div>
             <div className="mt-2">
@@ -236,19 +242,15 @@ function VaryEditor({
     update({ varyMode: { ...study.varyMode, [dim]: m } });
   return (
     <>
-      <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none mb-2">
-        <button
-          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'range' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-          onClick={() => setMode('range')}
-        >
-          range
-        </button>
-        <button
-          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'list' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-          onClick={() => setMode('list')}
-        >
-          hand-picked list
-        </button>
+      <div className="mb-2">
+        <TabBar>
+          <ToggleButton active={mode === 'range'} onClick={() => setMode('range')}>
+            range
+          </ToggleButton>
+          <ToggleButton active={mode === 'list'} onClick={() => setMode('list')}>
+            hand-picked list
+          </ToggleButton>
+        </TabBar>
       </div>
       {mode === 'range' ? (
         <RangeEditor dim={dim} study={study} update={update} />
@@ -289,7 +291,7 @@ function VariantCount({
     n = study.sourcePresetIds.length;
   }
   return (
-    <div className="text-xs text-text-faint py-[2px] pb-1">
+    <div className="text-xs text-text-faint py-0.5 pb-1">
       {n} variant{n === 1 ? '' : 's'} on this axis.
     </div>
   );
@@ -314,7 +316,7 @@ function RangeEditor({
       update({ allocationRange: { ...r, ...patch } });
     return (
       <div className="flex flex-col gap-2">
-        <div className="text-xs text-text-faint py-[2px] pb-1">
+        <div className="text-xs text-text-faint py-0.5 pb-1">
           Sweeps every stock × bond combination; cash fills the remainder.
           Combinations over 100% are skipped.
         </div>
@@ -344,7 +346,7 @@ function RangeEditor({
   }
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-xs text-text-faint py-[2px] pb-1">Race these withdrawal-source strategies:</div>
+      <div className="text-xs text-text-faint py-0.5 pb-1">Race these withdrawal-source strategies:</div>
       {SOURCE_PRESETS.map((p) => (
         <label key={p.id} className="flex items-center gap-1.5 text-sm text-text-secondary">
           <input
@@ -397,7 +399,7 @@ function WithdrawalRangeEditor({
 
       {spec.family === 'fixedPercent' && (
         <>
-          <div className="text-xs text-text-faint py-[2px] pb-1">Sweep the fixed withdrawal rate.</div>
+          <div className="text-xs text-text-faint py-0.5 pb-1">Sweep the fixed withdrawal rate.</div>
           <PctRange
             from={spec.from}
             to={spec.to}
@@ -411,7 +413,7 @@ function WithdrawalRangeEditor({
 
       {spec.family === 'percentOfBalance' && (
         <>
-          <div className="text-xs text-text-faint py-[2px] pb-1">
+          <div className="text-xs text-text-faint py-0.5 pb-1">
             Sweep the % of current balance withdrawn; the floor is pinned.
           </div>
           <PctNum
@@ -646,7 +648,7 @@ const parsePct = (s: string) => { const n = parseFloat(s); return isNaN(n) ? nul
 const fmtMarginal = (v: number) => String(+(v * 1000).toFixed(3));
 const parseMarginal = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n / 1000; };
 
-const axisNumCls = 'w-14 px-[6px] py-[3px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover';
+const axisNumCls = FIELD_AXIS;
 
 function PctRange({
   label,

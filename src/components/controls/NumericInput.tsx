@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { FIELD_FULL } from '../ui/fieldCls';
 
 interface Props {
   value: number;
@@ -29,7 +30,7 @@ export function NumericInput({
   parse = defaultParse,
   min,
   max,
-  className = 'w-full px-[10px] py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover',
+  className = FIELD_FULL,
   placeholder,
   disabled,
 }: Props) {

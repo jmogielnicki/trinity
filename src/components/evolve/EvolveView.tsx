@@ -91,7 +91,7 @@ export function EvolveView() {
     lastConfig && lastConfig.horizonYears !== scenario.horizonYears;
 
   return (
-    <div className="flex flex-col gap-[14px] text-base">
+    <div className="flex flex-col gap-3.5 text-base">
       <div className="flex justify-between items-start gap-4">
         <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
           <strong>Evolve strategies</strong> — a genetic algorithm runs four
@@ -456,7 +456,7 @@ function ChampionRow({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="grid [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] gap-[10px]">
+    <div className="grid [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] gap-2.5">
       {champions.map((c, idx) => {
         const id = genomeId(c.individual.genome);
         const m = c.individual.metrics!;
@@ -512,7 +512,7 @@ function IslandTables({
   const thCls = 'px-2 py-1.5 text-left border-b border-border-light whitespace-nowrap text-text-muted font-medium text-xs uppercase tracking-[0.04em] bg-surface-hover';
   const tdCls = 'px-2 py-1.5 text-left border-b border-border-light whitespace-nowrap text-sm';
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-3.5">
       {islands.map((isl, idx) => (
         <div key={isl.profile.id} className="overflow-x-auto">
           <div
@@ -576,7 +576,7 @@ function StrategyPreview({
   const g = individual.genome;
   const m = individual.metrics;
   return (
-    <div className="border border-border-light rounded p-[10px] bg-surface-page flex flex-col gap-1.5">
+    <div className="border border-border-light rounded p-2.5 bg-surface-page flex flex-col gap-1.5">
       <div className="text-xs text-text-secondary mb-1.5">Selected strategy</div>
       <div className="text-sm text-text-body">{genomeLabel(g)}</div>
       <div className="flex flex-col gap-2">

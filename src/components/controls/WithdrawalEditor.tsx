@@ -4,6 +4,8 @@ import { CustomScriptEditor } from './CustomScriptEditor';
 import { NumericInput } from './NumericInput';
 import { RuleBuilder } from './RuleBuilder';
 import { WithdrawalCurve } from './WithdrawalCurve';
+import { TabBar } from '../ui/TabBar';
+import { ToggleButton } from '../ui/ToggleButton';
 
 type Mode = 'fixed' | 'curve' | 'floor-upside' | 'ratchet' | 'cape' | 'rules' | 'script';
 
@@ -174,17 +176,13 @@ function ModeToggle({
     { k: 'script', label: 'script' },
   ];
   return (
-    <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none">
+    <TabBar>
       {modes.map((m) => (
-        <button
-          key={m.k}
-          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer text-text-muted font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${current === m.k ? ' bg-surface text-text shadow-card' : ' bg-transparent hover:bg-white/60 hover:text-text-body'}`}
-          onClick={() => onChange(m.k)}
-        >
+        <ToggleButton key={m.k} active={current === m.k} onClick={() => onChange(m.k)}>
           {m.label}
-        </button>
+        </ToggleButton>
       ))}
-    </div>
+    </TabBar>
   );
 }
 
@@ -297,7 +295,7 @@ function CapeWithdrawalEditor({
     return isNaN(n) ? null : Math.max(0, n / 100);
   };
   return (
-    <div className="flex flex-col gap-[10px]">
+    <div className="flex flex-col gap-2.5">
       <div className="text-xs text-text-muted leading-[1.4]">
         Each year: withdraw <strong>rate × current balance</strong>, where{' '}
         <strong>rate = a + b ÷ CAPE</strong>. At CAPE {exampleCape.toFixed(1)},{' '}
@@ -370,7 +368,7 @@ function RatchetEditor({
     return isNaN(n) ? null : Math.max(0, n / 100);
   };
   return (
-    <div className="flex flex-col gap-[10px]">
+    <div className="flex flex-col gap-2.5">
       <div className="text-xs text-text-muted leading-[1.4]">
         Start at <strong>base rate</strong>. Each time the portfolio's
         all-time high clears another <strong>step %</strong> above initial,
@@ -435,7 +433,7 @@ function FloorUpsideEditor({
   onChange: (floor: number, marginalSpend: number) => void;
 }) {
   return (
-    <div className="flex flex-col gap-[10px]">
+    <div className="flex flex-col gap-2.5">
       <div className="text-xs text-text-muted leading-[1.4]">
         Withdraw at least <strong>floor %</strong> of initial each year. For
         every $1M the portfolio is above its starting value, spend an extra{' '}

@@ -6,6 +6,8 @@ import { StackedBar } from './StackedBar';
 import { AllocationRuleBuilder } from './AllocationRuleBuilder';
 import { CustomScriptEditor } from './CustomScriptEditor';
 import { GlidePath } from './GlidePath';
+import { TabBar } from '../ui/TabBar';
+import { ToggleButton } from '../ui/ToggleButton';
 
 type Mode = 'fixed' | 'glide' | 'rules' | 'script';
 
@@ -120,12 +122,12 @@ function ModeToggle({ current, onChange }: { current: Mode; onChange: (m: Mode) 
     { k: 'script', label: 'script' },
   ];
   return (
-    <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none">
+    <TabBar>
       {modes.map((m) => (
-        <button key={m.k} className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer text-text-muted font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${current === m.k ? ' bg-surface text-text shadow-card' : ' bg-transparent hover:bg-white/60 hover:text-text-body'}`} onClick={() => onChange(m.k)}>
+        <ToggleButton key={m.k} active={current === m.k} onClick={() => onChange(m.k)}>
           {m.label}
-        </button>
+        </ToggleButton>
       ))}
-    </div>
+    </TabBar>
   );
 }

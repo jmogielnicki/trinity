@@ -1,6 +1,7 @@
 import type { Action, Condition, Rule } from '../../engine/rules';
 import type { Weights } from '../../engine/types';
 import { NumericInput } from './NumericInput';
+import { FIELD_SM } from '../ui/fieldCls';
 
 type Props = {
   base: Weights;
@@ -45,14 +46,14 @@ export function AllocationRuleBuilder({ base, rules, onChange }: Props) {
       <div className="text-sm text-text-secondary">
         Base allocation (used when no rule matches; renormalized to 100%):
       </div>
-      <div className="text-xs text-text-faint py-[2px] pb-1">
+      <div className="text-xs text-text-faint py-0.5 pb-1">
         All matching rules <strong>compound</strong> their delta onto the base each year
         (e.g. two rules that each shift -10% stocks → -20% stocks).
       </div>
       <div className="flex items-center gap-1.5 flex-wrap text-base">
         <span>stocks</span>
         <NumericInput
-          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+          className={FIELD_SM}
           value={base.stock}
           format={fmtDec2}
           parse={parseFloat2}
@@ -60,7 +61,7 @@ export function AllocationRuleBuilder({ base, rules, onChange }: Props) {
         />
         <span>bonds</span>
         <NumericInput
-          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+          className={FIELD_SM}
           value={base.bond}
           format={fmtDec2}
           parse={parseFloat2}
@@ -68,7 +69,7 @@ export function AllocationRuleBuilder({ base, rules, onChange }: Props) {
         />
         <span>cash</span>
         <NumericInput
-          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+          className={FIELD_SM}
           value={base.cash}
           format={fmtDec2}
           parse={parseFloat2}
@@ -146,7 +147,7 @@ function RuleRow({
         <span>then shift</span>
         <span>stk</span>
         <NumericInput
-          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+          className={FIELD_SM}
           value={action.delta.stock}
           format={fmtDec2}
           parse={parseFloat2}
@@ -154,7 +155,7 @@ function RuleRow({
         />
         <span>bnd</span>
         <NumericInput
-          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+          className={FIELD_SM}
           value={action.delta.bond}
           format={fmtDec2}
           parse={parseFloat2}
@@ -162,7 +163,7 @@ function RuleRow({
         />
         <span>csh</span>
         <NumericInput
-          className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+          className={FIELD_SM}
           value={action.delta.cash}
           format={fmtDec2}
           parse={parseFloat2}
@@ -187,7 +188,7 @@ function CondInputs({
         <>
           <span>year</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.from}
             format={fmtInt}
             parse={parseIntFn}
@@ -195,7 +196,7 @@ function CondInputs({
           />
           <span>–</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.to}
             format={fmtInt}
             parse={parseIntFn}
@@ -208,7 +209,7 @@ function CondInputs({
         <>
           <span>last</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.lookback}
             format={fmtInt}
             parse={parseIntFn}
@@ -216,7 +217,7 @@ function CondInputs({
           />
           <span>y ret &gt;</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.threshold}
             format={fmtPct0}
             parse={parsePct}
@@ -240,7 +241,7 @@ function CondInputs({
             <option value="<">&lt;</option>
           </select>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.ratio}
             onChange={(v) => onChange({ ...cond, ratio: v })}
           />
@@ -251,7 +252,7 @@ function CondInputs({
         <>
           <span>inflation &gt;</span>
           <NumericInput
-            className="w-14 px-2 py-[7px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover"
+            className={FIELD_SM}
             value={cond.threshold}
             format={fmtPct0}
             parse={parsePct}

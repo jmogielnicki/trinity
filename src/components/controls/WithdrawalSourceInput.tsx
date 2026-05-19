@@ -6,6 +6,9 @@ import {
 import type { Sleeve } from '../../engine/types';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { NumericInput } from './NumericInput';
+import { TabBar } from '../ui/TabBar';
+import { ToggleButton } from '../ui/ToggleButton';
+import { FIELD_AXIS } from '../ui/fieldCls';
 
 const SLEEVE_LABELS: Record<Sleeve, string> = {
   cash: 'cash',
@@ -50,42 +53,26 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
   return (
     <div className="flex flex-col gap-2">
       {!hideLabel && <div className="text-sm text-text-secondary">Withdrawal source</div>}
-      <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none">
-        <button
-          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'proportional' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-          onClick={() =>
-            setWithdrawalSource({ type: 'proportional', rebalance: true })
-          }
-          title="Sell from each sleeve in proportion to its target weight; rebalance back to target each year."
+      <TabBar>
+        <ToggleButton
+          active={mode === 'proportional'}
+          onClick={() => setWithdrawalSource({ type: 'proportional', rebalance: true })}
         >
           proportional
-        </button>
-        <button
-          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'waterfall' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-          onClick={() =>
-            setWithdrawalSource({
-              type: 'waterfall',
-              order: DEFAULT_WATERFALL_ORDER,
-            })
-          }
-          title="Drain sleeves in order until withdrawal is met. Sleeves drift; no auto-rebalance."
+        </ToggleButton>
+        <ToggleButton
+          active={mode === 'waterfall'}
+          onClick={() => setWithdrawalSource({ type: 'waterfall', order: DEFAULT_WATERFALL_ORDER })}
         >
           waterfall
-        </button>
-        <button
-          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${mode === 'bucket' ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-          onClick={() =>
-            setWithdrawalSource({
-              type: 'bucket',
-              order: DEFAULT_WATERFALL_ORDER,
-              refill: DEFAULT_REFILL_CHAIN,
-            })
-          }
-          title="Waterfall plus refill rules: replenish sleeves from growth when markets allow."
+        </ToggleButton>
+        <ToggleButton
+          active={mode === 'bucket'}
+          onClick={() => setWithdrawalSource({ type: 'bucket', order: DEFAULT_WATERFALL_ORDER, refill: DEFAULT_REFILL_CHAIN })}
         >
           bucket
-        </button>
-      </div>
+        </ToggleButton>
+      </TabBar>
 
       {mode === 'proportional' && (
         <>
@@ -105,7 +92,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
             />
             rebalance to target weights each year
           </label>
-          <div className="text-xs text-text-faint py-[2px] pb-1">
+          <div className="text-xs text-text-faint py-0.5 pb-1">
             Sells proportionally; same outcome whether you check rebalance or
             not for static allocations.
           </div>
@@ -122,7 +109,7 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
               setWithdrawalSource({ type: 'waterfall', order })
             }
           />
-          <div className="text-xs text-text-faint py-[2px] pb-1">
+          <div className="text-xs text-text-faint py-0.5 pb-1">
             Cash-bucket strategy: sleeves drift, downturns spend the safer
             ones first.
           </div>
@@ -155,7 +142,7 @@ function WaterfallOrderEditor({
   };
   return (
     <div className="flex flex-col gap-1">
-      <div className="text-xs text-text-faint py-[2px] pb-1">draw order:</div>
+      <div className="text-xs text-text-faint py-0.5 pb-1">draw order:</div>
       <ol className="list-none p-0 m-0 flex flex-col gap-1">
         {order.map((s, i) => (
           <li key={s} className="flex items-center gap-1.5 text-sm">
@@ -236,7 +223,7 @@ function BucketEditor({
           + add refill rule
         </button>
       )}
-      <div className="text-xs text-text-faint py-[2px] pb-1">
+      <div className="text-xs text-text-faint py-0.5 pb-1">
         Rules run in order after returns. Each rule only fires when its target
         sleeve is below its floor threshold.
       </div>
@@ -262,7 +249,6 @@ function RefillRuleEditor({
   const hasReturnGate = rule.sourceReturnGate != null;
   const hasRatioGate = rule.sourceMinRatio != null;
 
-  const axisNumCls = 'w-14 px-[6px] py-[3px] border-[1.5px] border-border-input rounded-md text-base font-[inherit] text-text bg-surface outline-none box-border transition-[border-color,box-shadow] duration-150 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-ring)] hover:border-border-hover';
   const selectCls = 'text-base px-1.5 py-1.5 border-[1.5px] border-border-input rounded-md font-[inherit] text-text bg-surface outline-none';
 
   return (
@@ -277,21 +263,21 @@ function RefillRuleEditor({
       </div>
 
       {/* Floor mode toggle */}
-      <div className="flex gap-0.5 bg-surface-muted rounded-lg p-[3px] overflow-x-auto scrollbar-none" style={{ marginBottom: 6 }}>
-        <button
-          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${!isYears ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-          onClick={() => onChange({ floorMode: 'portfolioFraction' })}
-          title="Express floor/ceiling as % of total portfolio"
-        >
-          % of portfolio
-        </button>
-        <button
-          className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0${isYears ? ' bg-surface text-text shadow-card' : ' bg-transparent text-text-muted hover:bg-white/60 hover:text-text-body'}`}
-          onClick={() => onChange({ floorMode: 'withdrawalYears' })}
-          title="Express floor/ceiling as years of annual expenses"
-        >
-          years of expenses
-        </button>
+      <div style={{ marginBottom: 6 }}>
+        <TabBar>
+          <ToggleButton
+            active={!isYears}
+            onClick={() => onChange({ floorMode: 'portfolioFraction' })}
+          >
+            % of portfolio
+          </ToggleButton>
+          <ToggleButton
+            active={isYears}
+            onClick={() => onChange({ floorMode: 'withdrawalYears' })}
+          >
+            years of expenses
+          </ToggleButton>
+        </TabBar>
       </div>
 
       <div className="flex items-center gap-1.5 flex-wrap text-base">
@@ -310,7 +296,7 @@ function RefillRuleEditor({
         <span>when below</span>
         <NumericInput
           key={`floor-${isYears ? 'y' : 'f'}`}
-          className={axisNumCls}
+          className={FIELD_AXIS}
           value={rule.floor}
           format={isYears ? (v) => v.toFixed(1) : (v) => (v * 100).toFixed(1)}
           parse={isYears
@@ -324,7 +310,7 @@ function RefillRuleEditor({
         <span>{isYears ? 'yrs, up to' : '%, up to'}</span>
         <NumericInput
           key={`ceiling-${isYears ? 'y' : 'f'}`}
-          className={axisNumCls}
+          className={FIELD_AXIS}
           value={rule.ceiling}
           format={isYears ? (v) => v.toFixed(1) : (v) => (v * 100).toFixed(1)}
           parse={isYears
@@ -364,7 +350,7 @@ function RefillRuleEditor({
         />
         only when source return &gt;
         <NumericInput
-          className={axisNumCls}
+          className={FIELD_AXIS}
           disabled={!hasReturnGate}
           value={rule.sourceReturnGate ?? 0}
           format={(v) => String(Math.round(v * 100))}
@@ -385,7 +371,7 @@ function RefillRuleEditor({
         />
         only when source ≥
         <NumericInput
-          className={axisNumCls}
+          className={FIELD_AXIS}
           disabled={!hasRatioGate}
           value={rule.sourceMinRatio ?? 1}
           format={(v) => String(Math.round(v * 100))}
