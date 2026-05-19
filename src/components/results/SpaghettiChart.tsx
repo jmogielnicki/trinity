@@ -9,7 +9,6 @@ type Props = {
   result: ScenarioResult;
   /** Optional second result drawn on the same axes for A/B comparison. */
   overlay?: ScenarioResult | null;
-  width?: number;
   height?: number;
   /** When non-empty, only sims whose startYear is in this set render at full
    * intensity; the rest fade out so highlighted runs pop. */
@@ -89,7 +88,6 @@ function buildSeriesForSim(
 export function SpaghettiChart({
   result,
   overlay = null,
-  width = 800,
   height = 460,
   selectedYears,
   onToggle,

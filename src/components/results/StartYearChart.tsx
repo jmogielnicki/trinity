@@ -79,8 +79,6 @@ export function StartYearChart({
   const span = Math.max(1, lastYear - firstYear);
   const colW = innerW / (span + 1);
   const xOf = (year: number) => ml + ((year - firstYear) / (span + 1)) * innerW + colW / 2;
-  const pxToYear = (px: number) => Math.round(((px - ml) / innerW) * (span + 1) + firstYear);
-
   // ── Completed / in-progress ───────────────────────────────────────────────
   const completedSims = sims.filter((s) => !s.inProgress);
   const inProgressSims = sims.filter((s) => s.inProgress);
