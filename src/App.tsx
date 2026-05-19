@@ -174,25 +174,25 @@ export function App() {
       </div>
       <div className="flex gap-1 mb-4 border-b border-border">
         <button
-          className={`bg-transparent border-none px-[14px] py-2 text-base text-text-muted cursor-pointer border-b-2 border-b-transparent -mb-px${topMode === 'single' ? ' text-text font-medium border-b-chart-blue' : ''}`}
+          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('single')}
         >
           Single scenario
         </button>
         <button
-          className={`bg-transparent border-none px-[14px] py-2 text-base text-text-muted cursor-pointer border-b-2 border-b-transparent -mb-px${topMode === 'optimize' ? ' text-text font-medium border-b-chart-blue' : ''}`}
+          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('optimize')}
         >
           Study / optimize
         </button>
         <button
-          className={`bg-transparent border-none px-[14px] py-2 text-base text-text-muted cursor-pointer border-b-2 border-b-transparent -mb-px${topMode === 'evolve' ? ' text-text font-medium border-b-chart-blue' : ''}`}
+          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('evolve')}
         >
           Evolve
         </button>
         <button
-          className={`bg-transparent border-none px-[14px] py-2 text-base text-text-muted cursor-pointer border-b-2 border-b-transparent -mb-px${topMode === 'compare' ? ' text-text font-medium border-b-chart-blue' : ''}`}
+          className={`bg-transparent border-none px-[14px] py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('compare')}
         >
           Compare scenarios
@@ -242,13 +242,13 @@ export function App() {
                 <span className="ml-3">
                   view:
                   <button
-                    className={`text-xs px-2 py-[2px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ''}`}
+                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-[#999]'}`}
                     onClick={() => setView('spaghetti')}
                   >
                     spaghetti
                   </button>
                   <button
-                    className={`text-xs px-2 py-[2px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer ml-1${view === 'calendar' ? ' bg-primary text-surface border-primary' : ''}`}
+                    className={`text-xs px-2 py-[2px] border rounded-[3px] cursor-pointer ml-1${view === 'calendar' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-[#999]'}`}
                     onClick={() => setView('calendar')}
                   >
                     calendar

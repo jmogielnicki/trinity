@@ -5,7 +5,7 @@ export function PortfolioInput() {
   const { initialBalance, horizonYears, setBalance, setHorizon } =
     useScenarioStore();
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-row gap-4 items-end">
       <label className="flex flex-col gap-1 text-sm text-text-secondary font-medium">
         Initial balance ($, real)
         <NumericInput
