@@ -251,7 +251,7 @@ export function App() {
             <ScenarioLibrary />
           </aside>
         )}
-        <main className="bg-surface border border-border rounded-lg p-4">
+        <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
           {topMode === 'single' && (
             <button
               className="md:hidden flex items-center gap-2 text-sm px-3 py-2 border border-border rounded-lg cursor-pointer bg-surface hover:bg-surface-hover mb-3 text-text-secondary"
