@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Btn } from '../ui/Btn';
 
 type Kind = 'withdrawal' | 'allocation';
 
@@ -174,9 +175,7 @@ export function CustomScriptEditor({
       />
       <div className="font-mono text-xs text-text-muted">{'}'}</div>
       {error && <div className="text-error text-xs whitespace-pre-wrap">{error}</div>}
-      <button onClick={apply} className="text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start">
-        apply
-      </button>
+      <Btn onClick={apply}>apply</Btn>
       <div className="text-2xs text-text-faint">
         ⚠ Runs untrusted JS in your browser. Only paste scripts you wrote.
       </div>

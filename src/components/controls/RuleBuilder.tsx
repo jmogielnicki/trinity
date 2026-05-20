@@ -1,5 +1,7 @@
 import type { Action, Condition, Rule } from '../../engine/rules';
 import { NumericInput } from './NumericInput';
+import { Btn } from '../ui/Btn';
+import { GhostDeleteBtn } from '../ui/GhostDeleteBtn';
 import { FIELD_SM } from '../ui/fieldCls';
 
 type Props = {
@@ -61,12 +63,7 @@ export function RuleBuilder({ base, rules, onChange }: Props) {
           onChange={(rr) => update(rules.map((x, j) => (i === j ? rr : x)))}
         />
       ))}
-      <button
-        className="text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start"
-        onClick={() => update([...rules, defaultRule()])}
-      >
-        + add rule
-      </button>
+      <Btn onClick={() => update([...rules, defaultRule()])}>+ add rule</Btn>
     </div>
   );
 }
@@ -125,9 +122,7 @@ function RuleRow({
           }
         />
         <span>%</span>
-        <button className="ml-auto border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-error" onClick={onDelete}>
-          ×
-        </button>
+        <GhostDeleteBtn onClick={onDelete} />
       </div>
     </div>
   );

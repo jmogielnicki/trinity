@@ -3,6 +3,7 @@ import { interpolatePlasma } from 'd3-scale-chromatic';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
+import { Btn } from '../ui/Btn';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
 
@@ -231,22 +232,14 @@ export function FrontierView({ onApplied }: Props) {
           balance, and tail method.
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
-          <button
-            className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={runSearch}
-            disabled={running || !pool || !data}
-          >
-            {running
-              ? 'Running…'
-              : results.length
-                ? 'Re-run study'
-                : 'Run study'}
-          </button>
+          <Btn size="md" onClick={runSearch} disabled={running || !pool || !data}>
+            {running ? 'Running…' : results.length ? 'Re-run study' : 'Run study'}
+          </Btn>
           {!!results.length && (
             <>
-              <button className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover" onClick={selectAll}>Select all</button>
-              <button className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover" onClick={selectAllFrontier}>Select frontier</button>
-              <button className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover" onClick={clearSelection}>Clear</button>
+              <Btn size="md" onClick={selectAll}>Select all</Btn>
+              <Btn size="md" onClick={selectAllFrontier}>Select frontier</Btn>
+              <Btn size="md" onClick={clearSelection}>Clear</Btn>
             </>
           )}
         </div>
