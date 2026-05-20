@@ -147,7 +147,7 @@ export function App() {
       <header>
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h1>Historical Withdrawal Simulator</h1>
+            <h1>Retirement Calculator</h1>
             <p className="m-0 mb-6 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
