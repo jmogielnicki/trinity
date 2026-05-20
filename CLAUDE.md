@@ -1,4 +1,4 @@
-# **CLAUDE.md — Historical Withdrawal Simulator**
+# **CLAUDE.md — Retirement calculator**
 
 ## **1\. Vision**
 
