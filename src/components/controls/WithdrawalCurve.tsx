@@ -18,8 +18,7 @@ type Props = {
 const N_HANDLES = 5;
 const MIN_RATE = 0.01;
 const MAX_RATE = 0.1;
-const SNAP_RATES = [0.03, 0.035, 0.04, 0.045, 0.05];
-const SNAP_TOL = 0.0025;
+const SNAP_STEP = 0.0025;
 
 type Handle = { tFrac: number; rate: number };
 
@@ -86,10 +85,7 @@ function handlesToStrategy(
 }
 
 function snap(rate: number): number {
-  for (const s of SNAP_RATES) {
-    if (Math.abs(rate - s) < SNAP_TOL) return s;
-  }
-  return rate;
+  return Math.round(rate / SNAP_STEP) * SNAP_STEP;
 }
 
 export function WithdrawalCurve({

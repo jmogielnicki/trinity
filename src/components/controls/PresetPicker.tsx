@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PRESETS } from '../../data/presets';
 import type { SerializedState } from '../../data/urlState';
 import { useScenarioStore } from '../../store/scenarioStore';
@@ -9,6 +9,7 @@ export function PresetPicker() {
   const scenario = useScenarioStore();
   const sweep = useSweepStore();
   const [picked, setPicked] = useState('');
+  const appliedRef = useRef<{ allocation: string; withdrawal: string } | null>(null);
 
   const apply = (state: SerializedState) => {
     scenario.setAllocation(state.allocation);
@@ -19,6 +20,10 @@ export function PresetPicker() {
     (Object.keys(state.axes) as Array<keyof typeof state.axes>).forEach((a) =>
       sweep.setAxis(a, state.axes[a]),
     );
+    appliedRef.current = {
+      allocation: JSON.stringify(state.allocation),
+      withdrawal: JSON.stringify(state.withdrawal),
+    };
   };
 
   const onChange = (id: string) => {
@@ -27,6 +32,20 @@ export function PresetPicker() {
     const p = PRESETS.find((x) => x.id === id);
     if (p) apply(p.state);
   };
+
+  // Clear preset label as soon as the user modifies any strategy value
+  useEffect(() => {
+    if (!picked || !appliedRef.current) return;
+    const curAllocation = JSON.stringify(scenario.allocation);
+    const curWithdrawal = JSON.stringify(scenario.withdrawal);
+    if (
+      curAllocation !== appliedRef.current.allocation ||
+      curWithdrawal !== appliedRef.current.withdrawal
+    ) {
+      setPicked('');
+      appliedRef.current = null;
+    }
+  }, [scenario.allocation, scenario.withdrawal, picked]);
 
   const description = PRESETS.find((p) => p.id === picked)?.description;
 
