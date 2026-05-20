@@ -27,11 +27,31 @@ scripts/
   sim.ts             # CLI sim harness (Bengen / Trinity scenarios)
 src/
   engine/            # pure simulation logic, no React/DOM
-  components/        # React UI; controls/ on left rail, results/ in main pane
+    simulate.ts      # core sim loop (sleeve-level)
+    strategies.ts    # WithdrawalStrategy + AllocationStrategy unions + executors
+    withdrawalSource.ts  # proportional / waterfall / bucket
+    rules.ts         # rule evaluation
+    bootstrap.ts     # stationary block bootstrap
+    sweep.ts         # runScenario + TailMethod
+    sweepRunner.ts   # sweep orchestration (1D/2D grids)
+    optimize.ts      # Pareto-front candidate search; CandidateMetrics
+    study.ts         # StudyConfig + StudyDimension; generateStudy
+    evolve.ts        # genetic algorithm (7-gene genome, island model)
+    stats.ts         # percentiles, success rate
+    types.ts         # shared types (Weights, Sleeves, ScenarioResult, …)
+  components/        # React UI
+    controls/        # left-rail strategy editors
+    results/         # spaghetti, calendar, WhereAmI, StartYearChart, SimDetailPanel
+    optimize/        # FrontierView, StudyConfigPanel, StudyHeatmaps, StudyTrajectories
+    evolve/          # EvolveView (genetic algorithm UI)
+    compare/         # CompareScenariosView (multi-scenario comparison tab)
+    ui/              # TabBar, ToggleButton, fieldCls
+    AboutPanel.tsx
+    colors.ts
   store/             # zustand slices
   worker/            # Comlink-wrapped engine in a Web Worker pool
   data/              # data loading, URL state, presets, CSV export
-tests/engine/        # vitest, 9 files, 47 tests
+tests/engine/        # vitest, 16 files, 99 tests
 ```
 
 ## 3. Mental model
@@ -78,30 +98,41 @@ App holds `selectedYears: Set<number>`. The spaghetti chart and outcome strip bo
 - `scenarioStore` — current editable scenario (balance, horizon, allocation, withdrawal, withdrawalSource, tailMethod)
 - `sweepStore` — per-axis pin/sweep config, capped at 2 sweeping axes
 - `resultsStore` — loaded data + worker pool + last `ScenarioResult` / `SweepGrid`. `recompute` is async, gated on pool readiness, with a monotonic id so older completions don't clobber a newer result.
-- `compareStore` — optional snapshot for A/B overlay
+- `compareStore` — optional snapshot for inline A/B overlay on the spaghetti chart (single-scenario tab only)
+- `compareScenariosStore` — drives the **Compare** tab; holds a set of saved scenarios and their computed results + metrics for side-by-side display
+- `optimizeStore` — study configuration + Pareto-front results for the **Optimize** tab
+- `evolveStore` — genetic algorithm state (running flag, generation history, island snapshots) for the **Evolve** tab
 - `libraryStore` — localStorage-backed named scenarios
 
 State that needs to round-trip (URL hash, library, presets) goes through `SerializedState` in `src/data/urlState.ts`.
 
 ## 5. UI map (`src/components/`)
 
+**Top-level modes** (`TopMode` in `App.tsx`): `single | optimize | evolve | compare | about`. Tabs sit full-width between the context bar and the results pane. The left-rail strategy panel is rendered only on `single`; all other modes go full-width.
+
 **Layout:**
 - *Context bar* (full-width, below the header, applies to every tab): `PortfolioInput` — initial balance + horizon.
-- *Strategy panel* (left rail, **rendered only on the Single scenario tab**): `PresetPicker → AllocationEditor → WithdrawalEditor → WithdrawalSourceInput → TailMethodInput`, then `ScenarioLibrary`. On other tabs the `.layout` grid gets `.no-aside` and the results pane goes full width.
-- *Tabs* (`.top-mode-tabs`) sit full-width between the context bar and the layout.
+- *Strategy panel* (left rail, **single tab only**): `PresetPicker → AllocationEditor → WithdrawalEditor → WithdrawalSourceInput → TailMethodInput`, then `ScenarioLibrary`.
 
 (`ScenarioActions` — share / export / snapshot — lives in the header, not the left rail.)
 
 `AllocationEditor` and `WithdrawalEditor` wrap their underlying chart editor with a `glide/rules/script` (alloc) or `curve/rules/script` (withdrawal) mode toggle. Mode switches between visual editor, rule builder, and `customSrc` script editor.
 
-**Header:** title + `ScenarioActions` (share / export csv / snapshot) toolbar + `?` button toggling the About panel.
+**Header:** title + `ScenarioActions` (share / export csv / snapshot) toolbar + `?` button toggling `AboutPanel`.
 
-**Results (main pane):**
+**Single-scenario results (main pane):**
 - View toggle: `spaghetti / calendar`. `WhereAmI` is a drill-down reached from an in-progress-cohorts banner on the spaghetti view (with a back link), not a peer toggle.
 - Sweep views: `SmallMultiples` (1D), `Heatmap` (2D)
-- `StatPanel` takes `showSuccess` — false on spaghetti (the `SuccessBar` already shows success rate + cohort counts there), true on calendar; not rendered on WhereAmI
-- Single-scenario uses `SuccessBar`, `OutcomeStrip`, `Legend` as supporting components
-- Clicking a spaghetti line opens `SimDetailPanel`: one chart with the stacked sleeve composition on top and source-colored withdrawal bars below, sharing a stock/bond/cash legend
+- `StatPanel` takes `showSuccess` — false on spaghetti, true on calendar; not rendered on WhereAmI
+- `StartYearChart` — three-panel D3 canvas chart (avg spend / terminal balance / outcome barcode), replaces the former separate `SuccessBar` + `OutcomeStrip` components (those files still exist but are unused)
+- `Legend` — asset-class color key
+- Clicking a spaghetti line opens `SimDetailPanel`: stacked sleeve-composition area on top, source-colored withdrawal bars below
+
+**Optimize tab** (`FrontierView`): runs a configurable study (1D or 2D sweep over allocation + withdrawal variants) and plots a Pareto frontier of success rate vs. median final balance. `StudyConfigPanel` configures axes; `StudyHeatmaps` and `StudyTrajectories` display results. Selecting a point applies it to the single-scenario tab.
+
+**Evolve tab** (`EvolveView`): genetic algorithm over a 7-gene genome (glide-path allocation + 4-point piecewise-linear withdrawal). Runs across multiple island populations; `evolveStore` tracks generation history. Results can be applied to the single-scenario tab.
+
+**Compare tab** (`CompareScenariosView`): picks multiple saved scenarios from the library, runs each against history, and displays a combined Highcharts spaghetti + metrics table side-by-side. Distinct from the inline snapshot overlay (`compareStore`) that overlays one saved result on the single-scenario spaghetti.
 
 ## 6. Engine: data flow
 
@@ -126,7 +157,7 @@ ie_data.csv + TB3MS.csv
 
 Both `Total Return Price` (stocks) and `Total Bond Returns` cumulative columns from Shiller are **already in real terms**. Build script ratios successive Decembers for real returns, reconstructs nominal via inflation. Cash is annual TB3MS factors compounded.
 
-## 7. Tests (47, all in `tests/engine/`)
+## 7. Tests (99, all in `tests/engine/`)
 
 | File | What |
 |---|---|
@@ -139,6 +170,13 @@ Both `Total Return Price` (stocks) and `Total Bond Returns` cumulative columns f
 | `withdrawalCurve.test.ts` | piecewiseLinear lerps between control points |
 | `historicalData.test.ts` | 22 spot-checks pinning real Shiller / FRED values to ±1pp |
 | `withdrawalSource.test.ts` | waterfall ordering, proportional preservation, bucket refill |
+| `optimize.test.ts` | candidate metrics, Pareto-front ordering, study grid shapes |
+| `percentiles.test.ts` | bootstrap vs truncate observed-rate consistency; weighted percentiles |
+| `cashDataBoundary.test.ts` | pre-1934 cash-null handling, weight adjustment |
+| `endowment.test.ts` | endowment-style fixed-spend + percentOfBalance strategies |
+| `floorAndUpside.test.ts` | floor + upside-sharing withdrawal rules |
+| `ratchet.test.ts` | ratchet withdrawal (never cut, only raise) |
+| `vanguardDynamic.test.ts` | Vanguard dynamic spending rule |
 
 Add a test when adding a strategy type, source type, or non-trivial engine behavior.
 
@@ -167,12 +205,16 @@ CLAUDE.md describes the original product vision; here's what's actually been bui
 - **Sleeve-level engine** — `simulate.ts` tracks `{stock, bond, cash}` per year, not a single balance. `WithdrawalSource` controls how withdrawals come out (proportional/waterfall/bucket).
 - **piecewiseLinear** withdrawal type — replaces the misleading step-function `piecewise` for the curve editor.
 - **customSrc** strategy variant — string-of-JS, structured-clone-safe (works across workers and URL state).
-- **Outcome strip** — barcode of start-year outcomes below the spaghetti, click/drag to select.
+- **StartYearChart** — three-panel D3 canvas chart (avg spend / terminal balance / outcome barcode) with click + shift-drag marquee selection. Replaced the former separate `SuccessBar` and `OutcomeStrip` components (those still exist as files but are no longer imported).
 - **Sleeve composition** — stacked area of one sim's per-sleeve balances over time; the upper section of the `SimDetailPanel` chart (not a top-level view), with source-colored withdrawal bars below it.
 - **Where Am I view** — completed-historical percentile band with the actual realized prefix of recent retirees.
-- **Marquee selection** — shift+drag on either chart adds years to the selection.
+- **Marquee selection** — shift+drag on either StartYearChart or SpaghettiChart adds years to the selection.
 - **Worker pool** — Comlink-wrapped engine, scenarios distributed round-robin.
 - **Presets** — eight curated starting points incl. cash-bucket-with-refill.
 - **URL share + localStorage library + CSV export** — full round-trip of `SerializedState`.
+- **Optimize tab** (`FrontierView`) — configurable study sweeps allocation + withdrawal axes and plots a Pareto frontier. Built on `engine/optimize.ts` + `engine/study.ts`; state in `optimizeStore`.
+- **Evolve tab** (`EvolveView`) — genetic algorithm discovers withdrawal/allocation strategies. 7-gene genome over a 4-island population. Built on `engine/evolve.ts`; state in `evolveStore`.
+- **Compare tab** (`CompareScenariosView`) — multi-scenario comparison picked from the library; runs each against history and shows a unified Highcharts spaghetti + metrics table. Separate from the inline A/B snapshot overlay (`compareStore`) which overlays one saved result on the single-scenario chart.
+- **Chart library** — read-only output charts (SpaghettiChart, SimDetailPanel, WhereAmI, CalendarHeatmap backdrop, optimize scatter, compare spaghetti) use **Highcharts**, not Recharts/visx as originally planned. D3 is still used for the editable controllers (WithdrawalCurve, GlidePath) and SVG-based D3 canvas in StartYearChart.
 
 If you're picking up cold: load the **Cash bucket with refill — 50/35/15** preset, click a spaghetti line, and switch to the sleeve-composition chart tab to see the most novel piece working end-to-end.

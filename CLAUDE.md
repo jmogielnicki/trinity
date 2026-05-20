@@ -390,7 +390,7 @@ Toggle two scenarios A/B. Spaghetti view shows both fans in different colors wit
 ## **7\. Tech Stack**
 
 - **Framework**: Vite \+ React \+ TypeScript. SPA, no SSR needed.  
-- **Charts**: D3 for the editable controllers (handles, drag, snap behavior). Recharts or visx for read-only output charts where D3 is overkill.  
+- **Charts**: D3 for the editable controllers (handles, drag, snap behavior) and the `StartYearChart` multi-panel canvas. Highcharts (via `highcharts-react-official`) for read-only output charts (SpaghettiChart, SimDetailPanel, WhereAmI, CalendarHeatmap backdrop, optimize scatter, compare spaghetti).  
 - **State**: Zustand. Strategy definitions, sweep config, results — three slices.  
 - **Compute**: Web Workers via Comlink. The simulation engine module is pure TS, imported by both main thread (for tests) and worker (for production runs). Worker pool sized to `navigator.hardwareConcurrency`.  
 - **Hosting**: Vercel. Static build, no server needed.  
