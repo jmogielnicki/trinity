@@ -12,6 +12,7 @@ export function PortfolioInput() {
           value={initialBalance}
           onChange={setBalance}
           min={0}
+          format={(v) => Math.round(v).toLocaleString('en-US')}
           parse={(s) => {
             if (s.trim() === '') return null;
             const n = parseFloat(s.replace(/,/g, ''));

@@ -5,7 +5,6 @@ import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { TailMethodInput } from './components/controls/TailMethodInput';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInput';
-import { CalendarHeatmap } from './components/results/CalendarHeatmap';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
 import { Legend } from './components/results/Legend';
 import { StartYearChart } from './components/results/StartYearChart';
@@ -22,7 +21,7 @@ import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
-type View = 'spaghetti' | 'calendar' | 'whereami';
+type View = 'spaghetti' | 'whereami';
 type TopMode = 'single' | 'optimize' | 'evolve' | 'compare';
 
 export function App() {
@@ -156,7 +155,7 @@ export function App() {
       <header>
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h1>Historical Withdrawal Simulator</h1>
+            <h1 className="text-[1.75rem] font-bold text-[var(--color-chart-blue)] m-0 mb-1">Historical Withdrawal Simulator</h1>
             <p className="m-0 mb-6 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
@@ -180,25 +179,25 @@ export function App() {
       </div>
       <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto scrollbar-none">
         <button
-          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px whitespace-nowrap flex-shrink-0${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-0 border-b-2 border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('single')}
         >
           Single scenario
         </button>
         <button
-          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px whitespace-nowrap flex-shrink-0${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-0 border-b-2 border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('optimize')}
         >
           Study / optimize
         </button>
         <button
-          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px whitespace-nowrap flex-shrink-0${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-0 border-b-2 border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('evolve')}
         >
           Evolve
         </button>
         <button
-          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px whitespace-nowrap flex-shrink-0${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-0 border-b-2 border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('compare')}
         >
           Compare scenarios
@@ -274,23 +273,6 @@ export function App() {
             <div className="text-xs text-text-placeholder mb-2">
               Compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
               {pool && <span className="text-text-placeholder"> ({pool.size} workers)</span>}
-              {result && (
-                <span className="ml-3">
-                  view:
-                  <button
-                    className={`text-xs px-2 py-0.5 border rounded-[3px] cursor-pointer ml-1${view === 'spaghetti' || view === 'whereami' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
-                    onClick={() => setView('spaghetti')}
-                  >
-                    spaghetti
-                  </button>
-                  <button
-                    className={`text-xs px-2 py-0.5 border rounded-[3px] cursor-pointer ml-1${view === 'calendar' ? ' bg-primary text-surface border-primary' : ' bg-surface border-text-disabled text-text-placeholder'}`}
-                    onClick={() => setView('calendar')}
-                  >
-                    calendar
-                  </button>
-                </span>
-              )}
             </div>
           )}
           {data && result && (() => {
@@ -359,12 +341,6 @@ export function App() {
                     })
                   )}
                 </>
-              )}
-              {view === 'calendar' && (
-                <CalendarHeatmap
-                  result={result}
-                  initialBalance={scenario.initialBalance}
-                />
               )}
               {view === 'whereami' && (
                 <>
