@@ -143,11 +143,10 @@ export function App() {
 
   return (
     <div className="max-w-[1280px] mx-auto p-3 sm:p-6">
-      <div className="sticky top-0 z-30 bg-[var(--color-surface,#fff)] -mx-3 sm:-mx-6 px-3 sm:px-6 pb-0 shadow-sticky">
-      <header>
-        <div className="flex justify-between items-start gap-4 pt-3 sm:pt-0">
+      <header className="sticky sm:static top-0 z-30 sm:z-auto bg-[var(--color-surface,#fff)] sm:bg-transparent -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 shadow-sticky sm:shadow-none mb-3 sm:mb-0">
+        <div className="flex justify-between items-center sm:items-start gap-4">
           <div>
-            <h1 className="text-xl sm:text-[1.75rem] font-bold text-[var(--color-chart-blue)] m-0 mb-1">Historical Withdrawal Simulator</h1>
+            <h1 className="text-xl sm:text-[1.75rem] font-bold text-[var(--color-chart-blue)] m-0 sm:mb-1">Historical Withdrawal Simulator</h1>
             <p className="hidden sm:block m-0 mb-4 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
@@ -206,7 +205,6 @@ export function App() {
           Compare scenarios
         </button>
       </div>
-      </div>{/* end sticky header */}
 
       {/* Mobile drawer backdrop */}
       {topMode === 'single' && (
