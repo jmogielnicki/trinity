@@ -23,7 +23,7 @@ import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
 type View = 'spaghetti' | 'calendar' | 'whereami';
-type TopMode = 'single' | 'optimize' | 'evolve' | 'compare' | 'about';
+type TopMode = 'single' | 'optimize' | 'evolve' | 'compare';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -42,6 +42,7 @@ export function App() {
   const [topMode, setTopMode] = useState<TopMode>('single');
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -57,11 +58,11 @@ export function App() {
     setSidebarOpen(false);
   }, [topMode]);
 
-  // Lock body scroll when mobile sidebar tray is open.
+  // Lock body scroll when mobile sidebar tray or about modal is open.
   useEffect(() => {
-    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+    document.body.style.overflow = (sidebarOpen || aboutOpen) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [sidebarOpen]);
+  }, [sidebarOpen, aboutOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,10 +164,8 @@ export function App() {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
-              className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${topMode === 'about' ? ' bg-primary text-surface border-primary' : ''}`}
-              onClick={() =>
-                setTopMode((m) => (m === 'about' ? 'single' : 'about'))
-              }
+              className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
+              onClick={() => setAboutOpen((v) => !v)}
               title="About / methodology"
             >
               ?
@@ -269,7 +268,6 @@ export function App() {
           )}
           {topMode === 'evolve' && <EvolveView />}
           {topMode === 'compare' && <CompareScenariosView />}
-          {topMode === 'about' && <AboutPanel />}
           {topMode === 'single' && <>
           {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
           {data && (
@@ -391,6 +389,23 @@ export function App() {
           </>}
         </main>
       </div>
+
+      {/* About modal */}
+      {aboutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setAboutOpen(false)} />
+          <div className="relative bg-surface rounded-lg shadow-popover w-full max-w-[720px] max-h-[85vh] overflow-y-auto p-5 sm:p-7">
+            <button
+              className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded cursor-pointer text-text-muted hover:bg-surface-hover border border-border text-base"
+              onClick={() => setAboutOpen(false)}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+            <AboutPanel />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
