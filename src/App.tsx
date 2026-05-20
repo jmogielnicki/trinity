@@ -143,10 +143,10 @@ export function App() {
 
   return (
     <div className="max-w-[1280px] mx-auto p-3 sm:p-6">
-      <header className="sticky sm:static top-0 z-30 sm:z-auto bg-[var(--color-surface,#fff)] sm:bg-transparent -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 shadow-sticky sm:shadow-none mb-3 sm:mb-0">
+      <header className="sticky sm:static top-0 z-30 sm:z-auto bg-surface sm:bg-transparent -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 shadow-sticky sm:shadow-none mb-3 sm:mb-0">
         <div className="flex justify-between items-center sm:items-start gap-4">
           <div>
-            <h1 className="text-xl sm:text-[1.75rem] font-bold text-[var(--color-chart-blue)] m-0 sm:mb-1">Retirement calculator</h1>
+            <h1 className="text-xl sm:text-[1.75rem] font-bold text-chart-blue m-0 sm:mb-1">Retirement calculator</h1>
             <p className="hidden sm:block m-0 mb-4 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
@@ -169,7 +169,7 @@ export function App() {
       </div>
       <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto scrollbar-none">
         <button
-          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'single' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'single' ? ' text-chart-blue font-semibold border-b-chart-blue' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('single')}
         >
           <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
@@ -178,7 +178,7 @@ export function App() {
           Single scenario
         </button>
         <button
-          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'optimize' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'optimize' ? ' text-chart-blue font-semibold border-b-chart-blue' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('optimize')}
         >
           <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
@@ -187,7 +187,7 @@ export function App() {
           Study / optimize
         </button>
         <button
-          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'evolve' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'evolve' ? ' text-chart-blue font-semibold border-b-chart-blue' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('evolve')}
         >
           <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
@@ -196,7 +196,7 @@ export function App() {
           Evolve
         </button>
         <button
-          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'compare' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'compare' ? ' text-chart-blue font-semibold border-b-chart-blue' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('compare')}
         >
           <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
