@@ -169,37 +169,37 @@ export function App() {
       </div>
       <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto scrollbar-none">
         <button
-          className={`bg-transparent border-0 border-b-[3px] border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'single' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'single' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('single')}
         >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+          <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5l5-5 4 4 5-7 4 4" />
           </svg>
           Single scenario
         </button>
         <button
-          className={`bg-transparent border-0 border-b-[3px] border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'optimize' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'optimize' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('optimize')}
         >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+          <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
           </svg>
           Study / optimize
         </button>
         <button
-          className={`bg-transparent border-0 border-b-[3px] border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'evolve' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'evolve' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('evolve')}
         >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+          <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
           Evolve
         </button>
         <button
-          className={`bg-transparent border-0 border-b-[3px] border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'compare' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-2 py-1.5 sm:px-3.5 sm:py-2 text-sm sm:text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'compare' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('compare')}
         >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+          <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
           </svg>
           Compare scenarios
