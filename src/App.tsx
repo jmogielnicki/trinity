@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
-import { ScenarioActions } from './components/controls/ScenarioActions';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { TailMethodInput } from './components/controls/TailMethodInput';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
@@ -19,13 +18,12 @@ import { CompareScenariosView } from './components/compare/CompareScenariosView'
 import { AboutPanel } from './components/AboutPanel';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, serialize, tryDeserialize } from './data/urlState';
-import { useCompareStore } from './store/compareStore';
 import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
 type View = 'spaghetti' | 'calendar' | 'whereami';
-type TopMode = 'single' | 'optimize' | 'evolve' | 'compare' | 'about';
+type TopMode = 'single' | 'optimize' | 'evolve' | 'compare';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -40,10 +38,11 @@ export function App() {
     setPool,
     recompute,
   } = useResultsStore();
-  const snapshot = useCompareStore((s) => s.snapshot);
   const [view, setView] = useState<View>('spaghetti');
   const [topMode, setTopMode] = useState<TopMode>('single');
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -54,6 +53,16 @@ export function App() {
     setSelectedYears(new Set(years));
   };
   const clearSelection = () => setSelectedYears(new Set());
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [topMode]);
+
+  // Lock body scroll when mobile sidebar tray or about modal is open.
+  useEffect(() => {
+    document.body.style.overflow = (sidebarOpen || aboutOpen) ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [sidebarOpen, aboutOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,7 +152,7 @@ export function App() {
   ]);
 
   return (
-    <div className="max-w-[1280px] mx-auto p-6">
+    <div className="max-w-[1280px] mx-auto p-3 sm:p-6">
       <header>
         <div className="flex justify-between items-start gap-4">
           <div>
@@ -154,12 +163,9 @@ export function App() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <ScenarioActions />
             <button
-              className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${topMode === 'about' ? ' bg-primary text-surface border-primary' : ''}`}
-              onClick={() =>
-                setTopMode((m) => (m === 'about' ? 'single' : 'about'))
-              }
+              className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
+              onClick={() => setAboutOpen((v) => !v)}
               title="About / methodology"
             >
               ?
@@ -167,42 +173,62 @@ export function App() {
           </div>
         </div>
       </header>
-      <div className="flex items-center gap-5 bg-surface border border-border rounded-lg px-4 py-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-5 bg-surface border border-border rounded-lg px-3 sm:px-4 py-3 mb-4">
         <span className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint">Context</span>
         <PortfolioInput />
-        <span className="text-xs text-text-placeholder ml-auto">applies to every tab</span>
+        <span className="hidden sm:inline text-xs text-text-placeholder ml-auto">applies to every tab</span>
       </div>
-      <div className="flex gap-1 mb-4 border-b border-border">
+      <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto scrollbar-none">
         <button
-          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px whitespace-nowrap flex-shrink-0${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('single')}
         >
           Single scenario
         </button>
         <button
-          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px whitespace-nowrap flex-shrink-0${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('optimize')}
         >
           Study / optimize
         </button>
         <button
-          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px whitespace-nowrap flex-shrink-0${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('evolve')}
         >
           Evolve
         </button>
         <button
-          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-none px-3.5 py-2 text-base cursor-pointer border-b-2 -mb-px whitespace-nowrap flex-shrink-0${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
           onClick={() => setTopMode('compare')}
         >
           Compare scenarios
         </button>
       </div>
-      <div className={`grid gap-6${topMode === 'single' ? ' grid-cols-[280px_minmax(0,1fr)]' : ' grid-cols-[minmax(0,1fr)]'}`}>
+
+      {/* Mobile drawer backdrop */}
+      {topMode === 'single' && (
+        <div
+          className={`fixed inset-0 z-40 bg-black/40 md:hidden transition-opacity duration-200${sidebarOpen ? ' opacity-100' : ' opacity-0 pointer-events-none'}`}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div className={`grid gap-4 sm:gap-6${topMode === 'single' ? ' md:grid-cols-[280px_minmax(0,1fr)]' : ''}`}>
         {topMode === 'single' && (
-          <aside className="flex flex-col gap-5 bg-surface border border-border rounded-lg p-4 h-fit">
+          <aside className={`fixed top-0 left-0 h-full w-[300px] z-50 overflow-y-auto transition-transform duration-200 ease-in-out md:static md:h-fit md:w-auto md:z-auto md:overflow-visible md:translate-x-0 flex flex-col gap-5 bg-surface border-r border-border-hover md:border md:rounded-lg p-4${sidebarOpen ? ' translate-x-0 shadow-popover' : ' -translate-x-full'}`}>
+            {/* Close button — mobile only */}
+            <div className="flex items-center justify-between pb-3 border-b border-border md:hidden">
+              <span className="text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</span>
+              <button
+                className="w-7 h-7 flex items-center justify-center rounded cursor-pointer text-text-muted hover:bg-surface-hover border border-border text-base"
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Close panel"
+              >
+                ✕
+              </button>
+            </div>
             <section className="control-zone flex flex-col gap-5">
-              <div className="flex flex-col gap-0.5">
+              <div className="hidden md:flex flex-col gap-0.5">
                 <h2 className="m-0 text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</h2>
               </div>
               <PresetPicker />
@@ -225,13 +251,23 @@ export function App() {
             <ScenarioLibrary />
           </aside>
         )}
-        <main className="bg-surface border border-border rounded-lg p-4">
+        <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
+          {topMode === 'single' && (
+            <button
+              className="md:hidden flex items-center gap-2 text-sm px-3 py-2 border border-border rounded-lg cursor-pointer bg-surface hover:bg-surface-hover mb-3 text-text-secondary"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              Strategy
+            </button>
+          )}
           {topMode === 'optimize' && (
             <FrontierView onApplied={() => setTopMode('single')} />
           )}
           {topMode === 'evolve' && <EvolveView />}
           {topMode === 'compare' && <CompareScenariosView />}
-          {topMode === 'about' && <AboutPanel />}
           {topMode === 'single' && <>
           {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
           {data && (
@@ -286,11 +322,11 @@ export function App() {
                       </button>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-3 items-start">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                     <div className="min-w-0">
                       <SpaghettiChart
                         result={result}
-                        overlay={snapshot?.result ?? null}
+                        overlay={null}
                         selectedYears={selectedYears}
                         onToggle={toggleYear}
                         onMarquee={marqueeYears}
@@ -353,6 +389,23 @@ export function App() {
           </>}
         </main>
       </div>
+
+      {/* About modal */}
+      {aboutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setAboutOpen(false)} />
+          <div className="relative bg-surface rounded-lg shadow-popover w-full max-w-[720px] max-h-[85vh] overflow-y-auto p-5 sm:p-7">
+            <button
+              className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded cursor-pointer text-text-muted hover:bg-surface-hover border border-border text-base"
+              onClick={() => setAboutOpen(false)}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+            <AboutPanel />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
