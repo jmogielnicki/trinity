@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
@@ -50,6 +50,19 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       : 'Survived';
 
   const chartRef = useRef<HighchartsReact.RefObject>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setChartWidth(Math.floor(w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const summary = useMemo(() => {
     let peakBalance = 0;
@@ -124,7 +137,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
 
     return {
       chart: {
-        width: 760,
+        width: chartWidth ?? null,
         height: 260,
         margin: [12, 16, 56, 70],
         zooming: { type: undefined } as any,
@@ -285,7 +298,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         } as Highcharts.SeriesColumnOptions,
       ],
     };
-  }, [trajectory, startYear, depletedAt, initialBalance]);
+  }, [trajectory, startYear, depletedAt, initialBalance, chartWidth]);
 
   const showsAssumedCash = startYear < CASH_DATA_START_YEAR;
 
@@ -318,12 +331,14 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         )}
       </div>
 
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        ref={chartRef}
-        immutable={false}
-      />
+      <div ref={containerRef} className="w-full overflow-hidden">
+        <HighchartsReact
+          highcharts={Highcharts}
+          options={options}
+          ref={chartRef}
+          immutable={false}
+        />
+      </div>
 
       <ul className="list-none p-0 mt-1 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-text-secondary">
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.stock }} /> stocks</li>
@@ -333,11 +348,12 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       </ul>
 
       {showsAssumedCash && (
-        <p className="mt-1.5 mb-0 text-2xs leading-[1.4] text-text-placeholder max-w-[760px]">
+        <p className="mt-1.5 mb-0 text-2xs leading-[1.4] text-text-placeholder">
           Cash return data begins in {CASH_DATA_START_YEAR}. Earlier years
           (faded violet) hold the cash sleeve flat at 0% real — a conservative
           assumption, not measured data.
         </p>
+
       )}
 
       {/* Year-by-year data table */}
