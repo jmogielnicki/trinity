@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';import { AllocationEditor } from './
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
-import { TailMethodInput } from './components/controls/TailMethodInput';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInput';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
@@ -148,7 +147,7 @@ export function App() {
       <header className="sticky sm:static top-0 z-30 sm:z-auto bg-surface sm:bg-transparent -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 shadow-sticky sm:shadow-none mb-3 sm:mb-0">
         <div className="flex justify-between items-center sm:items-start gap-4">
           <div>
-            <h1 className="text-xl sm:text-[1.75rem] font-bold text-chart-blue m-0 sm:mb-1">Retirement calculator</h1>
+            <h1 className="text-xl sm:text-[1.75rem] font-bold text-primary m-0 sm:mb-1">Retirement calculator</h1>
             <p className="hidden sm:block m-0 mb-4 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
@@ -230,8 +229,7 @@ export function App() {
                 onChange={scenario.setWithdrawal}
               />
               <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
-              <WithdrawalSourceInput />
-              <TailMethodInput />
+              <WithdrawalSourceInput hideLabel/>
             </section>
             <ScenarioLibrary />
           </aside>

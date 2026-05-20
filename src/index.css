@@ -3,14 +3,16 @@
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 @theme {
   /* Brand / primary */
-  --color-primary:       #335577;
+  --color-primary:       #101332;
+  --color-secondary:     #A14F7E;
   --color-primary-hover: #2a4562;
   --color-primary-ring:  rgba(51, 85, 119, 0.12);
 
   /* Asset class colors — consumed by components/colors.ts via getComputedStyle */
-  --color-stock: #059669;
-  --color-bond:  #b08e3a;
-  --color-cash:  #7c3aed;
+  --color-stock: #372554;
+  --color-bond:  #E99C20;
+  --color-cash:  #3F612D;
+  --color-cash-wash:  #B0D29D;
 
   /* Simulation outcome colors — consumed by components/colors.ts via getComputedStyle */
   --color-survived:    #2c5282;
