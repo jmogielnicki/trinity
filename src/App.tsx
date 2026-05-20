@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
-import { ScenarioActions } from './components/controls/ScenarioActions';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { TailMethodInput } from './components/controls/TailMethodInput';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
@@ -19,7 +18,6 @@ import { CompareScenariosView } from './components/compare/CompareScenariosView'
 import { AboutPanel } from './components/AboutPanel';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, serialize, tryDeserialize } from './data/urlState';
-import { useCompareStore } from './store/compareStore';
 import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
@@ -40,7 +38,6 @@ export function App() {
     setPool,
     recompute,
   } = useResultsStore();
-  const snapshot = useCompareStore((s) => s.snapshot);
   const [view, setView] = useState<View>('spaghetti');
   const [topMode, setTopMode] = useState<TopMode>('single');
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
@@ -59,6 +56,12 @@ export function App() {
   useEffect(() => {
     setSidebarOpen(false);
   }, [topMode]);
+
+  // Lock body scroll when mobile sidebar tray is open.
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [sidebarOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,7 +162,6 @@ export function App() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <ScenarioActions />
             <button
               className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${topMode === 'about' ? ' bg-primary text-surface border-primary' : ''}`}
               onClick={() =>
@@ -326,7 +328,7 @@ export function App() {
                     <div className="min-w-0">
                       <SpaghettiChart
                         result={result}
-                        overlay={snapshot?.result ?? null}
+                        overlay={null}
                         selectedYears={selectedYears}
                         onToggle={toggleYear}
                         onMarquee={marqueeYears}
