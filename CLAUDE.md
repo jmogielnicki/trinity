@@ -559,3 +559,34 @@ The engine should reproduce these well-known results:
 - 1966 retiree, 4% / 60-40 → **fails around year 25** (canonical bad-sequence case)
 
 If any of these are off by more than 1–2 percentage points, the bond return or inflation handling is wrong.  
+
+## **13\. Styling System**
+
+The UI uses **Tailwind CSS v4** with a centralized design token layer. All hardcoded hex values, magic numbers, and ad-hoc CSS classes have been eliminated — one change in the token file propagates everywhere.
+
+### Token definitions — `src/index.css`
+
+All design tokens live in the `@theme` block:
+
+- **Colors**: text scale (`--color-text` through `--color-text-disabled`), surface backgrounds (`--color-surface-*`), borders (`--color-border-*`), semantic status (`--color-error`, `--color-success`, `--color-stale`), asset classes (`--color-stock/bond/cash`), simulation outcomes (`--color-survived/depleted/in-progress/snapshot`)
+- **Font sizes**: `--text-2xs` through `--text-xl` (10px–22px)
+- **Shadows**: `--shadow-card`, `--shadow-popover`, `--shadow-sticky`
+
+These tokens are available as Tailwind utility classes everywhere — `text-text-muted`, `bg-surface-panel`, `border-border-light`, `shadow-card`, etc.
+
+### Chart colors — `src/components/colors.ts`
+
+`ASSET` and `OUTCOME` objects expose colors as property getters that read from the CSS tokens via `getComputedStyle` at access time. **Do not hardcode hex values here** — change the token in `index.css` and chart colors update automatically.
+
+### Shared UI primitives — `src/components/ui/`
+
+- **`ToggleButton`** — pill-style active/inactive toggle; accepts `active`, `onClick`, optional `disabled`, `title`, `className`
+- **`TabBar`** — segmented-control container; always wraps `ToggleButton`s
+- **`fieldCls.ts`** — exported class-string constants (`FIELD_SM`, `FIELD_FULL`, `FIELD_AXIS`) for input/select elements; use these instead of repeating the focus-ring and border-transition classes inline
+
+### Rules
+
+1. Use token-based utilities (`text-text-muted`, `bg-surface-panel`) — never hardcode hex colors in className strings
+2. Use the Tailwind spacing scale (`px-2.5`, `gap-3.5`) — arbitrary `[Npx]` values are only acceptable when no scale equivalent exists (e.g. `border-[1.5px]`, `py-[7px]`)
+3. New toggle/mode-switch UIs → use `TabBar` + `ToggleButton`
+4. New text inputs/selects → use a `fieldCls` constant as the base class string
