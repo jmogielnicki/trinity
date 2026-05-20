@@ -146,7 +146,7 @@ export function App() {
       <header className="sticky sm:static top-0 z-30 sm:z-auto bg-[var(--color-surface,#fff)] sm:bg-transparent -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 shadow-sticky sm:shadow-none mb-3 sm:mb-0">
         <div className="flex justify-between items-center sm:items-start gap-4">
           <div>
-            <h1 className="text-xl sm:text-[1.75rem] font-bold text-[var(--color-chart-blue)] m-0 sm:mb-1">Historical Withdrawal Simulator</h1>
+            <h1 className="text-xl sm:text-[1.75rem] font-bold text-[var(--color-chart-blue)] m-0 sm:mb-1">Retirement calculator</h1>
             <p className="hidden sm:block m-0 mb-4 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
