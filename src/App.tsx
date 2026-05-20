@@ -10,7 +10,6 @@ import { Legend } from './components/results/Legend';
 import { StartYearChart } from './components/results/StartYearChart';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
-import { WhereAmI } from './components/results/WhereAmI';
 import { FrontierView } from './components/optimize/FrontierView';
 import { EvolveView } from './components/evolve/EvolveView';
 import { CompareScenariosView } from './components/compare/CompareScenariosView';
@@ -21,7 +20,6 @@ import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
-type View = 'spaghetti' | 'whereami';
 type TopMode = 'single' | 'optimize' | 'evolve' | 'compare';
 
 export function App() {
@@ -30,14 +28,11 @@ export function App() {
   const {
     data,
     result,
-    computeMs,
     pool,
-    computing,
     setData,
     setPool,
     recompute,
   } = useResultsStore();
-  const [view, setView] = useState<View>('spaghetti');
   const [topMode, setTopMode] = useState<TopMode>('single');
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -95,8 +90,6 @@ export function App() {
     if (parsed.tailMethod) scenario.setTailMethod(parsed.tailMethod);
     if (parsed.withdrawalSource)
       scenario.setWithdrawalSource(parsed.withdrawalSource);
-    if (parsed.view && parsed.view !== 'sleeves')
-      setView(parsed.view as View);
     (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
       sweep.setAxis(a, parsed.axes[a]),
     );
@@ -114,7 +107,6 @@ export function App() {
       axes: sweep.axes,
       tailMethod: scenario.tailMethod,
       withdrawalSource: scenario.withdrawalSource,
-      view,
     });
     history.replaceState(null, '', '#' + hash);
   }, [
@@ -126,7 +118,6 @@ export function App() {
     scenario.tailMethod,
     scenario.withdrawalSource,
     sweep.axes,
-    view,
   ]);
 
   useEffect(() => {
@@ -175,31 +166,42 @@ export function App() {
       <div className="flex flex-wrap items-center gap-3 sm:gap-5 bg-surface border border-border rounded-lg px-3 sm:px-4 py-3 mb-4">
         <span className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint">Context</span>
         <PortfolioInput />
-        <span className="hidden sm:inline text-xs text-text-placeholder ml-auto">applies to every tab</span>
       </div>
       <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto scrollbar-none">
         <button
-          className={`bg-transparent border-0 border-b-2 border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0${topMode === 'single' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'single' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('single')}
         >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5l5-5 4 4 5-7 4 4" />
+          </svg>
           Single scenario
         </button>
         <button
-          className={`bg-transparent border-0 border-b-2 border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0${topMode === 'optimize' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'optimize' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('optimize')}
         >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+          </svg>
           Study / optimize
         </button>
         <button
-          className={`bg-transparent border-0 border-b-2 border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0${topMode === 'evolve' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'evolve' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('evolve')}
         >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
           Evolve
         </button>
         <button
-          className={`bg-transparent border-0 border-b-2 border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0${topMode === 'compare' ? ' text-text font-medium border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent'}`}
+          className={`bg-transparent border-0 border-b-[3px] border-solid px-3.5 py-2 text-base cursor-pointer -mb-px whitespace-nowrap flex-shrink-0 flex items-center gap-1.5${topMode === 'compare' ? ' text-[var(--color-chart-blue)] font-semibold border-b-[var(--color-chart-blue)]' : ' text-text-muted border-b-transparent hover:text-text'}`}
           onClick={() => setTopMode('compare')}
         >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+          </svg>
           Compare scenarios
         </button>
       </div>
@@ -269,99 +271,48 @@ export function App() {
           {topMode === 'compare' && <CompareScenariosView />}
           {topMode === 'single' && <>
           {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
-          {data && (
-            <div className="text-xs text-text-placeholder mb-2">
-              Compute: {computeMs.toFixed(0)} ms{computing ? ' …' : ''}
-              {pool && <span className="text-text-placeholder"> ({pool.size} workers)</span>}
-            </div>
-          )}
-          {data && result && (() => {
-            const recentCohorts =
-              result.inProgressCount + (result.projectedCohortCount ?? 0);
-            return (
+          {data && result && (
             <>
-              {view !== 'whereami' && (
-                <StatPanel
-                  result={result}
-                />
-              )}
-              {view === 'spaghetti' && (
-                <>
-                  {recentCohorts > 0 && (
-                    <div className="flex items-center justify-between gap-3 flex-wrap bg-surface-panel border border-border rounded-md px-3 py-2 text-sm text-text-body mb-3">
-                      <span>
-                        {recentCohorts} in-progress cohort
-                        {recentCohorts === 1 ? '' : 's'}{' '}
-                        {recentCohorts === 1 ? "isn't" : "aren't"} counted in
-                        the success rate — their horizon hasn't fully played
-                        out yet.
-                      </span>
-                      <button
-                        className="flex-shrink-0 text-sm py-[5px] px-2.5 border border-border-hover bg-surface text-primary rounded cursor-pointer hover:bg-surface-panel"
-                        onClick={() => setView('whereami')}
-                      >
-                        View as "Where Am I" →
-                      </button>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                    <div className="min-w-0">
-                      <SpaghettiChart
-                        result={result}
-                        overlay={null}
-                        selectedYears={selectedYears}
-                        onToggle={toggleYear}
-                        onMarquee={marqueeYears}
-                        onClear={clearSelection}
-                        height={400}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <StartYearChart
-                        result={result}
-                        initialBalance={scenario.initialBalance}
-                        height={400}
-                        selectedYears={selectedYears}
-                        onToggle={toggleYear}
-                        onMarquee={marqueeYears}
-                      />
-                    </div>
-                  </div>
-                  {selectedYears.size > 0 && (
-                    [...selectedYears].sort((a, b) => a - b).map((year) => {
-                      const sim = result.sims.find(s => s.startYear === year);
-                      return sim ? (
-                        <SimDetailPanel
-                          key={year}
-                          sim={sim}
-                          initialBalance={scenario.initialBalance}
-                          onClose={() => toggleYear(year)}
-                        />
-                      ) : null;
-                    })
-                  )}
-                </>
-              )}
-              {view === 'whereami' && (
-                <>
-                  <button
-                    className="border-none bg-transparent text-primary text-sm cursor-pointer pb-2 hover:underline"
-                    onClick={() => setView('spaghetti')}
-                  >
-                    ← Back to spaghetti
-                  </button>
-                  <WhereAmI
+              <StatPanel result={result} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                <div className="min-w-0">
+                  <SpaghettiChart
                     result={result}
-                    horizonYears={scenario.horizonYears}
-                    initialBalance={scenario.initialBalance}
-                    dataEnd={data.end}
+                    overlay={null}
+                    selectedYears={selectedYears}
+                    onToggle={toggleYear}
+                    onMarquee={marqueeYears}
+                    onClear={clearSelection}
+                    height={400}
                   />
-                </>
+                </div>
+                <div className="min-w-0">
+                  <StartYearChart
+                    result={result}
+                    initialBalance={scenario.initialBalance}
+                    height={400}
+                    selectedYears={selectedYears}
+                    onToggle={toggleYear}
+                    onMarquee={marqueeYears}
+                  />
+                </div>
+              </div>
+              {selectedYears.size > 0 && (
+                [...selectedYears].sort((a, b) => a - b).map((year) => {
+                  const sim = result.sims.find(s => s.startYear === year);
+                  return sim ? (
+                    <SimDetailPanel
+                      key={year}
+                      sim={sim}
+                      initialBalance={scenario.initialBalance}
+                      onClose={() => toggleYear(year)}
+                    />
+                  ) : null;
+                })
               )}
-              {view === 'spaghetti' && <Legend />}
+              <Legend />
             </>
-            );
-          })()}
+          )}
           </>}
         </main>
       </div>
