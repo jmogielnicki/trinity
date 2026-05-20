@@ -7,12 +7,12 @@
   --color-primary-hover: #2a4562;
   --color-primary-ring:  rgba(51, 85, 119, 0.12);
 
-  /* Asset class colors (mirrors colors.ts — keep in sync) */
+  /* Asset class colors — consumed by components/colors.ts via getComputedStyle */
   --color-stock: #059669;
   --color-bond:  #b08e3a;
   --color-cash:  #7c3aed;
 
-  /* Simulation outcome colors (mirrors colors.ts — keep in sync) */
+  /* Simulation outcome colors — consumed by components/colors.ts via getComputedStyle */
   --color-survived:    #2c5282;
   --color-depleted:    #dd3333;
   --color-in-progress: #888888;
