@@ -17,9 +17,6 @@ type Props = {
 // visually distinguishable.
 const CASH_DATA_START_YEAR = 1934;
 
-// A pale wash of ASSET.cash (#7c3aed) for the pre-1934 "assumed" range.
-const ASSUMED_CASH_FILL = 'rgba(124, 58, 237, 0.28)';
-
 function fmt$(n: number): string {
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}k`;
@@ -262,7 +259,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
             ? {
                 zoneAxis: 'x',
                 zones: [
-                  { value: lastAssumedCashT + 0.5, fillColor: ASSUMED_CASH_FILL },
+                  { value: lastAssumedCashT + 0.5, fillColor: ASSET.cash },
                   {},
                 ],
               }
@@ -350,7 +347,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       {showsAssumedCash && (
         <p className="mt-1.5 mb-0 text-2xs leading-[1.4] text-text-placeholder">
           Cash return data begins in {CASH_DATA_START_YEAR}. Earlier years
-          (faded violet) hold the cash sleeve flat at 0% real — a conservative
+          hold the cash sleeve flat at 0% real — a conservative
           assumption, not measured data.
         </p>
 

@@ -127,7 +127,7 @@ export function StudyConfigPanel() {
         const role =
           swept && sweptCount === 2 ? (sweepIdx === 0 ? 'rows' : 'columns') : null;
         return (
-          <div key={key} className={`border rounded-[5px] bg-surface px-2.5 py-2${swept ? ' border-chart-blue shadow-[0_0_0_1px_var(--color-chart-blue)_inset]' : ' border-border'}`}>
+          <div key={key} className={`border rounded-[5px] bg-surface px-2.5 py-2${swept ? ' border-primary shadow-[0_0_0_1px_var(--color-primary)_inset]' : ' border-border'}`}>
             <div className="flex justify-between items-center gap-3">
               <span className="text-base font-semibold text-text-body">
                 {label}

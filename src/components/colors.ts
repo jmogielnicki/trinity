@@ -14,6 +14,7 @@ export const ASSET = {
   get stock() { return token('--color-stock'); },
   get bond()  { return token('--color-bond'); },
   get cash()  { return token('--color-cash'); },
+  get cashWash()  { return token('--color-cash-wash'); },
 };
 
 export const OUTCOME = {
