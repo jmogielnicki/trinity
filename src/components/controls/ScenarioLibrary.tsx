@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useLibraryStore, type SavedScenario } from '../../store/libraryStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useSweepStore } from '../../store/sweepStore';
+import { Btn } from '../ui/Btn';
+import { GhostDeleteBtn } from '../ui/GhostDeleteBtn';
 
 export function ScenarioLibrary() {
   const scenario = useScenarioStore();
@@ -46,9 +48,7 @@ export function ScenarioLibrary() {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <button className="text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start" onClick={onSave}>
-          save current
-        </button>
+        <Btn onClick={onSave}>save current</Btn>
       </div>
       {saved.length === 0 ? (
         <div className="text-xs text-text-faint">no saved scenarios yet</div>
@@ -59,9 +59,7 @@ export function ScenarioLibrary() {
               <button className="flex-1 text-left bg-surface-hover border border-border-light rounded-[3px] px-2 py-1 cursor-pointer text-sm hover:bg-surface-code" onClick={() => onLoad(s)}>
                 {s.name}
               </button>
-              <button className="ml-auto border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-error" onClick={() => remove(s.id)}>
-                ×
-              </button>
+              <GhostDeleteBtn onClick={() => remove(s.id)} />
             </li>
           ))}
         </ul>

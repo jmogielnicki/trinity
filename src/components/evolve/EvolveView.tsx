@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { Btn } from '../ui/Btn';
 import { useEvolveStore, latestChampions } from '../../store/evolveStore';
 import { useResultsStore } from '../../store/resultsStore';
 import { useScenarioStore } from '../../store/scenarioStore';
@@ -103,20 +104,11 @@ export function EvolveView() {
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
           {running ? (
-            <button
-              className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover"
-              onClick={cancel}
-            >
-              Stop
-            </button>
+            <Btn size="md" onClick={cancel}>Stop</Btn>
           ) : (
-            <button
-              className="px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={startRun}
-              disabled={!pool || !data}
-            >
+            <Btn size="md" onClick={startRun} disabled={!pool || !data}>
               {history.length ? 'Re-run evolution' : 'Run evolution'}
-            </button>
+            </Btn>
           )}
         </div>
       </div>

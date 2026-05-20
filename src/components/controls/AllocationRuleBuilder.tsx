@@ -1,6 +1,8 @@
 import type { Action, Condition, Rule } from '../../engine/rules';
 import type { Weights } from '../../engine/types';
 import { NumericInput } from './NumericInput';
+import { Btn } from '../ui/Btn';
+import { GhostDeleteBtn } from '../ui/GhostDeleteBtn';
 import { FIELD_SM } from '../ui/fieldCls';
 
 type Props = {
@@ -89,12 +91,7 @@ export function AllocationRuleBuilder({ base, rules, onChange }: Props) {
           }
         />
       ))}
-      <button
-        className="text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start"
-        onClick={() => update(base, [...rules, defaultRule()])}
-      >
-        + add rule
-      </button>
+      <Btn onClick={() => update(base, [...rules, defaultRule()])}>+ add rule</Btn>
     </div>
   );
 }
@@ -169,7 +166,7 @@ function RuleRow({
           parse={parseFloat2}
           onChange={(v) => updateDelta('cash', v)}
         />
-        <button className="ml-auto border-none bg-transparent text-text-placeholder text-base leading-none cursor-pointer px-1 hover:text-error" onClick={onDelete}>×</button>
+        <GhostDeleteBtn onClick={onDelete} />
       </div>
     </div>
   );
