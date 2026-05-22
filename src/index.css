@@ -131,26 +131,26 @@
     overflow: hidden;
   }
 
-  /* Context inputs collapse second (60–120px) */
+  /* Context inputs collapse (0–80px) */
   .ctx-context-full {
     display: grid;
     grid-template-rows: 1fr;
     animation: ctx-grid-collapse linear both;
     animation-timeline: scroll(block root);
-    animation-range: 60px 120px;
+    animation-range: 0px 80px;
   }
   .ctx-context-full > * {
     min-height: 0;
     overflow: hidden;
   }
 
-  /* Context pills expand as inputs collapse (60–120px) */
+  /* Context pills expand as inputs collapse (0–80px) */
   .ctx-context-pills {
     display: grid;
     grid-template-rows: 0fr;
     animation: ctx-grid-expand linear both;
     animation-timeline: scroll(block root);
-    animation-range: 60px 120px;
+    animation-range: 0px 80px;
   }
   .ctx-context-pills > * {
     min-height: 0;

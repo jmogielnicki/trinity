@@ -145,35 +145,36 @@ export function App() {
   return (
     <div className="max-w-[1280px] mx-auto p-3 sm:p-6">
       <div className="sticky top-0 z-30 bg-surface-page mb-4">
-        {/* Title box */}
-        <div className="bg-surface border border-border rounded-lg px-3 sm:px-4 pt-3 mb-2 shadow-card">
-          <div className="flex justify-between items-start pb-1 gap-4">
-            <h1 className="text-xl sm:text-[1.75rem] font-bold text-primary m-0">Retirement calculator</h1>
-            <button
-              className={`mt-1 w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
-              onClick={() => setAboutOpen((v) => !v)}
-              title="About / methodology"
-            >
-              ?
-            </button>
+        <div className="bg-surface border border-border rounded-lg overflow-hidden">
+          {/* Title section */}
+          <div className="px-3 sm:px-4 pt-3">
+            <div className="flex justify-between items-start pb-1 gap-4">
+              <h1 className="text-xl sm:text-[1.75rem] font-bold text-primary m-0">Retirement calculator</h1>
+              <button
+                className={`mt-1 w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
+                onClick={() => setAboutOpen((v) => !v)}
+                title="About / methodology"
+              >
+                ?
+              </button>
+            </div>
+            <div className="ctx-subtitle-row">
+              <p className="m-0 pb-2 text-text-muted text-base">
+                Stress-test against every retirement start year from{' '}
+                {data?.start ?? '…'} to {data?.end ?? '…'}.
+              </p>
+            </div>
           </div>
-          {/* Subtitle — collapses as user scrolls (CSS scroll-driven) */}
-          <div className="ctx-subtitle-row">
-            <p className="m-0 pb-2 text-text-muted text-base">
-              Stress-test against every retirement start year from{' '}
-              {data?.start ?? '…'} to {data?.end ?? '…'}.
-            </p>
-          </div>
-        </div>
-        {/* Context box — inputs collapse then pills appear (CSS scroll-driven) */}
-        <div className="bg-surface border border-border rounded-lg overflow-hidden shadow-card">
+          {/* Divider between title and context sections */}
+          <div className="border-b border-border" />
+          {/* Context section — inputs collapse, pills expand */}
           <div className="ctx-context-full">
             <div className="flex flex-wrap items-center gap-3 sm:gap-5 px-3 sm:px-4 py-3">
               <PortfolioInput />
             </div>
           </div>
           <div className="ctx-context-pills">
-            <div className="flex items-center gap-3 px-3 sm:px-4 py-2">
+            <div className="flex items-center gap-3 px-3 sm:px-4 py-3">
               <button
                 className="flex items-center gap-1.5 bg-surface-hover border border-border rounded-full px-2.5 py-1 text-xs cursor-pointer hover:border-border-hover transition-colors"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
