@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
+import { useEffect, useRef, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
@@ -38,7 +38,8 @@ export function App() {
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [contextExpanded, setContextExpanded] = useState(true);
+  const [contextVisible, setContextVisible] = useState(true);
+  const contextRef = useRef<HTMLDivElement>(null);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -60,7 +61,16 @@ export function App() {
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen, aboutOpen]);
 
-  const handleChevronClick = () => setContextExpanded((v) => !v);
+  useEffect(() => {
+    const el = contextRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setContextVisible(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,15 +157,15 @@ export function App() {
 
   return (
     <div className="max-w-[1280px] mx-auto p-3 sm:p-6">
-      <header className="sticky top-0 z-30 bg-surface -mx-3 sm:-mx-6 px-3 sm:px-6 shadow-sticky mb-4">
+      <header className="sticky top-0 z-30 bg-surface -mx-3 sm:-mx-6 px-3 sm:px-6 shadow-sticky">
         <div className="flex items-center gap-3 py-2">
           <h1 className="text-xl sm:text-[1.75rem] font-bold text-primary m-0 flex-shrink-0">Retirement calculator</h1>
-          {!contextExpanded && (
+          {!contextVisible && (
             <>
               <div className="w-px h-4 bg-border-hover flex-shrink-0 hidden sm:block" />
               <button
                 className="hidden sm:flex items-center gap-1.5 bg-surface-hover border border-border-hover rounded-full px-2.5 py-1 text-xs cursor-pointer hover:border-border transition-colors"
-                onClick={handleChevronClick}
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 title="Click to edit"
               >
                 <span className="text-text-muted">Balance</span>
@@ -163,7 +173,7 @@ export function App() {
               </button>
               <button
                 className="hidden sm:flex items-center gap-1.5 bg-surface-hover border border-border-hover rounded-full px-2.5 py-1 text-xs cursor-pointer hover:border-border transition-colors"
-                onClick={handleChevronClick}
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 title="Click to edit"
               >
                 <span className="text-text-muted">Horizon</span>
@@ -173,14 +183,6 @@ export function App() {
           )}
           <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
             <button
-              onClick={handleChevronClick}
-              title={contextExpanded ? 'Collapse context' : 'Expand context'}
-              className="w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-xs text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover"
-              style={{ transform: contextExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
-            >
-              ▼
-            </button>
-            <button
               className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
               onClick={() => setAboutOpen((v) => !v)}
               title="About / methodology"
@@ -189,19 +191,15 @@ export function App() {
             </button>
           </div>
         </div>
-        {contextExpanded && (
-          <>
-            <p className="m-0 mb-3 text-text-muted text-base">
-              Stress-test against every retirement start year from{' '}
-              {data?.start ?? '…'} to {data?.end ?? '…'}.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 sm:gap-5 bg-surface border border-border rounded-lg px-3 sm:px-4 py-3 mb-3">
-              <span className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint">Context</span>
-              <PortfolioInput />
-            </div>
-          </>
-        )}
       </header>
+      <p className="m-0 mt-3 mb-3 text-text-muted text-base">
+        Stress-test against every retirement start year from{' '}
+        {data?.start ?? '…'} to {data?.end ?? '…'}.
+      </p>
+      <div ref={contextRef} className="flex flex-wrap items-center gap-3 sm:gap-5 bg-surface border border-border rounded-lg px-3 sm:px-4 py-3 mb-4">
+        <span className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint">Context</span>
+        <PortfolioInput />
+      </div>
       <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto scrollbar-none">
         <NavTab active={topMode === 'single'} onClick={() => setTopMode('single')}>
           <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
