@@ -60,22 +60,7 @@ export function App() {
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen, aboutOpen]);
 
-  useEffect(() => {
-    const onScroll = () => {
-      if (window.scrollY > 80) setContextExpanded(false);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const handleChevronClick = () => {
-    if (!contextExpanded) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setContextExpanded(true);
-    } else {
-      setContextExpanded(false);
-    }
-  };
+  const handleChevronClick = () => setContextExpanded((v) => !v);
 
   useEffect(() => {
     let cancelled = false;
