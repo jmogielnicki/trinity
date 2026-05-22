@@ -109,3 +109,55 @@
     border-left: 1px solid #f0f0f0;
   }
 }
+
+/* ── Context header scroll-driven collapse ─────────────────────────────────── */
+
+/* Fallback: pills always hidden, subtitle always shown */
+.ctx-pills-row {
+  display: none;
+}
+
+@supports (animation-timeline: scroll()) and (animation-range: 0% 100%) {
+  /* Subtitle collapses to zero height as user scrolls */
+  .ctx-subtitle-row {
+    display: grid;
+    grid-template-rows: 1fr;
+    animation: ctx-subtitle-collapse linear both;
+    animation-timeline: scroll(block root);
+    animation-range: 0px 60px;
+  }
+  .ctx-subtitle-row > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Pills expand from zero height as subtitle collapses */
+  .ctx-pills-row {
+    display: grid;
+    grid-template-rows: 0fr;
+    animation: ctx-pills-expand linear both;
+    animation-timeline: scroll(block root);
+    animation-range: 0px 60px;
+  }
+  .ctx-pills-row > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  @keyframes ctx-subtitle-collapse {
+    from { grid-template-rows: 1fr; opacity: 1; }
+    to   { grid-template-rows: 0fr; opacity: 0; }
+  }
+
+  @keyframes ctx-pills-expand {
+    from { grid-template-rows: 0fr; opacity: 0; }
+    to   { grid-template-rows: 1fr; opacity: 1; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ctx-subtitle-row,
+  .ctx-pills-row {
+    animation: none !important;
+  }
+}

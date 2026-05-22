@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
+import { useEffect, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
@@ -38,8 +38,6 @@ export function App() {
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [contextVisible, setContextVisible] = useState(true);
-  const contextRef = useRef<HTMLDivElement>(null);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -60,17 +58,6 @@ export function App() {
     document.body.style.overflow = (sidebarOpen || aboutOpen) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen, aboutOpen]);
-
-  useEffect(() => {
-    const el = contextRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setContextVisible(entry.isIntersecting),
-      { threshold: 0 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,45 +145,45 @@ export function App() {
   return (
     <div className="max-w-[1280px] mx-auto p-3 sm:p-6">
       <header className="sticky top-0 z-30 bg-surface -mx-3 sm:-mx-6 px-3 sm:px-6 shadow-sticky">
-        <div className="flex items-center gap-3 py-2">
-          <h1 className="text-xl sm:text-[1.75rem] font-bold text-primary m-0 flex-shrink-0">Retirement calculator</h1>
-          {!contextVisible && (
-            <>
-              <div className="w-px h-4 bg-border-hover flex-shrink-0 hidden sm:block" />
-              <button
-                className="hidden sm:flex items-center gap-1.5 bg-surface-hover border border-border-hover rounded-full px-2.5 py-1 text-xs cursor-pointer hover:border-border transition-colors"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                title="Click to edit"
-              >
-                <span className="text-text-muted">Balance</span>
-                <span className="text-text font-semibold">${Math.round(scenario.initialBalance).toLocaleString('en-US')}</span>
-              </button>
-              <button
-                className="hidden sm:flex items-center gap-1.5 bg-surface-hover border border-border-hover rounded-full px-2.5 py-1 text-xs cursor-pointer hover:border-border transition-colors"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                title="Click to edit"
-              >
-                <span className="text-text-muted">Horizon</span>
-                <span className="text-text font-semibold">{scenario.horizonYears} yr</span>
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+        {/* Title row — always visible */}
+        <div className="flex justify-between items-start pt-2 pb-1 gap-4">
+          <h1 className="text-xl sm:text-[1.75rem] font-bold text-primary m-0">Retirement calculator</h1>
+          <button
+            className={`mt-1 w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
+            onClick={() => setAboutOpen((v) => !v)}
+            title="About / methodology"
+          >
+            ?
+          </button>
+        </div>
+        {/* Subtitle — collapses as user scrolls (CSS scroll-driven) */}
+        <div className="ctx-subtitle-row">
+          <p className="m-0 pb-2 text-text-muted text-base">
+            Stress-test against every retirement start year from{' '}
+            {data?.start ?? '…'} to {data?.end ?? '…'}.
+          </p>
+        </div>
+        {/* Pills — expand below title as subtitle collapses (CSS scroll-driven) */}
+        <div className="ctx-pills-row">
+          <div className="flex items-center gap-3 pb-2">
             <button
-              className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
-              onClick={() => setAboutOpen((v) => !v)}
-              title="About / methodology"
+              className="flex items-center gap-1.5 bg-surface-hover border border-border rounded-full px-2.5 py-1 text-xs cursor-pointer hover:border-border-hover transition-colors"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
-              ?
+              <span className="text-text-muted">Balance</span>
+              <span className="text-text font-semibold">${Math.round(scenario.initialBalance).toLocaleString('en-US')}</span>
+            </button>
+            <button
+              className="flex items-center gap-1.5 bg-surface-hover border border-border rounded-full px-2.5 py-1 text-xs cursor-pointer hover:border-border-hover transition-colors"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
+              <span className="text-text-muted">Horizon</span>
+              <span className="text-text font-semibold">{scenario.horizonYears} yr</span>
             </button>
           </div>
         </div>
       </header>
-      <p className="m-0 mt-3 mb-3 text-text-muted text-base">
-        Stress-test against every retirement start year from{' '}
-        {data?.start ?? '…'} to {data?.end ?? '…'}.
-      </p>
-      <div ref={contextRef} className="flex flex-wrap items-center gap-3 sm:gap-5 bg-surface border border-border rounded-lg px-3 sm:px-4 py-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-5 bg-surface border border-border rounded-lg px-3 sm:px-4 py-3 mb-4">
         <span className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint">Context</span>
         <PortfolioInput />
       </div>
