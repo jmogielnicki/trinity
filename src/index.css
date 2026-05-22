@@ -112,17 +112,17 @@
 
 /* ── Context header scroll-driven collapse ─────────────────────────────────── */
 
-/* Fallback: pills always hidden, subtitle always shown */
-.ctx-pills-row {
+/* Fallback: context pills hidden, inputs always shown */
+.ctx-context-pills {
   display: none;
 }
 
 @supports (animation-timeline: scroll()) and (animation-range: 0% 100%) {
-  /* Subtitle collapses to zero height as user scrolls */
+  /* Title subtitle collapses first (0–60px) */
   .ctx-subtitle-row {
     display: grid;
     grid-template-rows: 1fr;
-    animation: ctx-subtitle-collapse linear both;
+    animation: ctx-grid-collapse linear both;
     animation-timeline: scroll(block root);
     animation-range: 0px 60px;
   }
@@ -131,25 +131,38 @@
     overflow: hidden;
   }
 
-  /* Pills expand from zero height as subtitle collapses */
-  .ctx-pills-row {
+  /* Context inputs collapse second (60–120px) */
+  .ctx-context-full {
     display: grid;
-    grid-template-rows: 0fr;
-    animation: ctx-pills-expand linear both;
+    grid-template-rows: 1fr;
+    animation: ctx-grid-collapse linear both;
     animation-timeline: scroll(block root);
-    animation-range: 0px 60px;
+    animation-range: 60px 120px;
   }
-  .ctx-pills-row > * {
+  .ctx-context-full > * {
     min-height: 0;
     overflow: hidden;
   }
 
-  @keyframes ctx-subtitle-collapse {
+  /* Context pills expand as inputs collapse (60–120px) */
+  .ctx-context-pills {
+    display: grid;
+    grid-template-rows: 0fr;
+    animation: ctx-grid-expand linear both;
+    animation-timeline: scroll(block root);
+    animation-range: 60px 120px;
+  }
+  .ctx-context-pills > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  @keyframes ctx-grid-collapse {
     from { grid-template-rows: 1fr; opacity: 1; }
     to   { grid-template-rows: 0fr; opacity: 0; }
   }
 
-  @keyframes ctx-pills-expand {
+  @keyframes ctx-grid-expand {
     from { grid-template-rows: 0fr; opacity: 0; }
     to   { grid-template-rows: 1fr; opacity: 1; }
   }
@@ -157,7 +170,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ctx-subtitle-row,
-  .ctx-pills-row {
+  .ctx-context-full,
+  .ctx-context-pills {
     animation: none !important;
   }
 }
