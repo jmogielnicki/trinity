@@ -1,9 +1,9 @@
-import React, { useRef } from 'react';
 import type { WithdrawalStrategy } from '../../engine/strategies';
 import { CustomScriptEditor } from './CustomScriptEditor';
 import { NumericInput } from './NumericInput';
 import { RuleBuilder } from './RuleBuilder';
 import { WithdrawalCurve } from './WithdrawalCurve';
+import { StepSlider } from '../ui/StepSlider';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
 
@@ -197,80 +197,18 @@ function FixedWithdrawalSlider({
   rate: number;
   onChange: (rate: number) => void;
 }) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const dragging = useRef(false);
-
-  const W = 232;
-  const H = 56;
-  const PAD = 20;
-  const trackY = 32;
-  const trackLeft = PAD;
-  const trackRight = W - PAD;
-
-  const rateToX = (r: number) =>
-    trackLeft + ((r - FIXED_MIN) / (FIXED_MAX - FIXED_MIN)) * (trackRight - trackLeft);
-
-  const xToRate = (clientX: number) => {
-    if (!svgRef.current) return rate;
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = (clientX - rect.left) * (W / rect.width);
-    const raw =
-      FIXED_MIN + ((x - trackLeft) / (trackRight - trackLeft)) * (FIXED_MAX - FIXED_MIN);
-    const clamped = Math.max(FIXED_MIN, Math.min(FIXED_MAX, raw));
-    return Math.round(clamped / FIXED_STEP) * FIXED_STEP;
-  };
-
-  const cx = rateToX(rate);
-
   return (
     <div className="control-group">
-      <svg
-        ref={svgRef}
-        width={W}
-        height={H}
-        style={{ display: 'block', overflow: 'visible', touchAction: 'none' }}
-      >
-        {/* Track background */}
-        <line
-          x1={trackLeft} y1={trackY}
-          x2={trackRight} y2={trackY}
-          stroke="#e0e0e0" strokeWidth={5} strokeLinecap="round"
-        />
-        {/* Filled portion */}
-        <line
-          x1={trackLeft} y1={trackY}
-          x2={cx} y2={trackY}
-          stroke="#357" strokeWidth={5} strokeLinecap="round"
-        />
-        {/* End labels */}
-        <text x={trackLeft} y={trackY + 14} textAnchor="middle" fontSize={9} fill="#aaa">2%</text>
-        <text x={trackRight} y={trackY + 14} textAnchor="middle" fontSize={9} fill="#aaa">10%</text>
-        {/* Handle */}
-        <circle
-          cx={cx} cy={trackY} r={11}
-          fill="#fff" stroke="#357" strokeWidth={2}
-          style={{ cursor: 'ew-resize' }}
-          onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture(e.pointerId);
-            dragging.current = true;
-          }}
-          onPointerMove={(e) => {
-            if (!dragging.current) return;
-            onChange(xToRate(e.clientX));
-          }}
-          onPointerUp={() => { dragging.current = false; }}
-        />
-        {/* Rate label above handle */}
-        <text
-          x={cx} y={trackY - 14}
-          textAnchor="middle"
-          fontSize={13} fontWeight={600} fill="#1a1a1a"
-          style={{ paintOrder: 'stroke', stroke: '#fff', strokeWidth: 3 } as React.CSSProperties}
-          pointerEvents="none"
-        >
-          {(rate * 100).toFixed(2)}%
-        </text>
-      </svg>
+      <StepSlider
+        value={rate}
+        onChange={onChange}
+        min={FIXED_MIN}
+        max={FIXED_MAX}
+        step={FIXED_STEP}
+        format={(v) => `${(v * 100).toFixed(2)}%`}
+        minLabel="2%"
+        maxLabel="10%"
+      />
     </div>
   );
 }
