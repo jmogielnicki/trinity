@@ -143,7 +143,7 @@ export function App() {
   ]);
 
   useEffect(() => {
-    const SCROLL_RANGE = 180;
+    const SCROLL_RANGE = 90;
     const onScroll = () => {
       const p = Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
       document.documentElement.style.setProperty('--scroll-p', String(p));
