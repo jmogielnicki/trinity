@@ -53,6 +53,7 @@ export function PortfolioInput() {
             max={60}
             step={5}
             format={(v) => `${v} yrs`}
+            labelPosition="above-thumb"
           />
         </div>
         <div className="portfolio-pill">

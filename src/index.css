@@ -135,8 +135,8 @@
 .portfolio-field-wrap {
   position: relative;
   overflow: hidden;
-  /* 60px fits label (~18px) + gap (4px) + input (~35px); collapses to 28px for pill */
-  height: calc(60px - 32px * var(--scroll-p));
+  /* 76px fits label (~18px) + gap (4px) + above-thumb slider (~54px); collapses to 28px for pill */
+  height: calc(76px - 48px * var(--scroll-p));
   transition: height 0.05s linear;
 }
 
@@ -221,7 +221,7 @@
   background: linear-gradient(
     to right,
     var(--color-primary) var(--sp, 0%),
-    var(--color-border-hover) var(--sp, 0%)
+    var(--color-border) var(--sp, 0%)
   );
   cursor: pointer;
   outline: none;

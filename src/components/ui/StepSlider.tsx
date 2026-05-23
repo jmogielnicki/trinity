@@ -44,13 +44,12 @@ export function StepSlider({
     return (
       <div className="flex flex-col gap-0.5">
         {/* thumb-width = 16px; formula keeps label centered over thumb at both extremes */}
-        <div className="relative pt-5">
+        <div className="relative pt-6">
           <span
-            className="absolute bottom-full mb-1 text-sm font-bold text-text tabular-nums pointer-events-none"
+            className="absolute top-0 text-sm font-bold text-text tabular-nums pointer-events-none"
             style={{
               left: `calc(${pct / 100} * (100% - 16px) + 8px)`,
               transform: 'translateX(-50%)',
-              bottom: '2px',
             }}
           >
             {display}
