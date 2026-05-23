@@ -89,6 +89,54 @@
   input[type="number"] { -moz-appearance: textfield; }
 }
 
+/* ─── Portfolio field collapse pills ────────────────────────────────────────── */
+/* Pointer-events switch at the 45% scroll threshold (set by JS via .header-collapsed) */
+.portfolio-field-expanded { pointer-events: auto; }
+.header-collapsed .portfolio-field-expanded { pointer-events: none; }
+.portfolio-pill { pointer-events: none; }
+.header-collapsed .portfolio-pill { pointer-events: auto; }
+
+.portfolio-pill-inner {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-primary);
+  border-radius: 100px;
+  height: 28px;
+  overflow: hidden;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.portfolio-pill-inner:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(16, 19, 50, 0.28);
+}
+
+.portfolio-pill-label {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0 8px 0 12px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.portfolio-pill-value {
+  font-size: 11px;
+  color: #ffffff;
+  padding: 0 12px 0 8px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.02em;
+}
+
 /* ─── Utilities ──────────────────────────────────────────────────────────────── */
 @layer utilities {
   /* Hide scrollbar — referenced as className="scrollbar-none" */

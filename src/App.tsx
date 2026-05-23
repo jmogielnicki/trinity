@@ -147,6 +147,7 @@ export function App() {
     const onScroll = () => {
       const p = Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
       document.documentElement.style.setProperty('--scroll-p', String(p));
+      document.documentElement.classList.toggle('header-collapsed', p > 0.45);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
