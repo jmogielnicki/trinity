@@ -100,12 +100,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  height: calc(76px - 32px * var(--scroll-p));
+  height: calc(86px - 32px * var(--scroll-p));
   transition: height 0.05s linear;
 }
 
 .shrinking-title-box h1 {
-  font-size: calc(1.75rem - 0.625rem * var(--scroll-p));
+  font-size: calc(1.75rem - 0.25rem * var(--scroll-p));
   line-height: 1;
   transition: font-size 0.05s linear;
 }
@@ -125,25 +125,9 @@
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 12px;
   border-bottom: 1px solid var(--color-border);
-  padding-block: calc(12px - 9px * var(--scroll-p));
+  padding-block: calc(12px - 2px * var(--scroll-p));
   transition: padding-block 0.05s linear;
-}
-
-.shrinking-context-label {
-  font-size: 0.625rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  flex-shrink: 0;
-  /* collapses width to 0 by p=0.5 so it never causes a line wrap */
-  max-width: calc(200px - var(--scroll-p) * 400px);
-  opacity: calc(1 - var(--scroll-p) * 2);
-  transition: opacity 0.05s linear, max-width 0.05s linear;
 }
 
 /* ─── Portfolio field collapse pills ────────────────────────────────────────── */

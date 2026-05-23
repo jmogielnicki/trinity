@@ -166,7 +166,7 @@ export function App() {
                 Retirement calculator
               </h1>
               <p className="shrinking-subtitle text-text-muted text-base">
-                Stress-test against every retirement start year from{' '}
+                Stress-test all retirement start years from{' '}
                 {data?.start ?? '…'} to {data?.end ?? '…'}.
               </p>
             </div>
@@ -182,7 +182,6 @@ export function App() {
           </div>
           {/* Context row — padding driven by .shrinking-context-bar CSS */}
           <div className="shrinking-context-bar">
-            <span className="shrinking-context-label">Context</span>
             <PortfolioInput />
           </div>
         </div>
