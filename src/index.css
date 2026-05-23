@@ -75,6 +75,7 @@
     font-family: system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
     color: var(--color-text);
     background: var(--color-surface-page);
+    --scroll-p: 0;
   }
 
   body { margin: 0; }

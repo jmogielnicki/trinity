@@ -142,161 +142,207 @@ export function App() {
     sweep,
   ]);
 
+  useEffect(() => {
+    const SCROLL_RANGE = 180;
+    const onScroll = () => {
+      const p = Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
+      document.documentElement.style.setProperty('--scroll-p', String(p));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <div className="max-w-[1280px] mx-auto p-3 sm:p-6">
-      <header className="sticky sm:static top-0 z-30 sm:z-auto bg-surface sm:bg-transparent -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 shadow-sticky sm:shadow-none mb-3 sm:mb-0">
-        <div className="flex justify-between items-center sm:items-start gap-4">
-          <div>
-            <h1 className="text-xl sm:text-[1.75rem] font-bold text-primary m-0 sm:mb-1">Retirement calculator</h1>
-            <p className="hidden sm:block m-0 mb-4 text-text-muted text-base">
-              Stress-test against every retirement start year from{' '}
-              {data?.start ?? '…'} to {data?.end ?? '…'}.
-            </p>
+    <div>
+      {/* ── Shrinking sticky header shell ── */}
+      <div className="sticky top-0 z-30 bg-surface shadow-sticky">
+        <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
+          {/* Title row */}
+          <div
+            className="flex items-center justify-between gap-4 overflow-hidden border-b border-border"
+            style={{ height: 'calc(76px - 32px * var(--scroll-p))', transition: 'height 0.05s linear' }}
+          >
+            <div className="min-w-0 flex flex-col justify-center gap-1">
+              <h1
+                className="font-bold text-primary m-0 leading-none"
+                style={{ fontSize: 'calc(1.75rem - 0.625rem * var(--scroll-p))', transition: 'font-size 0.05s linear' }}
+              >
+                Retirement calculator
+              </h1>
+              <p
+                className="m-0 text-text-muted text-base pointer-events-none overflow-hidden"
+                style={{
+                  opacity: 'calc(1 - var(--scroll-p) * 2)',
+                  transform: 'translateY(calc(var(--scroll-p) * -6px))',
+                  transition: 'opacity 0.05s linear, transform 0.05s linear',
+                }}
+              >
+                Stress-test against every retirement start year from{' '}
+                {data?.start ?? '…'} to {data?.end ?? '…'}.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
+                onClick={() => setAboutOpen((v) => !v)}
+                title="About / methodology"
+              >
+                ?
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
-              onClick={() => setAboutOpen((v) => !v)}
-              title="About / methodology"
+          {/* Context row */}
+          <div
+            className="flex flex-wrap items-center gap-3 sm:gap-5 border-b border-border"
+            style={{
+              paddingBlock: 'calc(12px - 8px * var(--scroll-p))',
+              transition: 'padding-block 0.05s linear',
+            }}
+          >
+            <span
+              className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint"
+              style={{ opacity: 'calc(1 - var(--scroll-p) * 2)', transition: 'opacity 0.05s linear' }}
             >
-              ?
-            </button>
+              Context
+            </span>
+            <PortfolioInput />
           </div>
         </div>
-      </header>
-      <div className="flex flex-wrap items-center gap-3 sm:gap-5 bg-surface border border-border rounded-lg px-3 sm:px-4 py-3 mb-4">
-        <span className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint">Context</span>
-        <PortfolioInput />
-      </div>
-      <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto scrollbar-none">
-        <NavTab active={topMode === 'single'} onClick={() => setTopMode('single')}>
-          <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5l5-5 4 4 5-7 4 4" />
-          </svg>
-          Single scenario
-        </NavTab>
-        <NavTab active={topMode === 'optimize'} onClick={() => setTopMode('optimize')}>
-          <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-          </svg>
-          Study / optimize
-        </NavTab>
-        <NavTab active={topMode === 'evolve'} onClick={() => setTopMode('evolve')}>
-          <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
-          Evolve
-        </NavTab>
-        <NavTab active={topMode === 'compare'} onClick={() => setTopMode('compare')}>
-          <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-          </svg>
-          Compare scenarios
-        </NavTab>
       </div>
 
-      {/* Mobile drawer backdrop */}
-      {topMode === 'single' && (
-        <div
-          className={`fixed inset-0 z-40 bg-black/40 md:hidden transition-opacity duration-200${sidebarOpen ? ' opacity-100' : ' opacity-0 pointer-events-none'}`}
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* ── Main content ── */}
+      <div className="max-w-[1280px] mx-auto px-3 sm:px-6 pb-3 sm:pb-6">
+        <div className="flex gap-1 mt-4 mb-4 border-b border-border overflow-x-auto scrollbar-none">
+          <NavTab active={topMode === 'single'} onClick={() => setTopMode('single')}>
+            <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5l5-5 4 4 5-7 4 4" />
+            </svg>
+            Single scenario
+          </NavTab>
+          <NavTab active={topMode === 'optimize'} onClick={() => setTopMode('optimize')}>
+            <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+            </svg>
+            Study / optimize
+          </NavTab>
+          <NavTab active={topMode === 'evolve'} onClick={() => setTopMode('evolve')}>
+            <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            Evolve
+          </NavTab>
+          <NavTab active={topMode === 'compare'} onClick={() => setTopMode('compare')}>
+            <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            </svg>
+            Compare scenarios
+          </NavTab>
+        </div>
 
-      <div className={`grid gap-4 sm:gap-6${topMode === 'single' ? ' md:grid-cols-[280px_minmax(0,1fr)]' : ''}`}>
+        {/* Mobile drawer backdrop */}
         {topMode === 'single' && (
-          <aside className={`fixed top-0 left-0 h-full w-[300px] z-50 overflow-y-auto transition-transform duration-200 ease-in-out md:static md:h-fit md:w-auto md:z-auto md:overflow-visible md:translate-x-0 flex flex-col gap-5 bg-surface border-r border-border-hover md:border md:rounded-lg p-4${sidebarOpen ? ' translate-x-0 shadow-popover' : ' -translate-x-full'}`}>
-            {/* Close button — mobile only */}
-            <div className="flex items-center justify-between pb-3 border-b border-border md:hidden">
-              <span className="text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</span>
-              <IconButton onClick={() => setSidebarOpen(false)} aria-label="Close panel">✕</IconButton>
-            </div>
-            <section className="control-zone flex flex-col gap-5">
-              <div className="hidden md:flex flex-col gap-0.5">
-                <h2 className="m-0 text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</h2>
-              </div>
-              <PresetPicker />
-              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Holdings mix</h3>
-              <AllocationEditor
-                horizonYears={scenario.horizonYears}
-                allocation={scenario.allocation}
-                onChange={scenario.setAllocation}
-              />
-              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal strategy</h3>
-              <WithdrawalEditor
-                horizonYears={scenario.horizonYears}
-                withdrawal={scenario.withdrawal}
-                onChange={scenario.setWithdrawal}
-              />
-              <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
-              <WithdrawalSourceInput hideLabel/>
-            </section>
-            <ScenarioLibrary />
-          </aside>
+          <div
+            className={`fixed inset-0 z-40 bg-black/40 md:hidden transition-opacity duration-200${sidebarOpen ? ' opacity-100' : ' opacity-0 pointer-events-none'}`}
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
-        <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
+
+        <div className={`grid gap-4 sm:gap-6${topMode === 'single' ? ' md:grid-cols-[280px_minmax(0,1fr)]' : ''}`}>
           {topMode === 'single' && (
-            <button
-              className="md:hidden flex items-center gap-2 text-sm px-3 py-2 border border-border rounded-lg cursor-pointer bg-surface hover:bg-surface-hover mb-3 text-text-secondary"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              Strategy
-            </button>
-          )}
-          {topMode === 'optimize' && (
-            <FrontierView onApplied={() => setTopMode('single')} />
-          )}
-          {topMode === 'evolve' && <EvolveView />}
-          {topMode === 'compare' && <CompareScenariosView />}
-          {topMode === 'single' && <>
-          {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
-          {data && result && (
-            <>
-              <StatPanel result={result} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                <div className="min-w-0">
-                  <SpaghettiChart
-                    result={result}
-                    overlay={null}
-                    selectedYears={selectedYears}
-                    onToggle={toggleYear}
-                    onMarquee={marqueeYears}
-                    onClear={clearSelection}
-                    height={400}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <StartYearChart
-                    result={result}
-                    initialBalance={scenario.initialBalance}
-                    height={400}
-                    selectedYears={selectedYears}
-                    onToggle={toggleYear}
-                    onMarquee={marqueeYears}
-                  />
-                </div>
+            <aside className={`fixed top-0 left-0 h-full w-[300px] z-50 overflow-y-auto transition-transform duration-200 ease-in-out md:static md:h-fit md:w-auto md:z-auto md:overflow-visible md:translate-x-0 flex flex-col gap-5 bg-surface border-r border-border-hover md:border md:rounded-lg p-4${sidebarOpen ? ' translate-x-0 shadow-popover' : ' -translate-x-full'}`}>
+              {/* Close button — mobile only */}
+              <div className="flex items-center justify-between pb-3 border-b border-border md:hidden">
+                <span className="text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</span>
+                <IconButton onClick={() => setSidebarOpen(false)} aria-label="Close panel">✕</IconButton>
               </div>
-              {selectedYears.size > 0 && (
-                [...selectedYears].sort((a, b) => a - b).map((year) => {
-                  const sim = result.sims.find(s => s.startYear === year);
-                  return sim ? (
-                    <SimDetailPanel
-                      key={year}
-                      sim={sim}
-                      initialBalance={scenario.initialBalance}
-                      onClose={() => toggleYear(year)}
-                    />
-                  ) : null;
-                })
-              )}
-              <Legend />
-            </>
+              <section className="control-zone flex flex-col gap-5">
+                <div className="hidden md:flex flex-col gap-0.5">
+                  <h2 className="m-0 text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</h2>
+                </div>
+                <PresetPicker />
+                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Holdings mix</h3>
+                <AllocationEditor
+                  horizonYears={scenario.horizonYears}
+                  allocation={scenario.allocation}
+                  onChange={scenario.setAllocation}
+                />
+                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal strategy</h3>
+                <WithdrawalEditor
+                  horizonYears={scenario.horizonYears}
+                  withdrawal={scenario.withdrawal}
+                  onChange={scenario.setWithdrawal}
+                />
+                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
+                <WithdrawalSourceInput hideLabel/>
+              </section>
+              <ScenarioLibrary />
+            </aside>
           )}
-          </>}
-        </main>
+          <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
+            {topMode === 'single' && (
+              <button
+                className="md:hidden flex items-center gap-2 text-sm px-3 py-2 border border-border rounded-lg cursor-pointer bg-surface hover:bg-surface-hover mb-3 text-text-secondary"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                Strategy
+              </button>
+            )}
+            {topMode === 'optimize' && (
+              <FrontierView onApplied={() => setTopMode('single')} />
+            )}
+            {topMode === 'evolve' && <EvolveView />}
+            {topMode === 'compare' && <CompareScenariosView />}
+            {topMode === 'single' && <>
+            {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
+            {data && result && (
+              <>
+                <StatPanel result={result} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                  <div className="min-w-0">
+                    <SpaghettiChart
+                      result={result}
+                      overlay={null}
+                      selectedYears={selectedYears}
+                      onToggle={toggleYear}
+                      onMarquee={marqueeYears}
+                      onClear={clearSelection}
+                      height={400}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <StartYearChart
+                      result={result}
+                      initialBalance={scenario.initialBalance}
+                      height={400}
+                      selectedYears={selectedYears}
+                      onToggle={toggleYear}
+                      onMarquee={marqueeYears}
+                    />
+                  </div>
+                </div>
+                {selectedYears.size > 0 && (
+                  [...selectedYears].sort((a, b) => a - b).map((year) => {
+                    const sim = result.sims.find(s => s.startYear === year);
+                    return sim ? (
+                      <SimDetailPanel
+                        key={year}
+                        sim={sim}
+                        initialBalance={scenario.initialBalance}
+                        onClose={() => toggleYear(year)}
+                      />
+                    ) : null;
+                  })
+                )}
+                <Legend />
+              </>
+            )}
+            </>}
+          </main>
+        </div>
       </div>
 
       {/* About modal */}
