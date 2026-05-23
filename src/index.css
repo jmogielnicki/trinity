@@ -121,11 +121,11 @@
 
 .shrinking-context-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 12px;
   border-bottom: 1px solid var(--color-border);
-  padding-block: calc(12px - 4px * var(--scroll-p));
+  padding-block: calc(12px - 9px * var(--scroll-p));
   transition: padding-block 0.05s linear;
 }
 
@@ -135,8 +135,13 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
+  /* collapses width to 0 by p=0.5 so it never causes a line wrap */
+  max-width: calc(200px - var(--scroll-p) * 400px);
   opacity: calc(1 - var(--scroll-p) * 2);
-  transition: opacity 0.05s linear;
+  transition: opacity 0.05s linear, max-width 0.05s linear;
 }
 
 /* ─── Portfolio field collapse pills ────────────────────────────────────────── */
@@ -144,7 +149,7 @@
 .portfolio-field-wrap {
   position: relative;
   overflow: hidden;
-  height: calc(56px - 28px * var(--scroll-p));
+  height: calc(54px - 26px * var(--scroll-p));
   transition: height 0.05s linear;
 }
 
@@ -180,38 +185,38 @@
 .portfolio-pill-inner {
   display: inline-flex;
   align-items: center;
-  background: var(--color-primary);
+  background: var(--color-surface-muted);
   border-radius: 100px;
-  height: 28px;
+  height: 26px;
   overflow: hidden;
   cursor: pointer;
-  border: none;
+  border: 1px solid var(--color-border);
   padding: 0;
   font-family: inherit;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .portfolio-pill-inner:hover {
-  transform: scale(1.03);
-  box-shadow: 0 4px 12px rgba(16, 19, 50, 0.28);
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .portfolio-pill-label {
   font-size: 9px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.08);
-  padding: 0 8px 0 12px;
+  color: var(--color-text-faint);
+  background: var(--color-border-light);
+  padding: 0 8px 0 10px;
   height: 100%;
   display: flex;
   align-items: center;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 1px solid var(--color-border);
 }
 
 .portfolio-pill-value {
   font-size: 11px;
-  color: #ffffff;
-  padding: 0 12px 0 8px;
+  color: var(--color-text);
+  padding: 0 10px 0 8px;
   height: 100%;
   display: flex;
   align-items: center;
