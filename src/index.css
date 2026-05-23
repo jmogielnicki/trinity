@@ -75,6 +75,7 @@
     font-family: system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
     color: var(--color-text);
     background: var(--color-surface-page);
+    --scroll-p: 0;
   }
 
   body { margin: 0; }
@@ -86,6 +87,143 @@
     margin: 0;
   }
   input[type="number"] { -moz-appearance: textfield; }
+}
+
+/* ─── Shrinking sticky header ────────────────────────────────────────────────── */
+/* All var(--scroll-p) references live here, not in inline styles, so that
+   updating the custom property on :root triggers CSS recalculation. */
+
+.shrinking-title-box {
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: calc(76px - 32px * var(--scroll-p));
+  transition: height 0.05s linear;
+}
+
+.shrinking-title-box h1 {
+  font-size: calc(1.75rem - 0.625rem * var(--scroll-p));
+  line-height: 1;
+  transition: font-size 0.05s linear;
+}
+
+.shrinking-subtitle {
+  margin: 0;
+  pointer-events: none;
+  overflow: hidden;
+  /* collapse height in sync with opacity — both reach 0 at p=0.5 */
+  max-height: calc(40px * (1 - var(--scroll-p) * 2));
+  opacity: calc(1 - var(--scroll-p) * 2);
+  transform: translateY(calc(var(--scroll-p) * -6px));
+  transition: opacity 0.05s linear, transform 0.05s linear, max-height 0.05s linear;
+}
+
+.shrinking-context-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--color-border);
+  padding-block: calc(12px - 9px * var(--scroll-p));
+  transition: padding-block 0.05s linear;
+}
+
+.shrinking-context-label {
+  font-size: 0.625rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
+  /* collapses width to 0 by p=0.5 so it never causes a line wrap */
+  max-width: calc(200px - var(--scroll-p) * 400px);
+  opacity: calc(1 - var(--scroll-p) * 2);
+  transition: opacity 0.05s linear, max-width 0.05s linear;
+}
+
+/* ─── Portfolio field collapse pills ────────────────────────────────────────── */
+
+.portfolio-field-wrap {
+  position: relative;
+  overflow: hidden;
+  /* 60px fits label (~18px) + gap (4px) + input (~35px); collapses to 28px for pill */
+  height: calc(60px - 32px * var(--scroll-p));
+  transition: height 0.05s linear;
+}
+
+.portfolio-field-expanded {
+  pointer-events: auto;
+  opacity: calc(1 - var(--scroll-p) * 2.2);
+  transform: translateY(calc(var(--scroll-p) * -4px));
+  transition: opacity 0.05s linear, transform 0.05s linear;
+}
+.header-collapsed .portfolio-field-expanded { pointer-events: none; }
+
+.portfolio-pill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  opacity: calc((var(--scroll-p) - 0.35) * 3);
+  transform: translateY(calc((1 - var(--scroll-p)) * 6px));
+  transition: opacity 0.05s linear, transform 0.05s linear;
+}
+.header-collapsed .portfolio-pill { pointer-events: auto; }
+
+.pill-sep {
+  width: 1px;
+  height: 16px;
+  background-color: var(--color-border);
+  flex-shrink: 0;
+  opacity: calc(var(--scroll-p) * 2);
+  transition: opacity 0.05s linear;
+}
+
+.portfolio-pill-inner {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-surface-muted);
+  border-radius: 100px;
+  height: 26px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  padding: 0;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.portfolio-pill-inner:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.portfolio-pill-label {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  background: var(--color-border-light);
+  padding: 0 8px 0 10px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--color-border);
+}
+
+.portfolio-pill-value {
+  font-size: 11px;
+  color: var(--color-text);
+  padding: 0 10px 0 8px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.02em;
 }
 
 /* ─── Utilities ──────────────────────────────────────────────────────────────── */
