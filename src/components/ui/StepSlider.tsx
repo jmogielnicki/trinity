@@ -43,12 +43,16 @@ export function StepSlider({
   if (labelPosition === 'above-thumb') {
     return (
       <div className="flex flex-col gap-0.5">
-        {/* thumb-width = 16px; formula keeps label centered over thumb at both extremes */}
-        <div className="relative pt-6">
+        {/*
+          pt-[15px] puts the track center at ~39px from the top of the expanded
+          portfolio field, matching the balance NumericInput's vertical center.
+          clamp() on `left` prevents the label from overflowing at the extremes.
+        */}
+        <div className="relative pt-[15px]">
           <span
-            className="absolute top-0 text-sm font-bold text-text tabular-nums pointer-events-none"
+            className="absolute top-0 leading-none text-sm font-bold text-text tabular-nums pointer-events-none"
             style={{
-              left: `calc(${pct / 100} * (100% - 16px) + 8px)`,
+              left: `clamp(20px, calc(${pct / 100} * (100% - 16px) + 8px), calc(100% - 20px))`,
               transform: 'translateX(-50%)',
             }}
           >

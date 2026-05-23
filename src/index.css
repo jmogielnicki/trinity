@@ -135,8 +135,8 @@
 .portfolio-field-wrap {
   position: relative;
   overflow: hidden;
-  /* 76px fits label (~18px) + gap (4px) + above-thumb slider (~54px); collapses to 28px for pill */
-  height: calc(76px - 48px * var(--scroll-p));
+  /* 68px fits label (~18px) + gap (4px) + above-thumb slider (~35px) + slack; collapses to 28px */
+  height: calc(68px - 40px * var(--scroll-p));
   transition: height 0.05s linear;
 }
 

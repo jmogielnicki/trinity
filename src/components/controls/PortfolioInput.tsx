@@ -45,14 +45,14 @@ export function PortfolioInput() {
       {/* ── Horizon field ── */}
       <div className="portfolio-field-wrap" style={{ minWidth: '180px' }}>
         <div className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium">
-          Retirement length
+          Retirement length (years)
           <StepSlider
             value={horizonYears}
             onChange={(v) => setHorizon(v)}
             min={20}
             max={60}
             step={5}
-            format={(v) => `${v} yrs`}
+            format={(v) => String(v)}
             labelPosition="above-thumb"
           />
         </div>
