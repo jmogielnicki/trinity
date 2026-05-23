@@ -38,6 +38,7 @@ export function App() {
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -52,6 +53,12 @@ export function App() {
   useEffect(() => {
     setSidebarOpen(false);
   }, [topMode]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Lock body scroll when mobile sidebar tray or about modal is open.
   useEffect(() => {
@@ -144,10 +151,10 @@ export function App() {
 
   return (
     <div className="max-w-[1280px] mx-auto p-3 sm:p-6">
-      <header className="sticky sm:static top-0 z-30 sm:z-auto bg-surface sm:bg-transparent -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 shadow-sticky sm:shadow-none mb-3 sm:mb-0">
+      <header className={`sticky sm:static top-0 z-30 sm:z-auto bg-surface sm:bg-transparent -mx-3 sm:mx-0 px-3 sm:px-0 shadow-sticky sm:shadow-none mb-3 sm:mb-0 transition-[padding] duration-200 ${scrolled ? 'py-1' : 'py-2'} sm:py-0`}>
         <div className="flex justify-between items-center sm:items-start gap-4">
           <div>
-            <h1 className="text-xl sm:text-[1.75rem] font-bold text-primary m-0 sm:mb-1">Retirement calculator</h1>
+            <h1 className={`font-bold text-primary m-0 sm:mb-1 transition-[font-size,line-height] duration-200 sm:text-[1.75rem] ${scrolled ? 'text-md' : 'text-xl'}`}>Retirement calculator</h1>
             <p className="hidden sm:block m-0 mb-4 text-text-muted text-base">
               Stress-test against every retirement start year from{' '}
               {data?.start ?? '…'} to {data?.end ?? '…'}.
