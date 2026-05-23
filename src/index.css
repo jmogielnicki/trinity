@@ -114,9 +114,11 @@
   margin: 0;
   pointer-events: none;
   overflow: hidden;
+  /* collapse height in sync with opacity — both reach 0 at p=0.5 */
+  max-height: calc(40px * (1 - var(--scroll-p) * 2));
   opacity: calc(1 - var(--scroll-p) * 2);
   transform: translateY(calc(var(--scroll-p) * -6px));
-  transition: opacity 0.05s linear, transform 0.05s linear;
+  transition: opacity 0.05s linear, transform 0.05s linear, max-height 0.05s linear;
 }
 
 .shrinking-context-bar {
@@ -149,7 +151,8 @@
 .portfolio-field-wrap {
   position: relative;
   overflow: hidden;
-  height: calc(54px - 26px * var(--scroll-p));
+  /* 60px fits label (~18px) + gap (4px) + input (~35px); collapses to 28px for pill */
+  height: calc(60px - 32px * var(--scroll-p));
   transition: height 0.05s linear;
 }
 
