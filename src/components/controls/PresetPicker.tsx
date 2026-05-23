@@ -34,7 +34,10 @@ export function PresetPicker() {
     setTooltipOpen(false);
     if (!id) return;
     const p = PRESETS.find((x) => x.id === id);
-    if (p) apply(p.state);
+    if (p) {
+      apply(p.state);
+      if (p.description) setTooltipOpen(true);
+    }
   };
 
   // Clear preset label as soon as the user modifies any strategy value
