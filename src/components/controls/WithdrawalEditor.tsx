@@ -208,6 +208,7 @@ function FixedWithdrawalSlider({
         format={(v) => `${(v * 100).toFixed(2)}%`}
         minLabel="2%"
         maxLabel="10%"
+        labelPosition="above-thumb"
       />
     </div>
   );

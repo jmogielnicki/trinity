@@ -9,6 +9,8 @@ interface StepSliderProps {
   format?: (value: number) => string;
   minLabel?: string;
   maxLabel?: string;
+  /** 'inline' (default) shows the value to the right; 'above-thumb' floats it over the handle */
+  labelPosition?: 'inline' | 'above-thumb';
 }
 
 export function StepSlider({
@@ -20,23 +22,55 @@ export function StepSlider({
   format,
   minLabel,
   maxLabel,
+  labelPosition = 'inline',
 }: StepSliderProps) {
   const pct = ((value - min) / (max - min)) * 100;
   const display = format ? format(value) : String(value);
 
+  const track = (
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      className="step-slider w-full"
+      style={{ '--sp': `${pct}%` } as CSSProperties}
+      onChange={(e) => onChange(Number(e.target.value))}
+    />
+  );
+
+  if (labelPosition === 'above-thumb') {
+    return (
+      <div className="flex flex-col gap-0.5">
+        {/* thumb-width = 16px; formula keeps label centered over thumb at both extremes */}
+        <div className="relative pt-5">
+          <span
+            className="absolute bottom-full mb-1 text-sm font-bold text-text tabular-nums pointer-events-none"
+            style={{
+              left: `calc(${pct / 100} * (100% - 16px) + 8px)`,
+              transform: 'translateX(-50%)',
+              bottom: '2px',
+            }}
+          >
+            {display}
+          </span>
+          {track}
+        </div>
+        {(minLabel !== undefined || maxLabel !== undefined) && (
+          <div className="flex justify-between text-2xs text-text-disabled">
+            <span>{minLabel ?? min}</span>
+            <span>{maxLabel ?? max}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-2">
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          className="step-slider flex-1"
-          style={{ '--sp': `${pct}%` } as CSSProperties}
-          onChange={(e) => onChange(Number(e.target.value))}
-        />
+        {track}
         <span className="text-sm font-semibold text-text tabular-nums w-12 text-right flex-shrink-0">
           {display}
         </span>
