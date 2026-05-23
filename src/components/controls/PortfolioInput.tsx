@@ -11,23 +11,8 @@ export function PortfolioInput() {
   return (
     <div className="flex items-center gap-3">
       {/* ── Balance field ── */}
-      <div
-        className="relative overflow-hidden"
-        style={{
-          height: 'calc(56px - 28px * var(--scroll-p))',
-          minWidth: '175px',
-          transition: 'height 0.05s linear',
-        }}
-      >
-        {/* Expanded label + input */}
-        <label
-          className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium"
-          style={{
-            opacity: 'calc(1 - var(--scroll-p) * 2.2)',
-            transform: 'translateY(calc(var(--scroll-p) * -4px))',
-            transition: 'opacity 0.05s linear, transform 0.05s linear',
-          }}
-        >
+      <div className="portfolio-field-wrap" style={{ minWidth: '175px' }}>
+        <label className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium">
           Initial balance ($, real)
           <NumericInput
             value={initialBalance}
@@ -41,15 +26,7 @@ export function PortfolioInput() {
             }}
           />
         </label>
-        {/* Pill overlay */}
-        <div
-          className="portfolio-pill absolute inset-0 flex items-center"
-          style={{
-            opacity: 'calc((var(--scroll-p) - 0.35) * 3)',
-            transform: 'translateY(calc((1 - var(--scroll-p)) * 6px))',
-            transition: 'opacity 0.05s linear, transform 0.05s linear',
-          }}
-        >
+        <div className="portfolio-pill">
           <button
             className="portfolio-pill-inner"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -61,33 +38,12 @@ export function PortfolioInput() {
         </div>
       </div>
 
-      {/* Pill separator — fades in as pills appear */}
-      <div
-        className="w-px h-4 bg-border flex-shrink-0"
-        style={{
-          opacity: 'calc(var(--scroll-p) * 2)',
-          transition: 'opacity 0.05s linear',
-        }}
-      />
+      {/* Separator — fades in as pills appear */}
+      <div className="pill-sep" />
 
       {/* ── Horizon field ── */}
-      <div
-        className="relative overflow-hidden"
-        style={{
-          height: 'calc(56px - 28px * var(--scroll-p))',
-          minWidth: '120px',
-          transition: 'height 0.05s linear',
-        }}
-      >
-        {/* Expanded label + input */}
-        <label
-          className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium"
-          style={{
-            opacity: 'calc(1 - var(--scroll-p) * 2.2)',
-            transform: 'translateY(calc(var(--scroll-p) * -4px))',
-            transition: 'opacity 0.05s linear, transform 0.05s linear',
-          }}
-        >
+      <div className="portfolio-field-wrap" style={{ minWidth: '120px' }}>
+        <label className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium">
           Horizon (years)
           <NumericInput
             value={horizonYears}
@@ -101,15 +57,7 @@ export function PortfolioInput() {
             }}
           />
         </label>
-        {/* Pill overlay */}
-        <div
-          className="portfolio-pill absolute inset-0 flex items-center"
-          style={{
-            opacity: 'calc((var(--scroll-p) - 0.35) * 3)',
-            transform: 'translateY(calc((1 - var(--scroll-p)) * 6px))',
-            transition: 'opacity 0.05s linear, transform 0.05s linear',
-          }}
-        >
+        <div className="portfolio-pill">
           <button
             className="portfolio-pill-inner"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

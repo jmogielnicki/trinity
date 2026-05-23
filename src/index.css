@@ -89,12 +89,93 @@
   input[type="number"] { -moz-appearance: textfield; }
 }
 
+/* ─── Shrinking sticky header ────────────────────────────────────────────────── */
+/* All var(--scroll-p) references live here, not in inline styles, so that
+   updating the custom property on :root triggers CSS recalculation. */
+
+.shrinking-title-box {
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: calc(76px - 32px * var(--scroll-p));
+  transition: height 0.05s linear;
+}
+
+.shrinking-title-box h1 {
+  font-size: calc(1.75rem - 0.625rem * var(--scroll-p));
+  line-height: 1;
+  transition: font-size 0.05s linear;
+}
+
+.shrinking-subtitle {
+  margin: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: calc(1 - var(--scroll-p) * 2);
+  transform: translateY(calc(var(--scroll-p) * -6px));
+  transition: opacity 0.05s linear, transform 0.05s linear;
+}
+
+.shrinking-context-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--color-border);
+  padding-block: calc(12px - 4px * var(--scroll-p));
+  transition: padding-block 0.05s linear;
+}
+
+.shrinking-context-label {
+  font-size: 0.625rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
+  opacity: calc(1 - var(--scroll-p) * 2);
+  transition: opacity 0.05s linear;
+}
+
 /* ─── Portfolio field collapse pills ────────────────────────────────────────── */
-/* Pointer-events switch at the 45% scroll threshold (set by JS via .header-collapsed) */
-.portfolio-field-expanded { pointer-events: auto; }
+
+.portfolio-field-wrap {
+  position: relative;
+  overflow: hidden;
+  height: calc(56px - 28px * var(--scroll-p));
+  transition: height 0.05s linear;
+}
+
+.portfolio-field-expanded {
+  pointer-events: auto;
+  opacity: calc(1 - var(--scroll-p) * 2.2);
+  transform: translateY(calc(var(--scroll-p) * -4px));
+  transition: opacity 0.05s linear, transform 0.05s linear;
+}
 .header-collapsed .portfolio-field-expanded { pointer-events: none; }
-.portfolio-pill { pointer-events: none; }
+
+.portfolio-pill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  opacity: calc((var(--scroll-p) - 0.35) * 3);
+  transform: translateY(calc((1 - var(--scroll-p)) * 6px));
+  transition: opacity 0.05s linear, transform 0.05s linear;
+}
 .header-collapsed .portfolio-pill { pointer-events: auto; }
+
+.pill-sep {
+  width: 1px;
+  height: 16px;
+  background-color: var(--color-border);
+  flex-shrink: 0;
+  opacity: calc(var(--scroll-p) * 2);
+  transition: opacity 0.05s linear;
+}
 
 .portfolio-pill-inner {
   display: inline-flex;

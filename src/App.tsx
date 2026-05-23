@@ -159,26 +159,13 @@ export function App() {
       {/* ── Shrinking sticky header shell ── */}
       <div className="sticky top-0 z-30 bg-surface shadow-sticky">
         <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
-          {/* Title row */}
-          <div
-            className="flex items-center justify-between gap-4 overflow-hidden border-b border-border"
-            style={{ height: 'calc(76px - 32px * var(--scroll-p))', transition: 'height 0.05s linear' }}
-          >
+          {/* Title row — height + h1 font-size driven by .shrinking-title-box CSS */}
+          <div className="shrinking-title-box">
             <div className="min-w-0 flex flex-col justify-center gap-1">
-              <h1
-                className="font-bold text-primary m-0 leading-none"
-                style={{ fontSize: 'calc(1.75rem - 0.625rem * var(--scroll-p))', transition: 'font-size 0.05s linear' }}
-              >
+              <h1 className="font-bold text-primary m-0">
                 Retirement calculator
               </h1>
-              <p
-                className="m-0 text-text-muted text-base pointer-events-none overflow-hidden"
-                style={{
-                  opacity: 'calc(1 - var(--scroll-p) * 2)',
-                  transform: 'translateY(calc(var(--scroll-p) * -6px))',
-                  transition: 'opacity 0.05s linear, transform 0.05s linear',
-                }}
-              >
+              <p className="shrinking-subtitle text-text-muted text-base">
                 Stress-test against every retirement start year from{' '}
                 {data?.start ?? '…'} to {data?.end ?? '…'}.
               </p>
@@ -193,20 +180,9 @@ export function App() {
               </button>
             </div>
           </div>
-          {/* Context row */}
-          <div
-            className="flex flex-wrap items-center gap-3 sm:gap-5 border-b border-border"
-            style={{
-              paddingBlock: 'calc(12px - 8px * var(--scroll-p))',
-              transition: 'padding-block 0.05s linear',
-            }}
-          >
-            <span
-              className="text-xs font-bold uppercase tracking-[0.05em] text-text-faint"
-              style={{ opacity: 'calc(1 - var(--scroll-p) * 2)', transition: 'opacity 0.05s linear' }}
-            >
-              Context
-            </span>
+          {/* Context row — padding driven by .shrinking-context-bar CSS */}
+          <div className="shrinking-context-bar">
+            <span className="shrinking-context-label">Context</span>
             <PortfolioInput />
           </div>
         </div>
