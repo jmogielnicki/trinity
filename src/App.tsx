@@ -39,6 +39,7 @@ export function App() {
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [fabExpanded, setFabExpanded] = useState(true);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -59,6 +60,24 @@ export function App() {
     document.body.style.overflow = (sidebarOpen || aboutOpen) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen, aboutOpen]);
+
+  // Collapse FAB when scrolling down, expand when scrolling up or at top.
+  // Threshold prevents jitter from momentum-scroll micro-reversals.
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const THRESHOLD = 10;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < 10) { setFabExpanded(true); lastY = y; return; }
+      const delta = y - lastY;
+      if (Math.abs(delta) >= THRESHOLD) {
+        setFabExpanded(delta < 0);
+        lastY = y;
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -276,15 +295,34 @@ export function App() {
             </aside>
           )}
           <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
+            {/* Strategy FAB — mobile only, fixed bottom-right, always visible.
+                Expands to pill (icon + label) at top / scrolling up; collapses
+                to circle when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
               <button
-                className="md:hidden flex items-center gap-2 text-sm px-3 py-2 border border-border rounded-lg cursor-pointer bg-surface hover:bg-surface-hover mb-3 text-text-secondary"
+                className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex items-center px-4 rounded-2xl bg-secondary cursor-pointer hover:opacity-90 text-white overflow-hidden"
+                style={{
+                  minWidth: '3.5rem',
+                  maxWidth: fabExpanded ? '200px' : '3.5rem',
+                  transition: 'max-width 300ms ease-in-out',
+                  boxShadow: '0 8px 28px rgba(0,0,0,0.24), 0 3px 8px rgba(0,0,0,0.16)',
+                }}
                 onClick={() => setSidebarOpen(true)}
+                aria-label="Open strategy panel"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
                 </svg>
-                Strategy
+                <span
+                  className="whitespace-nowrap text-md font-medium overflow-hidden pl-2"
+                  style={{
+                    maxWidth: fabExpanded ? '9rem' : '0',
+                    opacity: fabExpanded ? 1 : 0,
+                    transition: 'max-width 300ms ease-in-out, opacity 200ms ease-in-out',
+                  }}
+                >
+                  Edit strategy
+                </span>
               </button>
             )}
             {topMode === 'optimize' && (
