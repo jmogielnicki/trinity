@@ -100,14 +100,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  /* no transition: height tracks scroll with zero lag so tabs are never covered */
   height: calc(86px - 32px * var(--scroll-p));
+  transition: height 0.05s linear;
 }
 
 .shrinking-title-box h1 {
   font-size: calc(1.75rem - 0.25rem * var(--scroll-p));
   line-height: 1;
-  transition: font-size 0.05s linear; /* font-size is visual only, safe to smooth */
+  transition: font-size 0.05s linear;
 }
 
 .shrinking-subtitle {
@@ -118,7 +118,7 @@
   max-height: calc(40px * (1 - var(--scroll-p) * 2));
   opacity: calc(1 - var(--scroll-p) * 2);
   transform: translateY(calc(var(--scroll-p) * -6px));
-  transition: opacity 0.05s linear, transform 0.05s linear; /* max-height omitted: layout-affecting */
+  transition: opacity 0.05s linear, transform 0.05s linear, max-height 0.05s linear;
 }
 
 .shrinking-context-bar {
@@ -126,8 +126,8 @@
   flex-wrap: nowrap;
   align-items: center;
   border-bottom: 1px solid var(--color-border);
-  /* no transition: padding tracks scroll with zero lag */
   padding-block: calc(12px - 2px * var(--scroll-p));
+  transition: padding-block 0.05s linear;
 }
 /* ─── Desktop: context bar collapses to nothing; pills migrate to title row ── */
 /* Must be unlayered to override the unlayered display:flex / height rules above. */
@@ -139,14 +139,16 @@
     left: 0;
     white-space: nowrap;
   }
-  /* Collapse padding and border to zero in sync with scroll — no transitions (layout-affecting) */
+  /* Collapse padding and border to zero in sync with scroll */
   .shrinking-context-bar {
     padding-block: calc(12px * (1 - var(--scroll-p)));
     border-bottom-width: calc(1px * (1 - var(--scroll-p)));
+    transition: padding-block 0.05s linear, border-bottom-width 0.05s linear;
   }
-  /* Collapse field height fully to zero (base rule only goes to 28px) — no transition */
+  /* Collapse field height fully to zero (base rule only goes to 28px) */
   .shrinking-context-bar .portfolio-field-wrap {
     height: calc(68px * (1 - var(--scroll-p)));
+    transition: height 0.05s linear;
   }
   /* Pills and their separator don't appear here on desktop */
   .shrinking-context-bar .portfolio-pill,
@@ -169,8 +171,8 @@
   position: relative;
   overflow: hidden;
   /* 68px fits label (~18px) + gap (4px) + above-thumb slider (~35px) + slack; collapses to 28px */
-  /* no transition: height is layout-affecting and must track scroll with zero lag */
   height: calc(68px - 40px * var(--scroll-p));
+  transition: height 0.05s linear;
 }
 
 .portfolio-field-expanded {
