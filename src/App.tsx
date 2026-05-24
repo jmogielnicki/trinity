@@ -259,14 +259,13 @@ export function App() {
             {/* Strategy FAB — mobile only, fixed bottom-right, always visible */}
             {topMode === 'single' && (
               <button
-                className="md:hidden fixed bottom-5 right-4 z-40 flex items-center gap-2 text-sm font-medium px-4 py-3 rounded-full shadow-popover bg-surface border border-border-hover cursor-pointer hover:bg-surface-hover text-text transition-colors duration-150"
+                className="md:hidden fixed bottom-5 right-4 z-40 w-14 h-14 rounded-full shadow-popover bg-secondary cursor-pointer hover:opacity-90 text-white transition-opacity duration-150 flex items-center justify-center"
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Open strategy panel"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
                 </svg>
-                Strategy
               </button>
             )}
             {topMode === 'optimize' && (
