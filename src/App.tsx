@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
+import { useEffect, useRef, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
@@ -35,6 +35,7 @@ export function App() {
     recompute,
   } = useResultsStore();
   const [topMode, setTopMode] = useState<TopMode>('single');
+  const tabBarRef = useRef<HTMLDivElement>(null);
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -154,6 +155,22 @@ export function App() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Prevent the overflow-x tab bar from stealing vertical trackpad/touch scrolls.
+  // React's onWheel is passive so preventDefault() is silently ignored there;
+  // we need a direct DOM listener registered with { passive: false }.
+  useEffect(() => {
+    const el = tabBarRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
+      }
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
   return (
     <div>
       {/* ── Shrinking sticky header shell ── */}
@@ -189,12 +206,21 @@ export function App() {
 
       {/* ── Main content ── */}
       <div className="max-w-[1280px] mx-auto px-3 sm:px-6 pb-3 sm:pb-6">
-        <div className="flex gap-1 mt-4 mb-4 border-b border-border overflow-x-auto scrollbar-none">
+        <div
+          ref={tabBarRef}
+          className="flex gap-1 mt-4 mb-4 border-b border-border overflow-x-auto scrollbar-none overscroll-x-contain"
+        >
           <NavTab active={topMode === 'single'} onClick={() => setTopMode('single')}>
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5l5-5 4 4 5-7 4 4" />
             </svg>
             Single scenario
+          </NavTab>
+          <NavTab active={topMode === 'compare'} onClick={() => setTopMode('compare')}>
+            <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            </svg>
+            Compare scenarios
           </NavTab>
           <NavTab active={topMode === 'optimize'} onClick={() => setTopMode('optimize')}>
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
@@ -207,12 +233,6 @@ export function App() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
             Evolve
-          </NavTab>
-          <NavTab active={topMode === 'compare'} onClick={() => setTopMode('compare')}>
-            <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-            </svg>
-            Compare scenarios
           </NavTab>
         </div>
 

@@ -1,4 +1,5 @@
 import { useScenarioStore } from '../../store/scenarioStore';
+import { StepSlider } from '../ui/StepSlider';
 import { NumericInput } from './NumericInput';
 
 export function PortfolioInput() {
@@ -42,28 +43,26 @@ export function PortfolioInput() {
       <div className="pill-sep" />
 
       {/* ── Horizon field ── */}
-      <div className="portfolio-field-wrap" style={{ minWidth: '120px' }}>
-        <label className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium">
-          Horizon (years)
-          <NumericInput
+      <div className="portfolio-field-wrap" style={{ minWidth: '180px' }}>
+        <div className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium">
+          Retirement length (years)
+          <StepSlider
             value={horizonYears}
-            onChange={(v) => setHorizon(Math.round(v))}
-            min={1}
-            max={80}
-            parse={(s) => {
-              if (s.trim() === '') return null;
-              const n = parseInt(s, 10);
-              return isNaN(n) ? null : n;
-            }}
+            onChange={(v) => setHorizon(v)}
+            min={20}
+            max={60}
+            step={5}
+            format={(v) => String(v)}
+            labelPosition="above-thumb"
           />
-        </label>
+        </div>
         <div className="portfolio-pill">
           <button
             className="portfolio-pill-inner"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             tabIndex={-1}
           >
-            <span className="portfolio-pill-label">Horizon</span>
+            <span className="portfolio-pill-label">Length</span>
             <span className="portfolio-pill-value">{horizonFmt}</span>
           </button>
         </div>

@@ -9,7 +9,10 @@ export function PresetPicker() {
   const scenario = useScenarioStore();
   const sweep = useSweepStore();
   const [picked, setPicked] = useState('');
+  const [tooltipOpen, setTooltipOpen] = useState(false);
   const appliedRef = useRef<{ allocation: string; withdrawal: string } | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const apply = (state: SerializedState) => {
     scenario.setAllocation(state.allocation);
@@ -28,6 +31,7 @@ export function PresetPicker() {
 
   const onChange = (id: string) => {
     setPicked(id);
+    setTooltipOpen(false);
     if (!id) return;
     const p = PRESETS.find((x) => x.id === id);
     if (p) apply(p.state);
@@ -43,28 +47,65 @@ export function PresetPicker() {
       curWithdrawal !== appliedRef.current.withdrawal
     ) {
       setPicked('');
+      setTooltipOpen(false);
       appliedRef.current = null;
     }
   }, [scenario.allocation, scenario.withdrawal, picked]);
+
+  // Close tooltip on outside click
+  useEffect(() => {
+    if (!tooltipOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        !tooltipRef.current?.contains(e.target as Node) &&
+        !btnRef.current?.contains(e.target as Node)
+      ) {
+        setTooltipOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [tooltipOpen]);
 
   const description = PRESETS.find((p) => p.id === picked)?.description;
 
   return (
     <div className="flex flex-col gap-2">
       <div className="text-sm text-text-secondary">Presets</div>
-      <select
-        className={`${FIELD_FULL} cursor-pointer`}
-        value={picked}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">— pick a starting point —</option>
-        {PRESETS.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-      {description && <div className="text-xs text-text-faint py-0.5 pb-1">{description}</div>}
+      <div className="flex items-center gap-1.5">
+        <select
+          className={`${FIELD_FULL} cursor-pointer`}
+          value={picked}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="">— pick a starting point —</option>
+          {PRESETS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        {description && (
+          <div className="relative flex-shrink-0">
+            <button
+              ref={btnRef}
+              className={`w-5 h-5 rounded-full border border-text-disabled bg-surface cursor-pointer text-xs font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover flex-shrink-0${tooltipOpen ? ' bg-primary text-surface border-primary' : ''}`}
+              onClick={() => setTooltipOpen((v) => !v)}
+              title="About this preset"
+            >
+              ?
+            </button>
+            {tooltipOpen && (
+              <div
+                ref={tooltipRef}
+                className="absolute right-0 top-full mt-1.5 z-50 w-64 rounded-md border border-border bg-surface shadow-popover p-3 text-xs text-text-muted leading-relaxed"
+              >
+                {description}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
