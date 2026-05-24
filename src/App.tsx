@@ -38,6 +38,7 @@ export function App() {
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [fabExpanded, setFabExpanded] = useState(true);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -58,6 +59,18 @@ export function App() {
     document.body.style.overflow = (sidebarOpen || aboutOpen) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen, aboutOpen]);
+
+  // Collapse FAB when scrolling down, expand when scrolling up or at top.
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setFabExpanded(y < 10 || y < lastY);
+      lastY = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -256,16 +269,22 @@ export function App() {
             </aside>
           )}
           <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
-            {/* Strategy FAB — mobile only, fixed bottom-right, always visible */}
+            {/* Strategy FAB — mobile only, fixed bottom-right, always visible.
+                Expands to pill (icon + label) at top / scrolling up; collapses
+                to circle when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
               <button
-                className="md:hidden fixed bottom-5 right-4 z-40 w-14 h-14 rounded-full shadow-popover bg-secondary cursor-pointer hover:opacity-90 text-white transition-opacity duration-150 flex items-center justify-center"
+                className={`md:hidden fixed bottom-5 right-4 z-40 h-14 flex items-center justify-center rounded-full shadow-popover bg-secondary cursor-pointer hover:opacity-90 text-white overflow-hidden transition-[max-width,padding,gap] duration-300 ease-in-out${fabExpanded ? ' max-w-48 px-4 gap-2' : ' max-w-[3.5rem] px-0 gap-0'}`}
+                style={{ minWidth: '3.5rem' }}
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Open strategy panel"
               >
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
                 </svg>
+                <span className={`whitespace-nowrap text-sm font-medium transition-[max-width,opacity] duration-200 ease-in-out${fabExpanded ? ' max-w-[8rem] opacity-100' : ' max-w-0 opacity-0'}`}>
+                  Strategy
+                </span>
               </button>
             )}
             {topMode === 'optimize' && (
