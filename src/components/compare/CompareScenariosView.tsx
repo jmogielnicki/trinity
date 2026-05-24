@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
-import type { AllocationStrategy, WithdrawalStrategy } from '../../engine/strategies';
-import { describeWithdrawal, describeAllocation, pct, fmtMoney } from '../../engine/strategyDescriptions';
+import { describeWithdrawal, describeAllocation, fmtMoney } from '../../engine/strategyDescriptions';
 import { useLibraryStore } from '../../store/libraryStore';
 import { useResultsStore } from '../../store/resultsStore';
 import {

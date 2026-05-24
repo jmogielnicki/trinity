@@ -4,7 +4,7 @@ import { useScenarioStore } from '../store/scenarioStore';
 import { useSweepStore } from '../store/sweepStore';
 import { IconButton } from './ui/IconButton';
 import {
-  pct, fmtMoney,
+  fmtMoney,
   describeAllocation, describeWithdrawal,
   allocTypeName, wdTypeName,
   allocRows, wdRows,
