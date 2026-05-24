@@ -165,7 +165,7 @@ export function App() {
   ]);
 
   useEffect(() => {
-    const SCROLL_RANGE = 70;
+    const SCROLL_RANGE = 35;
     const onScroll = () => {
       const p = Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
       document.documentElement.style.setProperty('--scroll-p', String(p));
@@ -208,10 +208,10 @@ export function App() {
                 {data?.start ?? '…'} to {data?.end ?? '…'}.
               </p>
             </div>
+            <div className="hidden md:flex items-center title-portfolio flex-1 ml-4">
+              <PortfolioInput />
+            </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="hidden md:flex items-center title-portfolio">
-                <PortfolioInput />
-              </div>
               {topMode === 'single' && (
                 <button
                   className="hidden md:flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
