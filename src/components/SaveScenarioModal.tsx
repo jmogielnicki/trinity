@@ -1,56 +1,24 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useLibraryStore } from '../store/libraryStore';
 import { useScenarioStore } from '../store/scenarioStore';
 import { useSweepStore } from '../store/sweepStore';
 import { IconButton } from './ui/IconButton';
+import {
+  pct, fmtMoney,
+  describeAllocation, describeWithdrawal,
+  allocTypeName, wdTypeName,
+  allocRows, wdRows,
+} from '../engine/strategyDescriptions';
 import type { AllocationStrategy, WithdrawalStrategy } from '../engine/strategies';
 
-function allocLabel(a: AllocationStrategy): string {
-  if (a.type === 'static') {
-    const s = Math.round(a.weights.stock * 100);
-    const b = Math.round(a.weights.bond * 100);
-    return `${s}/${b} stocks/bonds`;
-  }
-  if (a.type === 'glidepath') {
-    const s0 = Math.round(a.start.stock * 100);
-    const s1 = Math.round(a.end.stock * 100);
-    return `${s0}→${s1}% stocks glide`;
-  }
-  if (a.type === 'ageInBonds') return 'age-in-bonds';
-  if (a.type === 'risingEquity') {
-    const s0 = Math.round(a.start.stock * 100);
-    const s1 = Math.round(a.end.stock * 100);
-    return `${s0}→${s1}% rising equity`;
-  }
-  return a.type;
-}
-
-function wdLabel(w: WithdrawalStrategy): string {
-  if (w.type === 'fixedPercent') return `${(w.rate * 100).toFixed(1)}% fixed`;
-  if (w.type === 'fixedDollar') return `$${w.amount.toLocaleString()}/yr`;
-  if (w.type === 'percentOfBalance') return `${(w.rate * 100).toFixed(1)}% of balance`;
-  if (w.type === 'floorAndUpside') return `floor+upside`;
-  if (w.type === 'guardrails') return `guardrails`;
-  if (w.type === 'piecewise' || w.type === 'piecewiseLinear') return 'piecewise';
-  if (w.type === 'capeWithdrawal') return 'CAPE-based';
-  if (w.type === 'ratchet') return `${(w.baseRate * 100).toFixed(1)}% ratchet`;
-  if (w.type === 'endowment') return `${(w.rate * 100).toFixed(1)}% endowment`;
-  if (w.type === 'vanguardDynamic') return `${(w.rate * 100).toFixed(1)}% dynamic`;
-  return w.type;
-}
-
 function fmtBalance(n: number): string {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000_000) return fmtMoney(n);
   if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}k`;
   return `$${n.toLocaleString()}`;
 }
 
-function defaultName(
-  alloc: AllocationStrategy,
-  wd: WithdrawalStrategy,
-  horizon: number,
-): string {
-  return `${allocLabel(alloc)} · ${wdLabel(wd)} · ${horizon}yr`;
+function defaultName(a: AllocationStrategy, w: WithdrawalStrategy, horizon: number): string {
+  return `${describeAllocation(a)} · ${describeWithdrawal(w)} · ${horizon}yr`;
 }
 
 export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
@@ -75,25 +43,62 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
+  const aRows = allocRows(scenario.allocation);
+  const wRows = wdRows(scenario.withdrawal);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[420px] p-5 flex flex-col gap-4">
+      <div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[420px] flex flex-col gap-4 p-5 max-h-[90vh] overflow-y-auto">
+
         <div className="flex items-center justify-between">
           <h2 className="m-0 text-lg font-bold text-text">Save scenario</h2>
           <IconButton onClick={onClose} aria-label="Close">✕</IconButton>
         </div>
 
         {/* Strategy summary */}
-        <div className="bg-surface-panel rounded-lg p-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-base">
-          <div className="text-text-muted">Balance</div>
-          <div className="text-text font-medium">{fmtBalance(scenario.initialBalance)}</div>
-          <div className="text-text-muted">Horizon</div>
-          <div className="text-text font-medium">{scenario.horizonYears} years</div>
-          <div className="text-text-muted">Allocation</div>
-          <div className="text-text font-medium">{allocLabel(scenario.allocation)}</div>
-          <div className="text-text-muted">Withdrawal</div>
-          <div className="text-text font-medium">{wdLabel(scenario.withdrawal)}</div>
+        <div className="bg-surface-panel rounded-lg p-3 text-base">
+          <div className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 items-baseline">
+
+            {/* Portfolio */}
+            <div className="text-text-muted">Balance</div>
+            <div className="text-text font-medium">{fmtBalance(scenario.initialBalance)}</div>
+            <div className="text-text-muted">Horizon</div>
+            <div className="text-text font-medium">{scenario.horizonYears} years</div>
+
+            {/* Allocation section */}
+            <div className="col-span-2 mt-2.5 pt-2.5 border-t border-border-light">
+              <span className="text-2xs font-semibold text-text-muted uppercase tracking-widest">
+                Allocation
+              </span>
+              <span className="ml-1.5 text-sm font-medium text-text-secondary">
+                — {allocTypeName(scenario.allocation)}
+              </span>
+            </div>
+            {aRows.map(([label, value]) => (
+              <Fragment key={label}>
+                <div className="text-text-muted">{label}</div>
+                <div className="text-text font-medium">{value}</div>
+              </Fragment>
+            ))}
+
+            {/* Withdrawal section */}
+            <div className="col-span-2 mt-2.5 pt-2.5 border-t border-border-light">
+              <span className="text-2xs font-semibold text-text-muted uppercase tracking-widest">
+                Withdrawal
+              </span>
+              <span className="ml-1.5 text-sm font-medium text-text-secondary">
+                — {wdTypeName(scenario.withdrawal)}
+              </span>
+            </div>
+            {wRows.map(([label, value]) => (
+              <Fragment key={label}>
+                <div className="text-text-muted">{label}</div>
+                <div className="text-text font-medium">{value}</div>
+              </Fragment>
+            ))}
+
+          </div>
         </div>
 
         {/* Name input */}
@@ -125,6 +130,7 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
             Save
           </button>
         </div>
+
       </div>
     </div>
   );
