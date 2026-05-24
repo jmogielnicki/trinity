@@ -62,7 +62,7 @@ type ColorBy =
   | 'stockPct'
   | 'withdrawalRate'
   | 'floor'
-  | 'marginalSpend'
+  | 'upsideRate'
   | 'successRate'
   | 'avgYearsNearDepletion';
 
@@ -72,7 +72,7 @@ const COLOR_BY_LABELS: Record<ColorBy, string> = {
   stockPct: 'Stock %',
   withdrawalRate: 'Withdrawal rate (fixed)',
   floor: 'Floor % (floor+upside)',
-  marginalSpend: 'Marginal spend ($k per $1M over)',
+  upsideRate: 'Upside rate (% of current balance)',
   successRate: 'Success rate',
   avgYearsNearDepletion: 'Years near depletion',
 };
@@ -89,8 +89,8 @@ function colorValue(r: CandidateResult, c: ColorBy): number | undefined {
       return r.candidate.numericParams.withdrawalRate;
     case 'floor':
       return r.candidate.numericParams.floor;
-    case 'marginalSpend':
-      return r.candidate.numericParams.marginalSpend;
+    case 'upsideRate':
+      return r.candidate.numericParams.upsideRate;
     case 'successRate':
       return Number.isFinite(r.metrics.successRate) ? r.metrics.successRate : undefined;
     case 'avgYearsNearDepletion':
@@ -107,8 +107,8 @@ function formatColorValue(c: ColorBy, v: number): string {
     case 'floor':
     case 'successRate':
       return `${(v * 100).toFixed(0)}%`;
-    case 'marginalSpend':
-      return `$${Math.round(v * 1000)}k`;
+    case 'upsideRate':
+      return `${(v * 100).toFixed(2).replace(/\.?0+$/, '')}%`;
     case 'avgYearsNearDepletion':
       return v.toFixed(1);
     case 'varyValue':

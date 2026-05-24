@@ -46,8 +46,8 @@ export type CandidateNumericParams = {
   withdrawalRate?: number;
   /** Floor for `floorAndUpside`. */
   floor?: number;
-  /** Marginal-spend coefficient for `floorAndUpside`. */
-  marginalSpend?: number;
+  /** Upside rate for `floorAndUpside`. */
+  upsideRate?: number;
   /** Value of the primary swept dimension in a study. */
   varyValue?: number;
   /** Value of the secondary swept dimension in a 2D study. */

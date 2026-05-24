@@ -56,9 +56,9 @@ export type WithdrawalRangeSpec =
     }
   | {
       family: 'floorAndUpside';
-      sweep: 'floor' | 'marginalSpend';
+      sweep: 'floor' | 'upsideRate';
       floor: number;
-      marginalSpend: number;
+      upsideRate: number;
       from: number;
       to: number;
       step: number;
@@ -248,7 +248,7 @@ export function describeWithdrawal(w: WithdrawalStrategy): string {
     case 'percentOfBalance':
       return `${pct(w.rate)} of bal, ${pct(w.floor)} floor`;
     case 'floorAndUpside':
-      return `${pct(w.floor)} floor +$${Math.round(w.marginalSpend * 1000)}k/$1M`;
+      return `${pct(w.floor)} floor / ${pct(w.upsideRate)} of bal`;
     case 'piecewise':
     case 'piecewiseLinear':
       return 'withdrawal curve';
@@ -341,11 +341,10 @@ function withdrawalVariants(
     case 'floorAndUpside':
       return vals.map((v) => {
         const floor = spec.sweep === 'floor' ? v : spec.floor;
-        const marginalSpend =
-          spec.sweep === 'marginalSpend' ? v : spec.marginalSpend;
+        const upsideRate = spec.sweep === 'upsideRate' ? v : spec.upsideRate;
         return {
-          wd: { type: 'floorAndUpside', floor, marginalSpend },
-          numeric: { floor, marginalSpend },
+          wd: { type: 'floorAndUpside', floor, upsideRate },
+          numeric: { floor, upsideRate },
         };
       });
     case 'ratchet':
@@ -412,7 +411,7 @@ function dimensionVariants(
       withdrawal: wd,
       label: describeWithdrawal(wd),
       varyValue:
-        numeric.withdrawalRate ?? numeric.floor ?? numeric.marginalSpend ?? 0,
+        numeric.withdrawalRate ?? numeric.floor ?? numeric.upsideRate ?? 0,
       numeric,
     }));
   }
