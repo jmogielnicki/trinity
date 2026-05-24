@@ -645,8 +645,6 @@ function EntryList<T extends AllocationStrategy | WithdrawalStrategy | Withdrawa
 
 const fmtPct = (v: number) => String(+(v * 100).toFixed(4));
 const parsePct = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n / 100; };
-const fmtMarginal = (v: number) => String(+(v * 1000).toFixed(3));
-const parseMarginal = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n / 1000; };
 
 const axisNumCls = FIELD_AXIS;
 
@@ -704,57 +702,6 @@ function PctRange({
   );
 }
 
-function MarginalRange({
-  from,
-  to,
-  step,
-  onChange,
-}: {
-  from: number;
-  to: number;
-  step: number;
-  onChange: (from: number, to: number, step: number) => void;
-}) {
-  // marginalSpend is stored as $ per $ over initial; display as $k per $1M.
-  return (
-    <div className="flex gap-3 flex-wrap items-center">
-      <label className="flex items-center gap-1 text-sm text-text-secondary">
-        from
-        <NumericInput
-          className={axisNumCls}
-          value={from}
-          format={fmtMarginal}
-          parse={parseMarginal}
-          onChange={(v) => onChange(v, to, step)}
-        />
-        k
-      </label>
-      <label className="flex items-center gap-1 text-sm text-text-secondary">
-        to
-        <NumericInput
-          className={axisNumCls}
-          value={to}
-          format={fmtMarginal}
-          parse={parseMarginal}
-          onChange={(v) => onChange(from, v, step)}
-        />
-        k
-      </label>
-      <label className="flex items-center gap-1 text-sm text-text-secondary">
-        step
-        <NumericInput
-          className={axisNumCls}
-          value={step}
-          format={fmtMarginal}
-          parse={(s) => { const n = parseFloat(s); return isNaN(n) ? null : Math.max(0.0005, n / 1000); }}
-          min={0.0005}
-          onChange={(v) => onChange(from, to, v)}
-        />
-        k
-      </label>
-    </div>
-  );
-}
 
 function PctNum({
   label,
@@ -779,25 +726,3 @@ function PctNum({
   );
 }
 
-function MarginalNum({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label className="flex items-center gap-1 text-sm text-text-secondary">
-      {label}
-      <NumericInput
-        className={axisNumCls}
-        value={value}
-        format={fmtMarginal}
-        parse={parseMarginal}
-        onChange={onChange}
-      />
-    </label>
-  );
-}

@@ -411,7 +411,7 @@ function dimensionVariants(
       withdrawal: wd,
       label: describeWithdrawal(wd),
       varyValue:
-        numeric.withdrawalRate ?? numeric.floor ?? numeric.marginalSpend ?? 0,
+        numeric.withdrawalRate ?? numeric.floor ?? numeric.upsideRate ?? 0,
       numeric,
     }));
   }
