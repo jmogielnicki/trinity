@@ -129,13 +129,35 @@
   padding-block: calc(12px - 2px * var(--scroll-p));
   transition: padding-block 0.05s linear;
 }
-/* On desktop the pills live in the title row; hide the context bar entirely.
-   Must be an unlayered media query to override the unlayered display:flex above. */
+/* ─── Desktop: context bar collapses to nothing; pills migrate to title row ── */
+/* Must be unlayered to override the unlayered display:flex / height rules above. */
 @media (min-width: 768px) {
+  /* Collapse padding and border to zero in sync with scroll */
   .shrinking-context-bar {
+    padding-block: calc(12px * (1 - var(--scroll-p)));
+    border-bottom-width: calc(1px * (1 - var(--scroll-p)));
+    transition: padding-block 0.05s linear, border-bottom-width 0.05s linear;
+  }
+  /* Collapse field height fully to zero (base rule only goes to 28px) */
+  .shrinking-context-bar .portfolio-field-wrap {
+    height: calc(68px * (1 - var(--scroll-p)));
+    transition: height 0.05s linear;
+  }
+  /* Pills and their separator don't appear here on desktop */
+  .shrinking-context-bar .portfolio-pill,
+  .shrinking-context-bar .pill-sep {
     display: none;
   }
 }
+
+/* ─── Title-row portfolio: pills only, scroll-animated, static flow ───────── */
+.title-portfolio .portfolio-field-expanded { display: none; }
+.title-portfolio .portfolio-field-wrap {
+  height: 28px; /* fixed at pill height; no collapse animation needed */
+  transition: none;
+}
+/* Pull pill out of absolute positioning so it flows in the flex row */
+.title-portfolio .portfolio-pill { position: static; }
 
 /* ─── Portfolio field collapse pills ────────────────────────────────────────── */
 

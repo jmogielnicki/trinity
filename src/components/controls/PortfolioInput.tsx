@@ -2,28 +2,12 @@ import { useScenarioStore } from '../../store/scenarioStore';
 import { StepSlider } from '../ui/StepSlider';
 import { NumericInput } from './NumericInput';
 
-export function PortfolioInput({ pillsOnly = false }: { pillsOnly?: boolean }) {
+export function PortfolioInput() {
   const { initialBalance, horizonYears, setBalance, setHorizon } =
     useScenarioStore();
 
   const balanceFmt = `$${Math.round(initialBalance).toLocaleString('en-US')}`;
   const horizonFmt = `${horizonYears} yr${horizonYears === 1 ? '' : 's'}`;
-
-  if (pillsOnly) {
-    return (
-      <div className="flex items-center gap-3">
-        <div className="portfolio-pill-inner">
-          <span className="portfolio-pill-label">Balance</span>
-          <span className="portfolio-pill-value">{balanceFmt}</span>
-        </div>
-        <div className="w-px h-4 bg-border flex-shrink-0" />
-        <div className="portfolio-pill-inner">
-          <span className="portfolio-pill-label">Length</span>
-          <span className="portfolio-pill-value">{horizonFmt}</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex items-center gap-3">
