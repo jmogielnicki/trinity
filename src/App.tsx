@@ -209,6 +209,18 @@ export function App() {
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {topMode === 'single' && (
+                <button
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setSaveOpen(true)}
+                  title="Save strategy"
+                >
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                  </svg>
+                  Save strategy
+                </button>
+              )}
               <button
                 className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
                 onClick={() => setAboutOpen((v) => !v)}
@@ -304,13 +316,13 @@ export function App() {
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                   </svg>
-                  Save scenario
+                  Save strategy
                 </button>
               </div>
             </aside>
           )}
           <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
-            {/* Split FAB — mobile only. Left: edit strategy. Right: save scenario.
+            {/* Split FAB — mobile only. Left: edit strategy. Right: save strategy.
                 Text labels collapse when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
               <div
@@ -345,7 +357,7 @@ export function App() {
                 <button
                   className="flex items-center px-4 bg-secondary cursor-pointer hover:opacity-90 active:opacity-80 text-white h-full"
                   onClick={() => setSaveOpen(true)}
-                  aria-label="Save scenario"
+                  aria-label="Save strategy"
                 >
                   <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
