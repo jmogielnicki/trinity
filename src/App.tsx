@@ -256,10 +256,12 @@ export function App() {
             </aside>
           )}
           <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
+            {/* Strategy FAB — mobile only, fixed bottom-right, always visible */}
             {topMode === 'single' && (
               <button
-                className="md:hidden flex items-center gap-2 text-sm px-3 py-2 border border-border rounded-lg cursor-pointer bg-surface hover:bg-surface-hover mb-3 text-text-secondary"
+                className="md:hidden fixed bottom-5 right-4 z-40 flex items-center gap-2 text-sm font-medium px-4 py-3 rounded-full shadow-popover bg-surface border border-border-hover cursor-pointer hover:bg-surface-hover text-text transition-colors duration-150"
                 onClick={() => setSidebarOpen(true)}
+                aria-label="Open strategy panel"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
