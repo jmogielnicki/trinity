@@ -210,7 +210,7 @@ export function App() {
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <div className="hidden md:flex items-center">
-                <PortfolioInput />
+                <PortfolioInput pillsOnly />
               </div>
               {topMode === 'single' && (
                 <button
@@ -230,8 +230,8 @@ export function App() {
               </button>
             </div>
           </div>
-          {/* Context row — mobile only; desktop shows portfolio inputs inline in title row */}
-          <div className="shrinking-context-bar md:hidden">
+          {/* Context row — mobile only; desktop hides via CSS (md:hidden can't override unlayered display:flex) */}
+          <div className="shrinking-context-bar">
             <PortfolioInput />
           </div>
         </div>

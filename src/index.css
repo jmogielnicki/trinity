@@ -129,6 +129,13 @@
   padding-block: calc(12px - 2px * var(--scroll-p));
   transition: padding-block 0.05s linear;
 }
+/* On desktop the pills live in the title row; hide the context bar entirely.
+   Must be an unlayered media query to override the unlayered display:flex above. */
+@media (min-width: 768px) {
+  .shrinking-context-bar {
+    display: none;
+  }
+}
 
 /* ─── Portfolio field collapse pills ────────────────────────────────────────── */
 
