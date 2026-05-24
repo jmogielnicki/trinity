@@ -381,7 +381,7 @@ function FloorUpsideEditor({
         portfolio grows.
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
+        <label className="flex flex-col justify-end gap-1 text-xs text-text-secondary font-medium">
           Floor (% of initial)
           <NumericInput
             value={floor}
@@ -396,7 +396,7 @@ function FloorUpsideEditor({
             onChange={(v) => onChange(v, upsideRate)}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
+        <label className="flex flex-col justify-end gap-1 text-xs text-text-secondary font-medium">
           Upside (% of current balance)
           <NumericInput
             value={upsideRate}
