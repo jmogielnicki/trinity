@@ -165,7 +165,7 @@ export function App() {
   ]);
 
   useEffect(() => {
-    const SCROLL_RANGE = 70;
+    const SCROLL_RANGE = 35;
     const onScroll = () => {
       const p = Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
       document.documentElement.style.setProperty('--scroll-p', String(p));
@@ -199,7 +199,7 @@ export function App() {
         <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
           {/* Title row — height + h1 font-size driven by .shrinking-title-box CSS */}
           <div className="shrinking-title-box">
-            <div className="min-w-0 flex flex-col justify-center gap-1">
+            <div className="min-w-0 md:relative flex flex-col justify-center gap-1">
               <h1 className="font-bold text-primary m-0">
                 Retirement calculator
               </h1>
@@ -208,7 +208,10 @@ export function App() {
                 {data?.start ?? '…'} to {data?.end ?? '…'}.
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="hidden md:flex items-center title-portfolio flex-1 ml-4">
+              <PortfolioInput />
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
               {topMode === 'single' && (
                 <button
                   className="hidden md:flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
@@ -227,7 +230,7 @@ export function App() {
               </button>
             </div>
           </div>
-          {/* Context row — padding driven by .shrinking-context-bar CSS */}
+          {/* Context row — collapses to zero on desktop (pills migrate to title row); collapses to pills on mobile */}
           <div className="shrinking-context-bar">
             <PortfolioInput />
           </div>
