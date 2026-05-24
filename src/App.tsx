@@ -211,13 +211,10 @@ export function App() {
             <div className="flex items-center gap-2 flex-shrink-0">
               {topMode === 'single' && (
                 <button
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
+                  className="flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => setSaveOpen(true)}
                   title="Save strategy"
                 >
-                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-                  </svg>
                   Save strategy
                 </button>
               )}
@@ -309,13 +306,10 @@ export function App() {
               {/* Desktop save button — sticky footer */}
               <div className="hidden md:block border-t border-border pt-4 mt-1">
                 <button
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-md font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
+                  className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-md font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.18)' }}
                   onClick={() => setSaveOpen(true)}
                 >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-                  </svg>
                   Save strategy
                 </button>
               </div>
