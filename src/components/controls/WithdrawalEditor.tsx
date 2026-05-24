@@ -169,8 +169,8 @@ function ModeToggle({
   const modes: Array<{ k: Mode; label: string }> = [
     { k: 'fixed', label: 'fixed' },
     { k: 'curve', label: 'curve' },
-    { k: 'floor-upside', label: 'floor + upside' },
     { k: 'ratchet', label: 'ratchet' },
+    { k: 'floor-upside', label: 'floor + upside' },
     { k: 'cape', label: 'CAPE' },
     { k: 'rules', label: 'rules' },
     { k: 'script', label: 'script' },
