@@ -16,22 +16,18 @@ export type WithdrawalStrategy =
    */
   | { type: 'percentOfBalance'; rate: number; floor: number }
   /**
-   * Floor + upside: never withdraw less than `floor × initial` (real $), and
-   * for every $1 the portfolio is above its starting balance, spend an extra
-   * `marginalSpend` cents.
+   * Floor + upside: take the greater of `floor × initial` (a fixed real
+   * spending commitment) or `upsideRate × balance` (a % of current balance).
    *
-   *   wd = floor × initial + marginalSpend × max(0, balance − initial)
+   *   wd = max(floor × initial, upsideRate × balance)
    *
-   * Models how real retirees behave: a sticky lifestyle floor that ratchets
-   * up if the portfolio runs ahead, without the wild downside of pure
-   * percent-of-balance withdrawals. The two-parameter form is the minimal
-   * description — any "for every X% gain, bump withdrawal by Y%" formulation
-   * reduces to a single marginal-spend coefficient.
+   * When the portfolio shrinks, the floor protects spending. When it grows,
+   * the upside rate kicks in and spending rises proportionally with wealth.
    */
   | {
       type: 'floorAndUpside';
       floor: number;
-      marginalSpend: number;
+      upsideRate: number;
     }
   | { type: 'piecewise'; pieces: { until: number; rate: number }[] }
   /**
@@ -219,8 +215,7 @@ export function computeWithdrawal(
       return Math.max(floor * initial, strat.rate * state.balance);
     }
     case 'floorAndUpside': {
-      const excess = Math.max(0, state.balance - initial);
-      return strat.floor * initial + strat.marginalSpend * excess;
+      return Math.max(strat.floor * initial, strat.upsideRate * state.balance);
     }
     case 'piecewise': {
       for (const p of strat.pieces) {
