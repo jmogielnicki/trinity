@@ -47,8 +47,8 @@ function familyDefault(family: WithdrawalFamily): WithdrawalRangeSpec {
       return {
         family,
         sweep: 'floor',
-        floor: 0.035,
-        marginalSpend: 0.02,
+        floor: 0.0325,
+        upsideRate: 0.03,
         from: 0.03,
         to: 0.05,
         step: 0.0025,
@@ -440,20 +440,20 @@ function WithdrawalRangeEditor({
               onChange={(e) =>
                 setSpec({
                   ...spec,
-                  sweep: e.target.value as 'floor' | 'marginalSpend',
+                  sweep: e.target.value as 'floor' | 'upsideRate',
                 })
               }
             >
               <option value="floor">floor %</option>
-              <option value="marginalSpend">marginal spend</option>
+              <option value="upsideRate">upside rate</option>
             </select>
           </label>
           {spec.sweep === 'floor' ? (
             <>
-              <MarginalNum
-                label="Marginal spend ($k per $1M over initial)"
-                value={spec.marginalSpend}
-                onChange={(marginalSpend) => setSpec({ ...spec, marginalSpend })}
+              <PctNum
+                label="Upside rate (% of current balance)"
+                value={spec.upsideRate}
+                onChange={(upsideRate) => setSpec({ ...spec, upsideRate })}
               />
               <PctRange
                 from={spec.from}
@@ -469,7 +469,7 @@ function WithdrawalRangeEditor({
                 value={spec.floor}
                 onChange={(floor) => setSpec({ ...spec, floor })}
               />
-              <MarginalRange
+              <PctRange
                 from={spec.from}
                 to={spec.to}
                 step={spec.step}

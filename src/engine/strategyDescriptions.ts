@@ -161,8 +161,8 @@ export function wdRows(w: WithdrawalStrategy): [string, string][] {
       ];
     case 'floorAndUpside':
       return [
-        ['Floor',  `${pct(w.floor)} of initial`],
-        ['Upside', `${pct(w.marginalSpend)} per $1 above initial`],
+        ['Floor',   `${pct(w.floor)} of initial`],
+        ['Upside',  `${pct(w.upsideRate)} of current balance`],
       ];
     case 'piecewise': {
       const rates = w.pieces.map(p => pct(p.rate));

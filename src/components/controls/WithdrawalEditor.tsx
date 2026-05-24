@@ -78,8 +78,8 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
     if (m === 'floor-upside')
       onChange({
         type: 'floorAndUpside',
-        floor: 0.04,
-        marginalSpend: 0.02,
+        floor: 0.0325,
+        upsideRate: 0.03,
       });
     if (m === 'ratchet')
       onChange({
@@ -121,9 +121,9 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
       {mode === 'floor-upside' && withdrawal.type === 'floorAndUpside' && (
         <FloorUpsideEditor
           floor={withdrawal.floor}
-          marginalSpend={withdrawal.marginalSpend}
-          onChange={(floor, marginalSpend) =>
-            onChange({ type: 'floorAndUpside', floor, marginalSpend })
+          upsideRate={withdrawal.upsideRate}
+          onChange={(floor, upsideRate) =>
+            onChange({ type: 'floorAndUpside', floor, upsideRate })
           }
         />
       )}
@@ -364,19 +364,21 @@ function RatchetEditor({
 
 function FloorUpsideEditor({
   floor,
-  marginalSpend,
+  upsideRate,
   onChange,
 }: {
   floor: number;
-  marginalSpend: number;
-  onChange: (floor: number, marginalSpend: number) => void;
+  upsideRate: number;
+  onChange: (floor: number, upsideRate: number) => void;
 }) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="text-xs text-text-muted leading-[1.4]">
-        Withdraw at least <strong>floor %</strong> of initial each year. For
-        every $1M the portfolio is above its starting value, spend an extra{' '}
-        <strong>marginal $</strong>.
+        Each year withdraw the <strong>greater of</strong>: a{' '}
+        <strong>floor %</strong> of your initial balance, or an{' '}
+        <strong>upside %</strong> of your current balance. The floor protects
+        spending in down markets; the upside lets you spend more when the
+        portfolio grows.
       </div>
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
@@ -391,21 +393,21 @@ function FloorUpsideEditor({
             }}
             min={0}
             max={0.2}
-            onChange={(v) => onChange(v, marginalSpend)}
+            onChange={(v) => onChange(v, upsideRate)}
           />
         </label>
         <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
-          Marginal spend ($k per $1M above initial)
+          Upside (% of current balance)
           <NumericInput
-            value={marginalSpend}
-            format={(v) => (v * 1000).toFixed(2).replace(/\.?0+$/, '')}
+            value={upsideRate}
+            format={(v) => (v * 100).toFixed(2).replace(/\.?0+$/, '')}
             parse={(s) => {
               if (s.trim() === '') return null;
               const n = parseFloat(s);
-              return isNaN(n) ? null : Math.max(0, n / 1000);
+              return isNaN(n) ? null : Math.max(0, n / 100);
             }}
             min={0}
-            max={0.5}
+            max={0.2}
             onChange={(v) => onChange(floor, v)}
           />
         </label>
