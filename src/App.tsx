@@ -13,6 +13,7 @@ import { FrontierView } from './components/optimize/FrontierView';
 import { EvolveView } from './components/evolve/EvolveView';
 import { CompareScenariosView } from './components/compare/CompareScenariosView';
 import { AboutPanel } from './components/AboutPanel';
+import { SaveScenarioModal } from './components/SaveScenarioModal';
 import { IconButton } from './components/ui/IconButton';
 import { NavTab } from './components/ui/NavTab';
 import { loadHistorical } from './data/load';
@@ -39,6 +40,7 @@ export function App() {
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const [fabExpanded, setFabExpanded] = useState(true);
 
   const toggleYear = (year: number) => {
@@ -55,11 +57,11 @@ export function App() {
     setSidebarOpen(false);
   }, [topMode]);
 
-  // Lock body scroll when mobile sidebar tray or about modal is open.
+  // Lock body scroll when mobile sidebar tray or any modal is open.
   useEffect(() => {
-    document.body.style.overflow = (sidebarOpen || aboutOpen) ? 'hidden' : '';
+    document.body.style.overflow = (sidebarOpen || aboutOpen || saveOpen) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [sidebarOpen, aboutOpen]);
+  }, [sidebarOpen, aboutOpen, saveOpen]);
 
   // Collapse FAB when scrolling down, expand when scrolling up or at top.
   // Threshold prevents jitter from momentum-scroll micro-reversals.
@@ -292,38 +294,74 @@ export function App() {
                 <WithdrawalSourceInput hideLabel/>
               </section>
               <ScenarioLibrary />
+              {/* Desktop save button — sticky footer */}
+              <div className="hidden md:block border-t border-border pt-4 mt-1">
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-md font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
+                  style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.18)' }}
+                  onClick={() => setSaveOpen(true)}
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                  </svg>
+                  Save scenario
+                </button>
+              </div>
             </aside>
           )}
           <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
-            {/* Strategy FAB — mobile only, fixed bottom-right, always visible.
-                Expands to pill (icon + label) at top / scrolling up; collapses
-                to circle when scrolling down (Gmail compose pattern). */}
+            {/* Split FAB — mobile only. Left: edit strategy. Right: save scenario.
+                Text labels collapse when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
-              <button
-                className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex items-center px-4 rounded-2xl bg-secondary cursor-pointer hover:opacity-90 text-white overflow-hidden"
-                style={{
-                  minWidth: '3.5rem',
-                  maxWidth: fabExpanded ? '200px' : '3.5rem',
-                  transition: 'max-width 300ms ease-in-out',
-                  boxShadow: '0 8px 28px rgba(0,0,0,0.24), 0 3px 8px rgba(0,0,0,0.16)',
-                }}
-                onClick={() => setSidebarOpen(true)}
-                aria-label="Open strategy panel"
+              <div
+                className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex rounded-2xl overflow-hidden"
+                style={{ boxShadow: '0 8px 28px rgba(0,0,0,0.24), 0 3px 8px rgba(0,0,0,0.16)' }}
               >
-                <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
-                </svg>
-                <span
-                  className="whitespace-nowrap text-md font-medium overflow-hidden pl-2"
-                  style={{
-                    maxWidth: fabExpanded ? '9rem' : '0',
-                    opacity: fabExpanded ? 1 : 0,
-                    transition: 'max-width 300ms ease-in-out, opacity 200ms ease-in-out',
-                  }}
+                {/* Edit half */}
+                <button
+                  className="flex items-center px-4 bg-secondary cursor-pointer hover:opacity-90 active:opacity-80 text-white h-full"
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Edit strategy"
                 >
-                  Edit strategy
-                </span>
-              </button>
+                  <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
+                  </svg>
+                  <span
+                    className="whitespace-nowrap text-md font-medium overflow-hidden pl-2"
+                    style={{
+                      maxWidth: fabExpanded ? '6rem' : '0',
+                      opacity: fabExpanded ? 1 : 0,
+                      transition: 'max-width 300ms ease-in-out, opacity 200ms ease-in-out',
+                    }}
+                  >
+                    edit
+                  </span>
+                </button>
+
+                {/* Divider */}
+                <div className="w-px bg-white/30 self-stretch" />
+
+                {/* Save half */}
+                <button
+                  className="flex items-center px-4 bg-secondary cursor-pointer hover:opacity-90 active:opacity-80 text-white h-full"
+                  onClick={() => setSaveOpen(true)}
+                  aria-label="Save scenario"
+                >
+                  <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                  </svg>
+                  <span
+                    className="whitespace-nowrap text-md font-medium overflow-hidden pl-2"
+                    style={{
+                      maxWidth: fabExpanded ? '6rem' : '0',
+                      opacity: fabExpanded ? 1 : 0,
+                      transition: 'max-width 300ms ease-in-out, opacity 200ms ease-in-out',
+                    }}
+                  >
+                    save
+                  </span>
+                </button>
+              </div>
             )}
             {topMode === 'optimize' && (
               <FrontierView onApplied={() => setTopMode('single')} />
@@ -378,6 +416,8 @@ export function App() {
           </main>
         </div>
       </div>
+
+      {saveOpen && <SaveScenarioModal onClose={() => setSaveOpen(false)} />}
 
       {/* About modal */}
       {aboutOpen && (

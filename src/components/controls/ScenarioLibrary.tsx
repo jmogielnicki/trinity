@@ -1,28 +1,12 @@
-import { useState } from 'react';
 import { useLibraryStore, type SavedScenario } from '../../store/libraryStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useSweepStore } from '../../store/sweepStore';
-import { Btn } from '../ui/Btn';
 import { GhostDeleteBtn } from '../ui/GhostDeleteBtn';
 
 export function ScenarioLibrary() {
   const scenario = useScenarioStore();
   const sweep = useSweepStore();
-  const { saved, save, remove } = useLibraryStore();
-  const [name, setName] = useState('');
-
-  const onSave = () => {
-    save(name, {
-      initialBalance: scenario.initialBalance,
-      horizonYears: scenario.horizonYears,
-      allocation: scenario.allocation,
-      withdrawal: scenario.withdrawal,
-      axes: sweep.axes,
-      tailMethod: scenario.tailMethod,
-      withdrawalSource: scenario.withdrawalSource,
-    });
-    setName('');
-  };
+  const { saved, remove } = useLibraryStore();
 
   const onLoad = (s: SavedScenario) => {
     scenario.setBalance(s.state.initialBalance);
@@ -39,17 +23,7 @@ export function ScenarioLibrary() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-text-secondary">Scenario library (localStorage)</div>
-      <div className="flex gap-1.5">
-        <input
-          type="text"
-          placeholder="name"
-          className="flex-1 px-1.5 py-1 border border-text-disabled rounded-[3px] text-sm"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Btn onClick={onSave}>save current</Btn>
-      </div>
+      <div className="text-sm font-medium text-text-secondary">Saved scenarios</div>
       {saved.length === 0 ? (
         <div className="text-xs text-text-faint">no saved scenarios yet</div>
       ) : (
