@@ -208,7 +208,10 @@ export function App() {
                 {data?.start ?? '…'} to {data?.end ?? '…'}.
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="hidden md:flex items-center">
+                <PortfolioInput />
+              </div>
               {topMode === 'single' && (
                 <button
                   className="hidden md:flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
@@ -227,8 +230,8 @@ export function App() {
               </button>
             </div>
           </div>
-          {/* Context row — padding driven by .shrinking-context-bar CSS */}
-          <div className="shrinking-context-bar">
+          {/* Context row — mobile only; desktop shows portfolio inputs inline in title row */}
+          <div className="shrinking-context-bar md:hidden">
             <PortfolioInput />
           </div>
         </div>
