@@ -199,7 +199,7 @@ export function App() {
         <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
           {/* Title row — height + h1 font-size driven by .shrinking-title-box CSS */}
           <div className="shrinking-title-box">
-            <div className="min-w-0 flex flex-col justify-center gap-1">
+            <div className="min-w-0 md:relative flex flex-col justify-center gap-1">
               <h1 className="font-bold text-primary m-0">
                 Retirement calculator
               </h1>
