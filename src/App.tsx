@@ -211,7 +211,7 @@ export function App() {
             <div className="flex items-center gap-2 flex-shrink-0">
               {topMode === 'single' && (
                 <button
-                  className="flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
+                  className="hidden md:flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => setSaveOpen(true)}
                   title="Save strategy"
                 >
