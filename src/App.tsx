@@ -61,12 +61,18 @@ export function App() {
   }, [sidebarOpen, aboutOpen]);
 
   // Collapse FAB when scrolling down, expand when scrolling up or at top.
+  // Threshold prevents jitter from momentum-scroll micro-reversals.
   useEffect(() => {
     let lastY = window.scrollY;
+    const THRESHOLD = 10;
     const onScroll = () => {
       const y = window.scrollY;
-      setFabExpanded(y < 10 || y < lastY);
-      lastY = y;
+      if (y < 10) { setFabExpanded(true); lastY = y; return; }
+      const delta = y - lastY;
+      if (Math.abs(delta) >= THRESHOLD) {
+        setFabExpanded(delta < 0);
+        lastY = y;
+      }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -274,16 +280,28 @@ export function App() {
                 to circle when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
               <button
-                className={`md:hidden fixed bottom-5 right-4 z-40 h-14 flex items-center justify-center rounded-2xl shadow-lg shadow-popover bg-secondary cursor-pointer hover:opacity-90 text-white overflow-hidden transition-[max-width,padding,gap] duration-300 ease-in-out${fabExpanded ? ' max-w-48 px-4 gap-2' : ' max-w-[3.5rem] px-0 gap-0'}`}
-                style={{ minWidth: '3.5rem' }}
+                className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex items-center px-4 rounded-2xl bg-secondary cursor-pointer hover:opacity-90 text-white overflow-hidden"
+                style={{
+                  minWidth: '3.5rem',
+                  maxWidth: fabExpanded ? '200px' : '3.5rem',
+                  transition: 'max-width 300ms ease-in-out',
+                  boxShadow: '0 8px 28px rgba(0,0,0,0.24), 0 3px 8px rgba(0,0,0,0.16)',
+                }}
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Open strategy panel"
               >
                 <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
                 </svg>
-                <span className={`whitespace-nowrap text-md font-medium transition-[max-width,opacity] duration-200 ease-in-out${fabExpanded ? ' max-w-[8rem] opacity-100' : ' max-w-0 opacity-0'}`}>
-                  Strategy
+                <span
+                  className="whitespace-nowrap text-md font-medium overflow-hidden pl-2"
+                  style={{
+                    maxWidth: fabExpanded ? '9rem' : '0',
+                    opacity: fabExpanded ? 1 : 0,
+                    transition: 'max-width 300ms ease-in-out, opacity 200ms ease-in-out',
+                  }}
+                >
+                  Edit strategy
                 </span>
               </button>
             )}
