@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
-import type { AllocationStrategy, WithdrawalStrategy } from '../../engine/strategies';
+import { describeWithdrawal, describeAllocation, fmtMoney } from '../../engine/strategyDescriptions';
 import { useLibraryStore } from '../../store/libraryStore';
 import { useResultsStore } from '../../store/resultsStore';
 import {
@@ -666,71 +666,6 @@ function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function describeWithdrawal(w: WithdrawalStrategy): string {
-  switch (w.type) {
-    case 'fixedPercent':
-      return `${pct(w.rate)} fixed`;
-    case 'fixedDollar':
-      return `${fmtMoney(w.amount)}/yr`;
-    case 'percentOfBalance':
-      return `${pct(w.rate)} of balance`;
-    case 'floorAndUpside':
-      return `${pct(w.floor)} floor + upside`;
-    case 'piecewise':
-      return 'piecewise';
-    case 'piecewiseLinear':
-      return 'curve';
-    case 'guardrails':
-      return `guardrails ${pct(w.base)}`;
-    case 'ruleBased':
-      return `rule-based ${pct(w.base)}`;
-    case 'capeWithdrawal':
-      return `CAPE (a=${pct(w.a)}, b=${w.b})`;
-    case 'ratchet':
-      return `ratchet ${pct(w.baseRate)} +${pct(w.stepBoost)}/${pct(w.stepSize)}`;
-    case 'endowment':
-      return `endowment ${pct(w.rate)} / ${w.lookbackYears}yr avg`;
-    case 'vanguardDynamic':
-      return `Vanguard dynamic ${pct(w.rate)}`;
-    case 'custom':
-    case 'customSrc':
-      return 'custom';
-  }
-}
-
-function describeAllocation(a: AllocationStrategy): string {
-  switch (a.type) {
-    case 'static': {
-      const w = a.weights;
-      return `${Math.round(w.stock * 100)}/${Math.round(w.bond * 100)}/${Math.round(w.cash * 100)}`;
-    }
-    case 'glidepath':
-      return `glide ${Math.round(a.start.stock * 100)}→${Math.round(a.end.stock * 100)}% stk`;
-    case 'linearDrift':
-      return 'linear drift';
-    case 'ageInBonds':
-      return `age-in-bonds (${a.currentAge})`;
-    case 'risingEquity':
-      return `rising ${Math.round(a.start.stock * 100)}→${Math.round(a.end.stock * 100)}% stk`;
-    case 'ruleBased':
-      return 'rule-based';
-    case 'custom':
-    case 'customSrc':
-      return 'custom';
-  }
-}
-
-function pct(n: number): string {
-  return `${(n * 100).toFixed(2).replace(/\.?0+$/, '')}%`;
-}
-
-function fmtMoney(n: number): string {
-  if (!Number.isFinite(n)) return '—';
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}k`;
-  return `$${Math.round(n)}`;
-}
 
 function truncate(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + '…' : s;
