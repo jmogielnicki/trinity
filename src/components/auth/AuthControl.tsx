@@ -7,8 +7,7 @@ const BTN =
   'flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold cursor-pointer transition-opacity hover:opacity-90';
 
 export function AuthControl() {
-  const { status, user, refresh, signOut } = useAuthStore();
-  const [modalOpen, setModalOpen] = useState(false);
+  const { status, user, refresh, signOut, authModalOpen, setAuthModalOpen } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Hydrate the session once on mount (idempotent under StrictMode).
@@ -59,12 +58,12 @@ export function AuthControl() {
     <>
       <button
         className={`${BTN} text-text-secondary border border-border bg-surface`}
-        onClick={() => setModalOpen(true)}
+        onClick={() => setAuthModalOpen(true)}
         title="Sign in or create an account"
       >
         Sign in
       </button>
-      {modalOpen && <AuthModal onClose={() => setModalOpen(false)} />}
+      {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
     </>
   );
 }

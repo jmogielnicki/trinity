@@ -8,6 +8,10 @@ type AuthState = {
   status: 'loading' | 'anon' | 'authed';
   user: AuthUser | null;
   subscriptionStatus: SubscriptionStatus;
+  /** Whether the sign-in/up modal is open. Lifted here so any component
+   *  (e.g. a "sign up to save" nudge) can trigger it. */
+  authModalOpen: boolean;
+  setAuthModalOpen: (open: boolean) => void;
   /** Re-read the session (and, from PR4 on, the subscription). */
   refresh: () => Promise<void>;
   /** Returns an error message, or null on success. */
@@ -20,6 +24,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   status: 'loading',
   user: null,
   subscriptionStatus: 'free',
+  authModalOpen: false,
+  setAuthModalOpen: (authModalOpen) => set({ authModalOpen }),
 
   refresh: async () => {
     try {
