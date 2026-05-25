@@ -172,9 +172,11 @@ export function App() {
   // a rigid unit instead of desyncing into jitter. The easing also spreads a
   // large discrete wheel jump over a few frames so the collapse never snaps.
   useEffect(() => {
-    // Kept just under the tab bar's 16px top margin so the header finishes
-    // collapsing before the tabs below begin tucking under it.
-    const SCROLL_RANGE = 14;
+    // 35px is the largest range that stays jitter-free (a smaller range
+    // amplifies the scroll-anchoring feedback from the in-flow header resizing).
+    // The tab bar's top margin (mt-10 = 40px) is kept wider than this so the
+    // header finishes collapsing before the tabs below begin tucking under it.
+    const SCROLL_RANGE = 35;
     const EASE = 0.3; // fraction of remaining distance closed per frame
     const root = document.documentElement;
     const clamp = () => Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
@@ -268,7 +270,7 @@ export function App() {
       <div className="max-w-[1280px] mx-auto px-3 sm:px-6 pb-3 sm:pb-6">
         <div
           ref={tabBarRef}
-          className="flex gap-1 mt-4 mb-4 border-b border-border overflow-x-auto scrollbar-none overscroll-x-contain"
+          className="flex gap-1 mt-10 mb-4 border-b border-border overflow-x-auto scrollbar-none overscroll-x-contain"
         >
           <NavTab active={topMode === 'single'} onClick={() => setTopMode('single')}>
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
