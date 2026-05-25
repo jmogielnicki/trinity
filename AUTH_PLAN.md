@@ -350,3 +350,36 @@ Easiest, no local setup: **Neon Console → SQL Editor**, paste `scripts/migrati
 - **Users:** no presets — create via the sign-up form (8+ char password). See users with `SELECT * FROM neon_auth.user;`. Delete throwaways with `DELETE FROM neon_auth.user WHERE email LIKE 'test%@example.com';`. The interactive API explorer at `<VITE_NEON_AUTH_URL>/reference` can mint JWTs for manual Data API testing.
 - **See the Pro state without paying:** `UPDATE user_profiles SET subscription_status='pro' WHERE user_id='<neon_auth.user id>';` then reload.
 - **End-to-end:** sign in → save a scenario → reload (persists) → `SELECT user_id,name FROM saved_scenarios;` shows it scoped to you; sign out → local-only scenarios reappear; Upgrade → Stripe Checkout (test mode) → webhook flips you to `'pro'` → advanced tabs unlock on return.
+
+---
+
+## 11. Status & follow-ups
+
+**Status:** the full flow is **verified live in Stripe test mode** — Neon Auth sign-in, cloud saves (Data API + RLS), the Pro gate, JWT-verified `create-checkout`, and the signature-verified webhook granting Pro all work end to end. The §8 open items are resolved: the token accessor is `getSession().data.session.token`; `NEON_AUTH_JWKS_URL` is set and JWT verification works; and the webhook's raw-body handling (`bodyParser:false`) **works on the current Vercel runtime** (the webhook fired and flipped the test user to `'pro'`). Tax is handled by Stripe Managed Payments (no `automatic_tax`).
+
+Remaining work, in rough priority:
+
+1. **Go live (Stripe Live mode).** Test mode and live mode are fully separate. In **Live mode**: create a live **secret key**, a live **Price**, and a live **webhook endpoint** (→ its own signing secret), then swap `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` in Vercel. Managed Payments / tax config carries over. Also turn **email verification ON** in Neon Auth (so real users use real addresses), and do one real low-value purchase to confirm.
+2. **Revoke Pro on refund / chargeback.** Today Pro is granted on purchase and **never revoked** (a one-time payment has no subscription lifecycle). To drop it: in `api/stripe-webhook.ts` also handle `charge.refunded` (and `charge.dispute.created` for chargebacks) → look up the user by `stripe_customer_id` → `UPDATE user_profiles SET subscription_status='free'`. Keep it idempotent. Not needed for launch.
+3. **OAuth (deferred).** Email/password only today. Adding Google/GitHub needs a router + `/auth/callback` route, the provider configured in Neon Auth, and the callback origin added to trusted domains (see §8 #2 and §12).
+4. **Optional polish.** Code-split the client bundle (Vite warns it's >500 kB) — unrelated to auth; purely a load-time nicety.
+
+---
+
+## 12. Going live on a custom domain
+
+When you move from `*.vercel.app` to e.g. `https://app.example.com`, a few origins/URLs need updating. The pattern: **anything that allow-lists your site's origin, or points Stripe at it, must learn the new domain.** Things that point at *Neon* don't change.
+
+| Where | What to do |
+|---|---|
+| **Vercel** | Settings → Domains → add the domain, set the DNS records at your registrar (Vercel guides this; it issues SSL). Pick a canonical host (apex vs `www`) and redirect the other. |
+| **Neon Auth** | Add the new origin to **trusted domains/origins** — **bare origin, no trailing slash** (`https://app.example.com`). This is the same setting behind the `Invalid origin` 403. Add both apex and `www` if you serve both. Keep or remove the old `*.vercel.app` origin as you prefer. |
+| **Neon Data API** | Add the same origin to **CORS allowed origins** (so `neon.from(...)` works post-login). |
+| **Stripe** | Point the webhook at `https://app.example.com/api/stripe-webhook`. If you **edit** the existing endpoint's URL, the signing secret is unchanged; if you **create a new** endpoint, copy its new secret into `STRIPE_WEBHOOK_SECRET`. (The old `*.vercel.app` URL keeps working, so this isn't urgent — but point it at the canonical domain.) |
+| **Vercel env** | Only update `APP_URL` **if you set it** (the checkout success/cancel URLs otherwise follow the request `Origin` automatically — no change). |
+
+**No change needed:** `VITE_NEON_AUTH_URL` / `VITE_NEON_DATA_API_URL` (these point at Neon, not your site), `vercel.json`, the engine, and the Stripe success/cancel URLs (derived from the request origin).
+
+**Heads-up:** sign-in state and *local* (anonymous) scenarios are stored per-origin in the browser, so on the new domain users will appear signed out and won't see their old on-device scenarios. They just sign in again — their **cloud** scenarios are tied to their account and follow them. (If you only switch domains before any real users, this is moot.)
+
+**If you add OAuth later:** also add the new domain to the provider's allowed **redirect URIs** and the Neon Auth callback config (§8 #2).
