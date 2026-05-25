@@ -1,4 +1,6 @@
 import { Fragment, useState } from 'react';
+import { authConfigured } from '../auth';
+import { useAuthStore } from '../store/authStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useScenarioStore } from '../store/scenarioStore';
 import { useSweepStore } from '../store/sweepStore';
@@ -25,22 +27,40 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
   const scenario = useScenarioStore();
   const sweep = useSweepStore();
   const { save } = useLibraryStore();
+  const authed = useAuthStore((s) => s.status === 'authed');
+  const setAuthModalOpen = useAuthStore((s) => s.setAuthModalOpen);
+  const showCloudNudge = authConfigured && !authed;
 
   const [name, setName] = useState(() =>
     defaultName(scenario.allocation, scenario.withdrawal, scenario.horizonYears),
   );
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  const onSave = () => {
-    save(name, {
-      initialBalance: scenario.initialBalance,
-      horizonYears: scenario.horizonYears,
-      allocation: scenario.allocation,
-      withdrawal: scenario.withdrawal,
-      axes: sweep.axes,
-      tailMethod: scenario.tailMethod,
-      withdrawalSource: scenario.withdrawalSource,
-    });
+  const onSave = async () => {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await save(name, {
+        initialBalance: scenario.initialBalance,
+        horizonYears: scenario.horizonYears,
+        allocation: scenario.allocation,
+        withdrawal: scenario.withdrawal,
+        axes: sweep.axes,
+        tailMethod: scenario.tailMethod,
+        withdrawalSource: scenario.withdrawalSource,
+      });
+      onClose();
+    } catch (e) {
+      setErr((e as Error).message || 'Save failed');
+      setBusy(false);
+    }
+  };
+
+  const signInToSave = () => {
     onClose();
+    setAuthModalOpen(true);
   };
 
   const aRows = allocRows(scenario.allocation);
@@ -115,6 +135,21 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
           />
         </div>
 
+        {showCloudNudge && (
+          <div className="text-sm text-text-muted bg-surface-panel rounded-lg px-3 py-2">
+            Saving to this device only.{' '}
+            <button
+              className="text-secondary font-medium hover:underline cursor-pointer bg-transparent border-none p-0"
+              onClick={signInToSave}
+            >
+              Sign in
+            </button>{' '}
+            to save to your account and access it anywhere.
+          </div>
+        )}
+
+        {err && <div className="text-sm text-error">{err}</div>}
+
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-1">
           <button
@@ -124,10 +159,11 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
             Cancel
           </button>
           <button
-            className="px-4 py-2 rounded-lg text-md font-medium text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
+            className="px-4 py-2 rounded-lg text-md font-medium text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={onSave}
+            disabled={busy}
           >
-            Save
+            {busy ? 'Saving…' : authed ? 'Save to account' : 'Save'}
           </button>
         </div>
 

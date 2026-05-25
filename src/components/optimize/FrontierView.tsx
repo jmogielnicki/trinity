@@ -217,7 +217,7 @@ export function FrontierView({ onApplied }: Props) {
       tailMethod: scenario.tailMethod,
       axes: sweepAxes,
     };
-    saveToLibrary(name, state);
+    void saveToLibrary(name, state).catch(() => {});
   };
 
   return (
