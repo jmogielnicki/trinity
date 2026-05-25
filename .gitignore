@@ -8,3 +8,6 @@ coverage
 scripts/.cache
 tsconfig.tsbuildinfo
 .claude/worktrees
+.env
+.env.*
+!.env.example

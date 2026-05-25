@@ -21,6 +21,7 @@ We are turning this client-only retirement-calculator SPA into a three-tier free
 3. **Payments:** Stripe **one-time payment** (`mode: 'payment'`), lifetime Pro. Only `checkout.session.completed` matters — no subscription-lifecycle webhooks.
 4. **Serverless functions exist only for Stripe** (`/api/create-checkout`, `/api/stripe-webhook`), deployed on Vercel.
 5. **Anonymous users keep local-only saves**, with a nudge to sign up so they don't lose them.
+6. **No ORM (no Prisma, no Drizzle).** Schema/RLS is raw SQL in a checked-in, versioned migration; client reads/writes go through the Neon Data API; the Stripe functions use `@neondatabase/serverless` with raw SQL. Rationale: two tables + two policies don't justify an ORM, the client never uses one (Data API), and RLS is more auditable as plain `CREATE POLICY` than as ORM helpers. (Client-side query typing, if wanted later, comes from Neon's Data API type generator — still no ORM.)
 
 **Do these PRs in order:** PR1 → PR2 → PR3 → PR4 → PR5. Each is independently shippable.
 
@@ -205,7 +206,7 @@ Steps:
 **Goal:** Cloud tables exist and are secured.
 
 Steps:
-1. Apply the SQL in **§5** to the branch (SQL Editor or a checked-in migration, e.g. `scripts/migrations/0001_auth.sql` + an optional `npm run db:migrate` tsx runner).
+1. Put the SQL from **§5** in a checked-in, versioned migration `scripts/migrations/0001_auth.sql` and add a small `npm run db:migrate` tsx runner (raw SQL over `@neondatabase/serverless`, applied in filename order). No ORM — see §0 decision 6. (Applying §5 once via the Neon SQL Editor is fine for the very first run, but the migration file is the source of truth.)
 2. **Refresh the Data API schema cache** (§3).
 3. Manually verify policies with two test users (Console Auth API reference UI → get JWTs → query the Data API): each user can only see/insert their own `saved_scenarios`; neither can write `user_profiles`.
 
