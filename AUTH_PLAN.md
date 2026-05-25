@@ -300,3 +300,53 @@ Steps:
 - Pro users: one-time payment unlocks the advanced tabs (cosmetic gate); Pro is granted only by the verified Stripe webhook.
 - No secret keys in the client bundle; `user_profiles` not client-writable; create-checkout never trusts client-supplied identity.
 - Each phase shipped as its own squash-merged PR with a Test plan and a "visual not run" note for UI changes.
+
+---
+
+## 10. Provisioning & operations (live setup)
+
+> **Status:** PR1–PR5 are implemented and merged. What remains is live configuration. This section is the single place for it — the mental model is "Neon hosts identity + data, Vercel just serves the SPA (+ the two Stripe functions), and a couple of steps are done by you locally/in the Console."
+
+### Where each setting lives
+
+| Setting | Where it's set | Notes |
+|---|---|---|
+| `VITE_NEON_AUTH_URL`, `VITE_NEON_DATA_API_URL` | **Vercel** project env (for the deployed app) **and** local `.env.local` (only if running `npm run dev`) | Public URLs, baked in at **build time** → redeploy after changing. `VITE_`-prefixed. |
+| `DATABASE_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `NEON_AUTH_JWKS_URL`, `APP_URL?` | **Vercel** env (server functions only) | **Never** `VITE_`-prefixed. Needed by the Stripe functions. |
+| Allowed origins / CORS | **Neon Console** (Auth + Data API) | See below — the #1 deploy gotcha. |
+| Schema (tables + RLS) | **Neon DB** (one-time migration) | See below. |
+| Stripe Price / Tax / webhook | **Stripe dashboard** | See below. |
+
+### Neon setup (Console)
+1. Create a project on an **AWS** region (Neon Auth/Data API are AWS-only; no IP-Allow/Private-Networking). A **single branch** is fine — branching is not required.
+2. **Auth** → Enable. Sign-in method = email/password. For frictionless dev testing, turn **email verification OFF** (a made-up address like `test@example.com` then signs in instantly; with it ON you need a real inbox — `you+1@gmail.com` plus-addressing gives variants). Copy the **Auth Base URL** (Configuration tab).
+3. **Data API** → Enable, check **"Use Neon Auth"** and **"Grant public schema access"**. Copy the **API URL**.
+4. Grab the Postgres **connection string** (Connect dialog) for `DATABASE_URL` and the migration.
+
+### Allowed origins / CORS (do this or sign-in 403s with `Invalid origin`)
+Add every origin the browser will call Neon from to **both**:
+- **Auth → trusted domains/origins**, and
+- **Data API → Settings → CORS**.
+
+Origins (scheme included, no trailing slash, no path):
+- `http://localhost:5173` (Vite dev)
+- your production `https://<project>.vercel.app` (+ any custom domain)
+- Vercel **preview** deploys use a new origin per deploy; add each as needed, or a wildcard like `https://*.vercel.app` if the field accepts patterns. Production domain is the durable fix.
+
+### Apply the schema (one-time)
+Easiest, no local setup: **Neon Console → SQL Editor**, paste `scripts/migrations/0001_auth.sql`, run it; then **Data API → Refresh schema cache**. (Repeatable alternative: `DATABASE_URL="postgres://…" npm run db:migrate`. If you ran it via the Console, don't also run the runner for `0001` — it would recreate the same tables.) Requires Auth + Data API to be enabled first (they provide `auth.user_id()` and the `authenticated` role).
+
+### Stripe setup (dashboard)
+1. Create a **one-time Price** → `STRIPE_PRICE_ID`.
+2. **Activate Stripe Tax** (required for the `automatic_tax` in `create-checkout`).
+3. Create a **webhook endpoint** → `https://<app>/api/stripe-webhook`, subscribe to `checkout.session.completed` → copy the signing secret → `STRIPE_WEBHOOK_SECRET`.
+4. Set `STRIPE_SECRET_KEY`, `DATABASE_URL`, `NEON_AUTH_JWKS_URL` (+ optional `APP_URL`) in Vercel (server scope, no `VITE_`).
+
+### Two items to confirm against the live runtime
+1. **`NEON_AUTH_JWKS_URL` + client token accessor.** Get the JWKS endpoint from the Console; if needed, pin issuer/audience in `api/_lib/auth.ts`. `getAccessToken()` in `src/auth.ts` probes Neon's `getJWTToken()` defensively (beta SDK doesn't surface it on the typed client) — verify it returns a token.
+2. **Webhook raw body.** `api/stripe-webhook.ts` sets `config.api.bodyParser = false` and reads the stream. If the runtime still pre-parses, switch that handler to the Web `Request` signature and `await request.text()` (noted in the file).
+
+### Testing
+- **Users:** no presets — create via the sign-up form (8+ char password). See users with `SELECT * FROM neon_auth.user;`. Delete throwaways with `DELETE FROM neon_auth.user WHERE email LIKE 'test%@example.com';`. The interactive API explorer at `<VITE_NEON_AUTH_URL>/reference` can mint JWTs for manual Data API testing.
+- **See the Pro state without paying:** `UPDATE user_profiles SET subscription_status='pro' WHERE user_id='<neon_auth.user id>';` then reload.
+- **End-to-end:** sign in → save a scenario → reload (persists) → `SELECT user_id,name FROM saved_scenarios;` shows it scoped to you; sign out → local-only scenarios reappear; Upgrade → Stripe Checkout (test mode) → webhook flips you to `'pro'` → advanced tabs unlock on return.
