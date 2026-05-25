@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type Stripe from 'stripe';
-import { sql } from './_lib/db';
-import { stripe } from './_lib/stripe';
+import { getSql } from './_lib/db.js';
+import { getStripe } from './_lib/stripe.js';
 
 // Stripe signature verification needs the exact raw bytes, so body parsing
 // must be off. NOTE: confirm this disables parsing on the current Vercel
@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let event: Stripe.Event;
   try {
     const raw = await readRawBody(req);
-    event = stripe.webhooks.constructEvent(raw, sig as string, secret);
+    event = getStripe().webhooks.constructEvent(raw, sig as string, secret);
   } catch (e) {
     res.status(400).json({ error: `Signature verification failed: ${(e as Error).message}` });
     return;
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const customerId =
         typeof session.customer === 'string' ? session.customer : (session.customer?.id ?? null);
       if (userId) {
-        await sql`
+        await getSql()`
           insert into user_profiles (user_id, subscription_status, stripe_customer_id)
           values (${userId}, 'pro', ${customerId})
           on conflict (user_id) do update
