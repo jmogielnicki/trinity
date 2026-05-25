@@ -7,7 +7,8 @@ import { getStripe } from './_lib/stripe.js';
  * Creates a Stripe Checkout Session for one-time "lifetime Pro".
  * The signed-in user is derived from the verified JWT (never the body); their
  * id rides along as client_reference_id so the webhook can credit the right
- * account. Stripe Tax handles EU VAT (requires a billing address).
+ * account. Tax is handled at the account level by Stripe Managed Payments
+ * (merchant of record), so no per-session automatic_tax is set.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -40,9 +41,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customer: customerId,
       client_reference_id: userId,
       line_items: [{ price: process.env.STRIPE_PRICE_ID ?? '', quantity: 1 }],
-      automatic_tax: { enabled: true },
-      billing_address_collection: 'required',
-      customer_update: { address: 'auto' },
       success_url: `${origin}/?upgrade=success`,
       cancel_url: `${origin}/?upgrade=cancelled`,
     });

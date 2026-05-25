@@ -338,7 +338,7 @@ Easiest, no local setup: **Neon Console → SQL Editor**, paste `scripts/migrati
 
 ### Stripe setup (dashboard)
 1. Create a **one-time Price** → `STRIPE_PRICE_ID`.
-2. **Activate Stripe Tax** (required for the `automatic_tax` in `create-checkout`).
+2. **Tax:** this build uses **Stripe Managed Payments** (Stripe is merchant of record and handles VAT/GST/sales tax for you), so `create-checkout` sets **no** `automatic_tax` and you do **not** need self-serve Stripe Tax / a head-office address. (If you ever switch off Managed Payments and want self-serve Stripe Tax instead, re-add `automatic_tax: { enabled: true }` + billing-address collection and set a head-office address under Settings → Tax.)
 3. Create a **webhook endpoint** → `https://<app>/api/stripe-webhook`, subscribe to `checkout.session.completed` → copy the signing secret → `STRIPE_WEBHOOK_SECRET`.
 4. Set `STRIPE_SECRET_KEY`, `DATABASE_URL`, `NEON_AUTH_JWKS_URL` (+ optional `APP_URL`) in Vercel (server scope, no `VITE_`).
 
