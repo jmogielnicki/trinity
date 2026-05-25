@@ -166,14 +166,22 @@ export function App() {
 
   useEffect(() => {
     const SCROLL_RANGE = 35;
+    let raf: ReturnType<typeof requestAnimationFrame> | null = null;
     const onScroll = () => {
-      const p = Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
-      document.documentElement.style.setProperty('--scroll-p', String(p));
-      document.documentElement.classList.toggle('header-collapsed', p > 0.45);
+      if (raf !== null) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const p = Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
+        document.documentElement.style.setProperty('--scroll-p', String(p));
+        document.documentElement.classList.toggle('header-collapsed', p > 0.45);
+      });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf !== null) cancelAnimationFrame(raf);
+    };
   }, []);
 
   // Prevent the overflow-x tab bar from stealing vertical trackpad/touch scrolls.
