@@ -164,16 +164,41 @@ export function App() {
     sweep,
   ]);
 
+  // Scroll-linked header collapse. The collapse value `--scroll-p` is eased
+  // toward its target inside a single rAF loop rather than written instantly,
+  // and the CSS carries NO transitions on scroll-p-derived properties. This
+  // keeps the (in-flow) header height and the content laid out below it on one
+  // timeline — both read the same --scroll-p in the same frame, so they move as
+  // a rigid unit instead of desyncing into jitter. The easing also spreads a
+  // large discrete wheel jump over a few frames so the collapse never snaps.
   useEffect(() => {
     const SCROLL_RANGE = 35;
+    const EASE = 0.3; // fraction of remaining distance closed per frame
+    const root = document.documentElement;
+    const clamp = () => Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
+    let current = clamp();
+    let target = current;
+    let raf = 0;
+    const write = (p: number) => {
+      root.style.setProperty('--scroll-p', String(p));
+      root.classList.toggle('header-collapsed', p > 0.45);
+    };
+    const tick = () => {
+      const diff = target - current;
+      current = Math.abs(diff) < 0.001 ? target : current + diff * EASE;
+      write(current);
+      raf = current === target ? 0 : requestAnimationFrame(tick);
+    };
     const onScroll = () => {
-      const p = Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
-      document.documentElement.style.setProperty('--scroll-p', String(p));
-      document.documentElement.classList.toggle('header-collapsed', p > 0.45);
+      target = clamp();
+      if (!raf) raf = requestAnimationFrame(tick);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
+    write(current);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   // Prevent the overflow-x tab bar from stealing vertical trackpad/touch scrolls.
