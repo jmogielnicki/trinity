@@ -15,3 +15,28 @@ export const neon = createClient({
   auth: { url: authUrl },
   dataApi: { url: dataApiUrl },
 });
+
+/**
+ * Returns the current Neon Auth JWT (the `sub`-claim bearer) for our own
+ * serverless calls like /api/create-checkout. Neon exposes this as
+ * getJWTToken(); we look it up defensively because the beta SDK's public types
+ * don't surface it on the client instance. Confirm the accessor when wiring
+ * Stripe live (AUTH_PLAN.md §8).
+ */
+export async function getAccessToken(): Promise<string | null> {
+  const candidates: Array<{ getJWTToken?: () => Promise<string | null> }> = [
+    neon as unknown as { getJWTToken?: () => Promise<string | null> },
+    (neon as unknown as { auth?: { getJWTToken?: () => Promise<string | null> } }).auth ?? {},
+  ];
+  for (const c of candidates) {
+    if (typeof c.getJWTToken === 'function') {
+      try {
+        return await c.getJWTToken();
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
