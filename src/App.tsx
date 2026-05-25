@@ -14,11 +14,14 @@ import { EvolveView } from './components/evolve/EvolveView';
 import { CompareScenariosView } from './components/compare/CompareScenariosView';
 import { AboutPanel } from './components/AboutPanel';
 import { AuthControl } from './components/auth/AuthControl';
+import { ProGate } from './components/auth/ProGate';
 import { SaveScenarioModal } from './components/SaveScenarioModal';
 import { IconButton } from './components/ui/IconButton';
 import { NavTab } from './components/ui/NavTab';
+import { authConfigured } from './auth';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, serialize, tryDeserialize } from './data/urlState';
+import { useAuthStore } from './store/authStore';
 import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
@@ -36,6 +39,10 @@ export function App() {
     setPool,
     recompute,
   } = useResultsStore();
+  const subscriptionStatus = useAuthStore((s) => s.subscriptionStatus);
+  // Gate the advanced tabs only when auth is actually configured — an
+  // unprovisioned build (no Neon env) stays fully open, like before.
+  const proGated = authConfigured && subscriptionStatus !== 'pro';
   const [topMode, setTopMode] = useState<TopMode>('single');
   const tabBarRef = useRef<HTMLDivElement>(null);
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
@@ -404,9 +411,25 @@ export function App() {
               </div>
             )}
             {topMode === 'optimize' && (
-              <FrontierView onApplied={() => setTopMode('single')} />
+              proGated ? (
+                <ProGate
+                  title="Study &amp; optimize"
+                  blurb="Sweep allocation and withdrawal strategies across every historical start year and compare them on a Pareto frontier. Available with Pro."
+                />
+              ) : (
+                <FrontierView onApplied={() => setTopMode('single')} />
+              )
             )}
-            {topMode === 'evolve' && <EvolveView />}
+            {topMode === 'evolve' && (
+              proGated ? (
+                <ProGate
+                  title="Evolve"
+                  blurb="Run a genetic algorithm to discover glide-path and withdrawal strategies tuned to the historical record. Available with Pro."
+                />
+              ) : (
+                <EvolveView />
+              )
+            )}
             {topMode === 'compare' && <CompareScenariosView />}
             {topMode === 'single' && <>
             {!data && <div className="text-text-faint text-base">Loading historical data…</div>}

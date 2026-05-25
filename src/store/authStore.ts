@@ -31,16 +31,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { data } = await neon.auth.getSession();
       const u = data?.user;
-      if (u) {
-        set({
-          status: 'authed',
-          user: { id: u.id, email: u.email, name: u.name ?? undefined },
-        });
-        // subscriptionStatus is wired in PR4 (reads public.user_profiles).
-        // Until then it stays 'free' — the Pro gate simply won't unlock yet.
-      } else {
+      if (!u) {
         set({ status: 'anon', user: null, subscriptionStatus: 'free' });
+        return;
       }
+      set({
+        status: 'authed',
+        user: { id: u.id, email: u.email, name: u.name ?? undefined },
+      });
+      // Read entitlement. RLS returns only this user's own row (or none, for
+      // a user who has never paid) — treat "no row" / any error as 'free'.
+      // subscription_status is never client-writable, so this can't be forged.
+      let subscriptionStatus: SubscriptionStatus = 'free';
+      try {
+        const res = await neon.from('user_profiles').select('subscription_status');
+        if (!res.error && res.data?.[0]?.subscription_status === 'pro') {
+          subscriptionStatus = 'pro';
+        }
+      } catch {
+        // default 'free'
+      }
+      set({ subscriptionStatus });
     } catch {
       set({ status: 'anon', user: null, subscriptionStatus: 'free' });
     }
