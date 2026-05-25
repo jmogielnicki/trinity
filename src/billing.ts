@@ -17,7 +17,16 @@ export async function startCheckout(): Promise<void> {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
-    window.alert('Could not start checkout. Please try again.');
+    let detail = '';
+    try {
+      detail = await res.text();
+    } catch {
+      // ignore
+    }
+    console.error('create-checkout failed', res.status, detail);
+    window.alert(
+      `Could not start checkout (HTTP ${res.status}).` + (detail ? `\n\n${detail.slice(0, 300)}` : ''),
+    );
     return;
   }
   const { url } = (await res.json()) as { url?: string };

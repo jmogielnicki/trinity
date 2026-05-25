@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getUserId, HttpError } from './_lib/auth';
-import { sql } from './_lib/db';
-import { stripe } from './_lib/stripe';
+import { getUserId, HttpError } from './_lib/auth.js';
+import { getSql } from './_lib/db.js';
+import { getStripe } from './_lib/stripe.js';
 
 /**
  * Creates a Stripe Checkout Session for one-time "lifetime Pro".
@@ -15,6 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   try {
+    const sql = getSql();
+    const stripe = getStripe();
     const userId = await getUserId(req);
 
     // Find or create this user's Stripe customer, recorded on their profile.
