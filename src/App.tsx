@@ -13,6 +13,7 @@ import { FrontierView } from './components/optimize/FrontierView';
 import { EvolveView } from './components/evolve/EvolveView';
 import { CompareScenariosView } from './components/compare/CompareScenariosView';
 import { AboutPanel } from './components/AboutPanel';
+import { AuthControl } from './components/auth/AuthControl';
 import { SaveScenarioModal } from './components/SaveScenarioModal';
 import { IconButton } from './components/ui/IconButton';
 import { NavTab } from './components/ui/NavTab';
@@ -218,6 +219,7 @@ export function App() {
                   Save strategy
                 </button>
               )}
+              <AuthControl />
               <button
                 className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
                 onClick={() => setAboutOpen((v) => !v)}
