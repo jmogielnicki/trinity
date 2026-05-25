@@ -103,6 +103,17 @@ export function App() {
     };
   }, [setData, setPool]);
 
+  // Returning from Stripe Checkout: re-read entitlement (the webhook may have
+  // just flipped the user to 'pro') and strip the marker from the URL.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (!params.has('upgrade')) return;
+    void useAuthStore.getState().refresh();
+    params.delete('upgrade');
+    const qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
+  }, []);
+
   // Hydrate from URL hash on first load.
   useEffect(() => {
     const parsedRaw = tryDeserialize(location.hash);

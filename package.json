@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && tsc --noEmit -p api/tsconfig.json && vite build",
+    "typecheck:api": "tsc --noEmit -p api/tsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -22,8 +23,10 @@
     "d3": "^7.9.0",
     "highcharts": "^12.6.0",
     "highcharts-react-official": "^3.2.3",
+    "jose": "^6.2.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "stripe": "^22.1.1",
     "tailwindcss": "^4.3.0",
     "zustand": "^5.0.2"
   },
@@ -33,6 +36,7 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@types/ws": "^8.18.1",
+    "@vercel/node": "^5.8.4",
     "@vitejs/plugin-react": "^4.3.4",
     "exceljs": "^4.4.0",
     "tsx": "^4.19.2",
