@@ -172,7 +172,9 @@ export function App() {
   // a rigid unit instead of desyncing into jitter. The easing also spreads a
   // large discrete wheel jump over a few frames so the collapse never snaps.
   useEffect(() => {
-    const SCROLL_RANGE = 35;
+    // Kept just under the tab bar's 16px top margin so the header finishes
+    // collapsing before the tabs below begin tucking under it.
+    const SCROLL_RANGE = 14;
     const EASE = 0.3; // fraction of remaining distance closed per frame
     const root = document.documentElement;
     const clamp = () => Math.min(1, Math.max(0, window.scrollY / SCROLL_RANGE));
