@@ -159,7 +159,7 @@ export function CompareScenariosView() {
         <>
           <ComparisonTable entries={entries} />
           <SharedLegend entries={entries} />
-          <div className="grid grid-cols-3 gap-3 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
             <TerminalBalanceChart entries={entries} />
             <AverageSpendChart entries={entries} />
             <ScatterPlot entries={entries} />
@@ -195,6 +195,23 @@ function SharedLegend({ entries }: { entries: CompareEntry[] }) {
 // ---------------------------------------------------------------------------
 
 function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
+  const tableRef = useRef<HTMLDivElement>(null);
+  // Redirect vertical wheel events to window — same pattern as the tab bar in App.tsx.
+  // Prevents diagonal trackpad gestures from locking to horizontal scroll inside the
+  // overflow-x-auto container and swallowing the vertical component.
+  useEffect(() => {
+    const el = tableRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
+      }
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
   // Find the leader on each "higher is better" metric so we can highlight it.
   const best = (pick: (e: CompareEntry) => number) => {
     let bv = -Infinity;
@@ -217,7 +234,7 @@ function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
   const tdCls = 'px-2 py-1.5 border-b border-border-light whitespace-nowrap';
 
   return (
-    <div className="overflow-x-auto">
+    <div ref={tableRef} className="overflow-x-auto overscroll-x-contain">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
