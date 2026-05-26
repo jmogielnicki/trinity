@@ -3,8 +3,20 @@ import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
 import { fmtMoney } from '../../engine/strategyDescriptions';
+import { quantile } from '../../engine/stats';
 import type { CompareEntry } from '../../store/compareScenariosStore';
 import { colorAt, withAlpha } from './compareColors';
+
+type BoxPoint = {
+  low: number;
+  q1: number;
+  median: number;
+  q3: number;
+  high: number;
+  color: string;
+  fillColor: string;
+  medianColor: string;
+};
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -48,87 +60,38 @@ function ChartCard({
 }
 
 // ---------------------------------------------------------------------------
-// Success rate — horizontal bars, one per scenario
+// Distribution boxplots — p5 / p25 / median / p75 / p95 (shared)
 // ---------------------------------------------------------------------------
 
-export function SuccessRateChart({ entries }: { entries: CompareEntry[] }) {
-  const categories = entries.map((e) => truncate(e.saved.name, 24));
-  const data = entries.map((e, i) => ({
-    y: Number.isFinite(e.metrics.successRate)
-      ? e.metrics.successRate * 100
-      : null,
-    color: colorAt(i),
-  }));
-
-  const options: Options = useMemo(
-    () => ({
-      chart: {
-        type: 'bar',
-        width: null as any,
-        height: Math.max(140, entries.length * 34 + 56),
-        margin: [10, 44, 28, 12],
-      },
-      xAxis: {
-        categories,
-        labels: { style: { fontSize: '11px' } },
-      },
-      yAxis: {
-        min: 0,
-        max: 100,
-        title: { text: '' },
-        labels: { format: '{value}%' },
-      },
-      tooltip: {
-        formatter() {
-          return `<b>${this.key}</b><br/>${(this.y ?? 0).toFixed(1)}% historical success`;
-        },
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 2,
-          dataLabels: {
-            enabled: true,
-            formatter() {
-              return this.y == null ? '—' : `${(this.y as number).toFixed(0)}%`;
-            },
-            style: { fontSize: '11px', fontWeight: 'normal', textOutline: 'none' },
-          },
-        },
-      },
-      legend: { enabled: false },
-      series: [{ type: 'bar', data, colorByPoint: true } as any],
-    }),
-    [categories, data, entries.length],
-  );
-
-  return (
-    <ChartCard title="Success rate">
-      <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
-    </ChartCard>
-  );
+function boxPoint(
+  i: number,
+  q: { p5: number; p25: number; p50: number; p75: number; p95: number },
+): BoxPoint {
+  const color = colorAt(i);
+  return {
+    low: q.p5,
+    q1: q.p25,
+    median: q.p50,
+    q3: q.p75,
+    high: q.p95,
+    color,
+    fillColor: withAlpha(color, 0.22),
+    medianColor: color,
+  };
 }
 
-// ---------------------------------------------------------------------------
-// Outcome distribution — p5 / p25 / median / p75 / p95 of final balance
-// ---------------------------------------------------------------------------
-
-export function OutcomeDistributionChart({ entries }: { entries: CompareEntry[] }) {
+function DistributionBoxplot({
+  title,
+  axisTitle,
+  entries,
+  data,
+}: {
+  title: string;
+  axisTitle: string;
+  entries: CompareEntry[];
+  data: BoxPoint[];
+}) {
   const categories = entries.map((e) => truncate(e.saved.name, 24));
-  const data = entries.map((e, i) => {
-    const m = e.metrics;
-    const color = colorAt(i);
-    return {
-      low: m.p5Final,
-      q1: m.p25Final,
-      median: m.p50Final,
-      q3: m.p75Final,
-      high: m.p95Final,
-      color,
-      fillColor: withAlpha(color, 0.22),
-      medianColor: color,
-    };
-  });
-
   const options: Options = useMemo(
     () => ({
       chart: {
@@ -138,13 +101,10 @@ export function OutcomeDistributionChart({ entries }: { entries: CompareEntry[] 
         height: Math.max(150, entries.length * 38 + 56),
         margin: [10, 16, 36, 12],
       },
-      xAxis: {
-        categories,
-        labels: { style: { fontSize: '11px' } },
-      },
+      xAxis: { categories, labels: { style: { fontSize: '11px' } } },
       yAxis: {
         min: 0,
-        title: { text: 'final balance (real $)' },
+        title: { text: axisTitle },
         labels: {
           formatter() {
             return moneyAxis(this.value as number);
@@ -164,22 +124,68 @@ export function OutcomeDistributionChart({ entries }: { entries: CompareEntry[] 
         },
       },
       plotOptions: {
-        boxplot: {
-          lineWidth: 1.5,
-          medianWidth: 3,
-          whiskerLength: '60%',
-        },
+        boxplot: { lineWidth: 1.5, medianWidth: 3, whiskerLength: '60%' },
       },
       legend: { enabled: false },
       series: [{ type: 'boxplot', data } as any],
     }),
-    [categories, data, entries.length],
+    [categories, data, axisTitle, entries.length],
   );
 
   return (
-    <ChartCard title="Final-balance distribution (p5–p95, median bar)">
+    <ChartCard title={title}>
       <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
     </ChartCard>
+  );
+}
+
+export function FinalBalanceDistributionChart({ entries }: { entries: CompareEntry[] }) {
+  const data = entries.map((e, i) =>
+    boxPoint(i, {
+      p5: e.metrics.p5Final,
+      p25: e.metrics.p25Final,
+      p50: e.metrics.p50Final,
+      p75: e.metrics.p75Final,
+      p95: e.metrics.p95Final,
+    }),
+  );
+  return (
+    <DistributionBoxplot
+      title="Final-balance distribution (p5–p95, median bar)"
+      axisTitle="final balance (real $)"
+      entries={entries}
+      data={data}
+    />
+  );
+}
+
+/** Distribution of per-sim average annual spend, over completed observed sims. */
+function spendQuantiles(e: CompareEntry) {
+  const means: number[] = [];
+  for (const s of e.result.sims) {
+    if (s.bootstrapped || s.inProgress || s.trajectory.length === 0) continue;
+    const sum = s.trajectory.reduce((acc, r) => acc + r.withdrawal, 0);
+    means.push(sum / s.trajectory.length);
+  }
+  means.sort((a, b) => a - b);
+  return {
+    p5: quantile(means, 0.05),
+    p25: quantile(means, 0.25),
+    p50: quantile(means, 0.5),
+    p75: quantile(means, 0.75),
+    p95: quantile(means, 0.95),
+  };
+}
+
+export function SpendDistributionChart({ entries }: { entries: CompareEntry[] }) {
+  const data = entries.map((e, i) => boxPoint(i, spendQuantiles(e)));
+  return (
+    <DistributionBoxplot
+      title="Avg annual spend distribution (p5–p95, median bar)"
+      axisTitle="avg annual spend (real $)"
+      entries={entries}
+      data={data}
+    />
   );
 }
 

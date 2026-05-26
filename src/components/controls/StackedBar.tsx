@@ -10,8 +10,6 @@ type Props = {
   onChange: (weights: Weights[]) => void;
   width?: number;
   height?: number;
-  /** When false, render a static read-only bar with no drag handles. */
-  interactive?: boolean;
 };
 
 export function pixelsToWeights(bondTop: number, cashTop: number, innerH: number): Weights {
@@ -36,7 +34,6 @@ export function StackedBar({
   onChange,
   width = 280,
   height = 200,
-  interactive = true,
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [local, setLocal] = useState<Weights[]>(weights);
@@ -211,7 +208,7 @@ export function StackedBar({
     <svg ref={svgRef} width={width} height={height} className="block touch-none select-none">
       {renderBands()}
       {renderLabels()}
-      {interactive && renderHandles()}
+      {renderHandles()}
       {renderColumnLabels()}
     </svg>
   );

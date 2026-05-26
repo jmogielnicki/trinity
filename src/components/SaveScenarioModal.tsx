@@ -8,8 +8,8 @@ import { IconButton } from './ui/IconButton';
 import {
   fmtMoney,
   describeAllocation, describeWithdrawal,
-  allocTypeName, wdTypeName,
-  allocRows, wdRows,
+  allocTypeName, wdTypeName, srcTypeName,
+  allocRows, wdRows, srcRows,
 } from '../engine/strategyDescriptions';
 import type { AllocationStrategy, WithdrawalStrategy } from '../engine/strategies';
 
@@ -65,6 +65,7 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
 
   const aRows = allocRows(scenario.allocation);
   const wRows = wdRows(scenario.withdrawal);
+  const sRows = srcRows(scenario.withdrawalSource);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -102,7 +103,7 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
               </Fragment>
             ))}
 
-            {/* Withdrawal section */}
+            {/* Withdrawal strategy section */}
             <div className="col-span-2 mt-2.5 pt-2.5 border-t border-border-light">
               <span className="text-2xs font-semibold text-text-muted uppercase tracking-widest">
                 Withdrawal
@@ -112,6 +113,22 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
               </span>
             </div>
             {wRows.map(([label, value]) => (
+              <Fragment key={label}>
+                <div className="text-text-muted">{label}</div>
+                <div className="text-text font-medium">{value}</div>
+              </Fragment>
+            ))}
+
+            {/* Withdrawal source section */}
+            <div className="col-span-2 mt-2.5 pt-2.5 border-t border-border-light">
+              <span className="text-2xs font-semibold text-text-muted uppercase tracking-widest">
+                Source
+              </span>
+              <span className="ml-1.5 text-sm font-medium text-text-secondary">
+                — {srcTypeName(scenario.withdrawalSource)}
+              </span>
+            </div>
+            {sRows.map(([label, value]) => (
               <Fragment key={label}>
                 <div className="text-text-muted">{label}</div>
                 <div className="text-text font-medium">{value}</div>

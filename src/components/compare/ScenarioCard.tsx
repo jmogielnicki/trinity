@@ -1,10 +1,13 @@
+import { Fragment } from 'react';
 import type { AllocationStrategy, WithdrawalStrategy } from '../../engine/strategies';
-import type { Weights } from '../../engine/types';
-import { StackedBar } from '../controls/StackedBar';
+import type { WithdrawalSource } from '../../engine/withdrawalSource';
 import {
-  describeWithdrawal,
-  describeAllocation,
-  fmtMoney,
+  allocTypeName,
+  wdTypeName,
+  srcTypeName,
+  allocRows,
+  wdRows,
+  srcRows,
 } from '../../engine/strategyDescriptions';
 
 type Props = {
@@ -16,42 +19,39 @@ type Props = {
   disabled: boolean;
   allocation: AllocationStrategy;
   withdrawal: WithdrawalStrategy;
-  horizonYears: number;
-  initialBalance: number;
+  withdrawalSource?: WithdrawalSource;
   isPreset?: boolean;
   description?: string;
   onToggle: () => void;
   onSave?: () => void;
+  onDelete?: () => void;
 };
 
-/**
- * Turn an allocation strategy into the column weights the StackedBar draws.
- * Glide/rising strategies become two columns (start → end); everything with a
- * representative single mix becomes one. Custom JS strategies have no static
- * mix to show, so we return null and render a placeholder instead.
- */
-function allocToBars(
-  a: AllocationStrategy,
-): { bars: Weights[]; labels?: string[] } | null {
-  switch (a.type) {
-    case 'static':
-      return { bars: [a.weights] };
-    case 'glidepath':
-      return { bars: [a.start, a.end], labels: ['yr 0', `yr ${a.transitionYears}`] };
-    case 'risingEquity':
-      return { bars: [a.start, a.end], labels: ['yr 0', `yr ${a.years}`] };
-    case 'linearDrift':
-      return { bars: [a.start] };
-    case 'ruleBased':
-      return { bars: [a.base] };
-    case 'ageInBonds': {
-      const bond = Math.max(0, Math.min(1, a.currentAge / 100));
-      return { bars: [{ stock: 1 - bond, bond, cash: 0 }] };
-    }
-    case 'custom':
-    case 'customSrc':
-      return null;
-  }
+function Section({
+  label,
+  type,
+  rows,
+}: {
+  label: string;
+  type: string;
+  rows: [string, string][];
+}) {
+  return (
+    <>
+      <div className="col-span-2 mt-1.5 first:mt-0">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+          {label}
+        </span>
+        <span className="ml-1 text-2xs text-text-secondary">— {type}</span>
+      </div>
+      {rows.map(([k, v]) => (
+        <Fragment key={k}>
+          <div className="text-text-muted">{k}</div>
+          <div className="text-text font-medium truncate">{v}</div>
+        </Fragment>
+      ))}
+    </>
+  );
 }
 
 export function ScenarioCard({
@@ -61,15 +61,13 @@ export function ScenarioCard({
   disabled,
   allocation,
   withdrawal,
-  horizonYears,
-  initialBalance,
+  withdrawalSource,
   isPreset,
   description,
   onToggle,
   onSave,
+  onDelete,
 }: Props) {
-  const alloc = allocToBars(allocation);
-
   return (
     <div
       role="button"
@@ -84,62 +82,61 @@ export function ScenarioCard({
           onToggle();
         }
       }}
-      className={`group flex flex-col gap-2 rounded-lg border-2 p-2.5 transition-colors ${
+      className={`group flex flex-col gap-1.5 rounded-lg border-2 p-2.5 transition-colors ${
         disabled
           ? 'cursor-not-allowed opacity-50 border-border-light bg-surface-page'
           : 'cursor-pointer bg-surface-page hover:bg-surface-hover'
       } ${selected ? '' : 'border-border-light'}`}
       style={selected && color ? { borderColor: color } : undefined}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="font-medium text-sm text-text truncate">{name}</div>
-          <div className="text-xs text-text-faint truncate">
-            {describeWithdrawal(withdrawal)} · {horizonYears}y · {fmtMoney(initialBalance)}
-          </div>
+      <div className="flex items-start justify-between gap-1.5">
+        <div className="font-medium text-sm text-text leading-tight min-w-0 truncate">
+          {name}
         </div>
-        <span
-          className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center text-[10px] leading-none text-white"
-          style={
-            selected && color
-              ? { background: color, borderColor: color }
-              : { borderColor: 'var(--color-text-disabled)' }
-          }
-        >
-          {selected ? '✓' : ''}
-        </span>
-      </div>
-
-      <div className="flex justify-center">
-        {alloc ? (
-          <StackedBar
-            weights={alloc.bars}
-            columnLabels={alloc.labels}
-            onChange={() => {}}
-            interactive={false}
-            width={alloc.bars.length > 1 ? 200 : 130}
-            height={84}
-          />
-        ) : (
-          <div className="w-[130px] h-[84px] rounded-sm bg-surface-hover border border-border-light flex items-center justify-center text-xs text-text-faint">
-            custom mix
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-2 text-xs text-text-secondary">
-        <span className="truncate">{describeAllocation(allocation)}</span>
-        {isPreset && onSave && (
-          <button
-            className="flex-shrink-0 px-1.5 py-[2px] border border-text-disabled rounded-[3px] text-2xs text-text-secondary hover:bg-surface-hover"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSave();
-            }}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {isPreset && onSave && (
+            <button
+              className="px-1.5 py-[2px] border border-text-disabled rounded-[3px] text-2xs text-text-secondary hover:bg-surface-hover"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSave();
+              }}
+            >
+              Save
+            </button>
+          )}
+          {!isPreset && onDelete && (
+            <button
+              aria-label="Delete scenario"
+              title="Delete scenario"
+              className="w-5 h-5 flex items-center justify-center rounded-[3px] text-text-faint hover:text-error hover:bg-surface-hover"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 5v6m4-6v6" />
+              </svg>
+            </button>
+          )}
+          <span
+            className="w-4 h-4 rounded-full border-2 flex items-center justify-center text-[10px] leading-none text-white"
+            style={
+              selected && color
+                ? { background: color, borderColor: color }
+                : { borderColor: 'var(--color-text-disabled)' }
+            }
           >
-            Save
-          </button>
-        )}
+            {selected ? '✓' : ''}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-px text-2xs items-baseline">
+        <Section label="Allocation" type={allocTypeName(allocation)} rows={allocRows(allocation)} />
+        <Section label="Withdrawal" type={wdTypeName(withdrawal)} rows={wdRows(withdrawal)} />
+        <Section label="Source" type={srcTypeName(withdrawalSource)} rows={srcRows(withdrawalSource)} />
       </div>
     </div>
   );

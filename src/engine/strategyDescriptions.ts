@@ -1,4 +1,5 @@
 import type { AllocationStrategy, WithdrawalStrategy } from './strategies';
+import type { WithdrawalSource } from './withdrawalSource';
 
 export function pct(n: number): string {
   return `${(n * 100).toFixed(2).replace(/\.?0+$/, '')}%`;
@@ -48,6 +49,17 @@ export function describeAllocation(a: AllocationStrategy): string {
   }
 }
 
+const DEFAULT_SOURCE: WithdrawalSource = { type: 'proportional', rebalance: true };
+
+export function describeSource(s?: WithdrawalSource): string {
+  const src = s ?? DEFAULT_SOURCE;
+  switch (src.type) {
+    case 'proportional': return src.rebalance ? 'proportional, rebalanced' : 'proportional, drift';
+    case 'waterfall':    return `waterfall ${src.order.join('→')}`;
+    case 'bucket':       return `bucket ${src.order.join('→')}`;
+  }
+}
+
 // ── Detailed breakdown for the save modal ────────────────────────────────────
 
 export function allocTypeName(a: AllocationStrategy): string {
@@ -60,6 +72,15 @@ export function allocTypeName(a: AllocationStrategy): string {
     case 'ruleBased':    return 'Rule-based';
     case 'custom':
     case 'customSrc':    return 'Custom';
+  }
+}
+
+export function srcTypeName(s?: WithdrawalSource): string {
+  const src = s ?? DEFAULT_SOURCE;
+  switch (src.type) {
+    case 'proportional': return 'Proportional';
+    case 'waterfall':    return 'Waterfall';
+    case 'bucket':       return 'Bucket';
   }
 }
 
@@ -218,5 +239,22 @@ export function wdRows(w: WithdrawalStrategy): [string, string][] {
     case 'custom':
     case 'customSrc':
       return [['Formula', 'Custom JS function']];
+  }
+}
+
+export function srcRows(s?: WithdrawalSource): [string, string][] {
+  const src = s ?? DEFAULT_SOURCE;
+  switch (src.type) {
+    case 'proportional':
+      return [['Rebalance', src.rebalance ? 'To target yearly' : 'No — sleeves drift']];
+    case 'waterfall':
+      return [['Spend order', src.order.join(' → ')]];
+    case 'bucket': {
+      const rows: [string, string][] = [['Spend order', src.order.join(' → ')]];
+      src.refill.forEach((r) =>
+        rows.push(['Refill', `${r.sourceSleeve} → ${r.targetSleeve}`]),
+      );
+      return rows;
+    }
   }
 }
