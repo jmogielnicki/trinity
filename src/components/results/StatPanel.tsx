@@ -21,9 +21,9 @@ export function StatPanel({ result }: Props) {
   const hasProjection = result.projectedSuccessRate != null;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 mb-4 items-stretch">
+    <div className="flex flex-col min-[450px]:flex-row gap-3 mb-4 items-stretch">
       <HeroSuccessCard rate={result.successRate} />
-      <div className="grid grid-cols-2 auto-rows-fr gap-3 w-full sm:max-w-[440px]">
+      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 auto-rows-fr gap-3 flex-1">
         {hasProjection && (
           <Stat
             label="Success rate (bootstrap-projected)"
@@ -62,7 +62,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function HeroSuccessCard({ rate }: { rate: number }) {
   return (
-    <div className="flex items-center justify-center sm:w-[200px] flex-shrink-0">
+    <div className="flex items-center justify-center min-[450px]:w-[220px] flex-shrink-0">
       {Number.isFinite(rate) ? (
         <SuccessDonut rate={rate} />
       ) : (
@@ -75,10 +75,10 @@ function HeroSuccessCard({ rate }: { rate: number }) {
 function SuccessDonut({ rate }: { rate: number }) {
   const clamped = Math.max(0, Math.min(1, rate));
   const pct = Math.floor(clamped * 100);
-  const D = 128;
+  const D = 160;
   const cx = D / 2;
-  const r = 52;
-  const sw = 16;
+  const r = 66;
+  const sw = 18;
   const c = 2 * Math.PI * r;
   return (
     <svg
@@ -103,10 +103,10 @@ function SuccessDonut({ rate }: { rate: number }) {
       </g>
       <text
         x={cx}
-        y={cx - 6}
+        y={cx - 8}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={30}
+        fontSize={38}
         fontWeight={700}
         fill={OUTCOME.survived}
       >
@@ -114,10 +114,10 @@ function SuccessDonut({ rate }: { rate: number }) {
       </text>
       <text
         x={cx}
-        y={cx + 19}
+        y={cx + 24}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={12}
+        fontSize={15}
         fontWeight={500}
         fill="#666"
       >
