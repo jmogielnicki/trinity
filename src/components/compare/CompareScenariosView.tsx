@@ -28,44 +28,43 @@ function successCls(r: number): string {
   return 'text-text';
 }
 
-// Compact survival summary — doubles as the color legend for every chart.
+// Survival summary — doubles as the color legend. Mirrors a chart card's
+// vertical structure (title line, top margin, plot area, bottom axis margin)
+// so its rows line up with the box-and-whisker rows in the same grid row.
 function SummaryTable({ entries }: { entries: CompareEntry[] }) {
-  const tdCls = 'px-2 py-1 border-b border-border-light whitespace-nowrap';
-  const thCls =
-    'px-2 py-1 text-left text-2xs font-medium text-text-muted uppercase tracking-[0.04em] whitespace-nowrap';
   return (
-    <div className="overflow-x-auto border border-border-light rounded bg-surface-page self-start">
-      <table className="border-collapse text-sm">
-        <thead>
-          <tr>
-            <th className={thCls}></th>
-            <th className={thCls}>Scenario</th>
-            <th className={`${thCls} text-right`}>Success</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e, i) => (
-            <tr key={e.saved.id}>
-              <td className={tdCls}>
-                <span
-                  className="inline-block w-3 h-3 rounded-sm"
-                  style={{ background: colorAt(i) }}
-                />
-              </td>
-              <td className={`${tdCls} font-medium text-text`}>{e.saved.name}</td>
-              <td
-                className={`${tdCls} text-right tabular-nums font-semibold ${successCls(
-                  e.metrics.successRate,
-                )}`}
-              >
-                {Number.isFinite(e.metrics.successRate)
-                  ? `${(e.metrics.successRate * 100).toFixed(1)}%`
-                  : '—'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="border border-border-light rounded p-2 bg-surface-page flex flex-col h-full min-w-0">
+      <div className="flex items-center justify-between gap-4 text-xs text-text-muted mb-1.5 px-1">
+        <span>Scenario</span>
+        <span>Success</span>
+      </div>
+      <div className="h-2.5 shrink-0" />
+      <div className="flex-1 flex flex-col">
+        {entries.map((e, i) => (
+          <div
+            key={e.saved.id}
+            className="flex-1 flex items-center justify-between gap-3 px-1"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <span
+                className="inline-block w-3 h-3 rounded-sm shrink-0"
+                style={{ background: colorAt(i) }}
+              />
+              <span className="text-sm font-medium text-text truncate">{e.saved.name}</span>
+            </span>
+            <span
+              className={`text-sm tabular-nums font-semibold ${successCls(
+                e.metrics.successRate,
+              )}`}
+            >
+              {Number.isFinite(e.metrics.successRate)
+                ? `${(e.metrics.successRate * 100).toFixed(1)}%`
+                : '—'}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="h-9 shrink-0" />
     </div>
   );
 }
@@ -222,7 +221,7 @@ export function CompareScenariosView() {
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_1fr] gap-3 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_1fr] gap-3">
             <SummaryTable entries={entries} />
             <FinalBalanceDistributionChart entries={entries} />
             <SpendDistributionChart entries={entries} />

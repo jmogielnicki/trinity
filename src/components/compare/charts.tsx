@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
@@ -81,9 +81,9 @@ function DistributionBoxplot({
         inverted: true,
         width: null as any,
         height: Math.max(150, entries.length * 38 + 56),
-        margin: [10, 16, 36, 12],
+        margin: [10, 16, 36, 8],
       },
-      xAxis: { categories, labels: { style: { fontSize: '11px' } } },
+      xAxis: { categories, labels: { enabled: false }, lineWidth: 0, tickWidth: 0 },
       yAxis: {
         min: 0,
         title: { text: axisTitle },
@@ -133,7 +133,7 @@ export function FinalBalanceDistributionChart({ entries }: { entries: CompareEnt
   );
   return (
     <DistributionBoxplot
-      title="Final-balance distribution (p5–p95, median bar)"
+      title="Final-balance percentiles (p5–p95, median bar)"
       axisTitle="final balance (real $)"
       entries={entries}
       data={data}
@@ -163,7 +163,7 @@ export function SpendDistributionChart({ entries }: { entries: CompareEntry[] })
   const data = entries.map((e, i) => boxPoint(i, spendQuantiles(e)));
   return (
     <DistributionBoxplot
-      title="Avg annual spend distribution (p5–p95, median bar)"
+      title="Avg annual spend percentiles (p5–p95, median bar)"
       axisTitle="avg annual spend (real $)"
       entries={entries}
       data={data}
@@ -262,16 +262,16 @@ export function MedianSpendChart({ entries }: { entries: CompareEntry[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Final-balance outcome buckets — grouped horizontal bars (bucket on y-axis,
-// one bar per scenario, colored consistently with the rest of the page)
+// Final-balance distribution — small-multiples bars (bucket per row, one
+// column per scenario, colored consistently with the rest of the page)
 // ---------------------------------------------------------------------------
 
 const BUCKETS: { label: string; test: (r: number) => boolean }[] = [
   { label: 'Depleted', test: (r) => r <= 0 },
   { label: '< 1×',     test: (r) => r > 0 && r < 1 },
-  { label: '1–2×',     test: (r) => r >= 1 && r < 2 },
-  { label: '2–3×',     test: (r) => r >= 2 && r < 3 },
-  { label: '> 3×',     test: (r) => r >= 3 },
+  { label: '1–3×',     test: (r) => r >= 1 && r < 3 },
+  { label: '3–10×',    test: (r) => r >= 3 && r < 10 },
+  { label: '> 10×',    test: (r) => r >= 10 },
 ];
 
 /** Share (and count) of completed start years that landed in each bucket. */
@@ -297,42 +297,54 @@ function bucketStats(e: CompareEntry): { pct: number; count: number; total: numb
 }
 
 export function FinalBalanceBucketChart({ entries }: { entries: CompareEntry[] }) {
-  const series = useMemo(
-    () =>
-      entries.map((e, i) => {
-        const stats = bucketStats(e);
-        return {
-          type: 'bar',
-          name: truncate(e.saved.name, 28),
-          color: colorAt(i),
-          data: stats.map((s) => ({ y: s.pct, custom: { count: s.count, total: s.total } })),
-        };
-      }),
-    [entries],
-  );
-
-  const options: Options = useMemo(
-    () => ({
-      chart: { type: 'bar', width: null as any, height: 320, margin: [10, 16, 28, 44] },
-      xAxis: { categories: BUCKETS.map((b) => b.label), labels: { style: { fontSize: '11px' } } },
-      yAxis: { min: 0, title: { text: '' }, labels: { format: '{value}%' } },
-      tooltip: {
-        formatter() {
-          const ctx = this as any;
-          const c = ctx.point?.custom ?? {};
-          return `<b>${ctx.series.name}</b><br/>${ctx.key}: ${c.count} of ${c.total} start years (${(ctx.y ?? 0).toFixed(0)}%)`;
-        },
-      },
-      plotOptions: { bar: { borderWidth: 0, groupPadding: 0.12, pointPadding: 0.02 } },
-      legend: { enabled: false },
-      series: series as any,
-    }),
-    [series],
-  );
+  const cols = entries.map((e, i) => ({
+    id: e.saved.id,
+    color: colorAt(i),
+    stats: bucketStats(e),
+  }));
+  const maxPct = Math.max(1, ...cols.flatMap((c) => c.stats.map((s) => s.pct)));
 
   return (
-    <ChartCard title="Where the final balance lands (× starting balance, share of start years)">
-      <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
+    <ChartCard title="Final-balance distribution">
+      <div
+        className="grid gap-x-2 gap-y-2 text-2xs items-center py-1"
+        style={{ gridTemplateColumns: `auto repeat(${cols.length}, minmax(0,1fr))` }}
+      >
+        {BUCKETS.map((b, bi) => (
+          <Fragment key={b.label}>
+            <div className="text-right text-text-secondary whitespace-nowrap pr-0.5">
+              {b.label}
+            </div>
+            {cols.map((c) => {
+              const s = c.stats[bi];
+              const w = (s.pct / maxPct) * 100;
+              const inside = w >= 32;
+              const label = `${Math.round(s.pct)}%`;
+              return (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-1"
+                  title={`${s.count} of ${s.total} start years (${label})`}
+                >
+                  <div
+                    className="h-[18px] rounded-[2px] flex items-center justify-center shrink-0"
+                    style={{
+                      width: `${w}%`,
+                      minWidth: s.pct > 0 ? 4 : 0,
+                      background: c.color,
+                    }}
+                  >
+                    {inside && <span className="text-white leading-none">{label}</span>}
+                  </div>
+                  {!inside && (
+                    <span className="text-text-secondary leading-none">{label}</span>
+                  )}
+                </div>
+              );
+            })}
+          </Fragment>
+        ))}
+      </div>
     </ChartCard>
   );
 }
