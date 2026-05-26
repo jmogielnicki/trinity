@@ -197,17 +197,17 @@ export function StartYearChart({
           <g key={`sg-${val}`}>
             <line x1={ml} x2={W - mr} y1={y} y2={y}
               stroke={val === 0 ? '#bbb' : '#ebebeb'} strokeWidth={val === 0 ? 1.5 : 1} />
-            <text x={ml - 6} y={y} dy="0.32em" textAnchor="end" fontSize={10} fill="#666">
+            <text x={ml - 6} y={y} dy="0.32em" textAnchor="end" fontSize={11} fill="#666">
               {fmt(val)}
             </text>
           </g>
         ))}
         {/* Y-axis label */}
         <text
-          transform={`translate(${ml - 56},${spendY0 + spendH / 2}) rotate(-90)`}
-          textAnchor="middle" fontSize={10} fill="#555"
+          transform={`translate(${ml - 60},${spendY0 + spendH / 2}) rotate(-90)`}
+          textAnchor="middle" fontSize={11} fill="#555"
         >
-          avg annual spend (real $)
+          avg annual spend
         </text>
         {/* Lines */}
         {completedSims.length > 1 && (
@@ -245,7 +245,7 @@ export function StartYearChart({
           <g key={`bg-${val}`}>
             <line x1={ml} x2={W - mr} y1={y} y2={y}
               stroke={val === 0 ? '#bbb' : '#ebebeb'} strokeWidth={val === 0 ? 1.5 : 1} />
-            <text x={ml - 6} y={y} dy="0.32em" textAnchor="end" fontSize={10} fill="#666">
+            <text x={ml - 6} y={y} dy="0.32em" textAnchor="end" fontSize={11} fill="#666">
               {fmt(val)}
             </text>
           </g>
@@ -255,13 +255,13 @@ export function StartYearChart({
           y1={balYOf(initialBalance)} y2={balYOf(initialBalance)}
           stroke="#4a90d9" strokeWidth={1} strokeDasharray="4,3" opacity={0.55} />
         <text x={W - mr + 5} y={balYOf(initialBalance)} dy="0.32em"
-          fontSize={9} fill="#4a90d9" opacity={0.8}>start</text>
+          fontSize={10} fill="#4a90d9" opacity={0.8}>start</text>
         {/* Y-axis label */}
         <text
-          transform={`translate(${ml - 56},${balY0 + balH / 2}) rotate(-90)`}
-          textAnchor="middle" fontSize={10} fill="#555"
+          transform={`translate(${ml - 60},${balY0 + balH / 2}) rotate(-90)`}
+          textAnchor="middle" fontSize={11} fill="#555"
         >
-          terminal balance (real $)
+          terminal balance
         </text>
         {/* Lines */}
         {completedSims.length > 1 && (
@@ -298,7 +298,7 @@ export function StartYearChart({
 
         {/* ══ Outcome barcode ═══════════════════════════════════════════════ */}
         <text x={ml - 6} y={stripY0 + stripH / 2} dy="0.32em"
-          textAnchor="end" fontSize={10} fill="#444">start yr</text>
+          textAnchor="end" fontSize={11} fill="#444">start yr</text>
         {sims.map((s) => {
           const x = ml + ((s.startYear - firstYear) / (span + 1)) * innerW;
           const isSelected = selectedYears?.has(s.startYear) ?? false;
@@ -319,7 +319,7 @@ export function StartYearChart({
         {ticks.map((y) => (
           <g key={`tick-${y}`} transform={`translate(${xOf(y)},${stripY0 + stripH})`}>
             <line y1={0} y2={4} stroke="#888" />
-            <text y={16} textAnchor="middle" fontSize={10} fill="#666">{y}</text>
+            <text y={16} textAnchor="middle" fontSize={11} fill="#666">{y}</text>
           </g>
         ))}
 
@@ -388,7 +388,7 @@ export function StartYearChart({
                 filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))" />
               {lines.map((l, i) => (
                 <text key={i} x={ttX + 9} y={ttY + 13 + i * 15}
-                  fontSize={10} fill={l.bold ? '#111' : '#555'}
+                  fontSize={11} fill={l.bold ? '#111' : '#555'}
                   fontWeight={l.bold ? '600' : 'normal'}>
                   {l.text}
                 </text>
