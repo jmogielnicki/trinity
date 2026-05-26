@@ -42,7 +42,12 @@ export function App() {
   const subscriptionStatus = useAuthStore((s) => s.subscriptionStatus);
   // Gate the advanced tabs only when auth is actually configured — an
   // unprovisioned build (no Neon env) stays fully open, like before.
-  const proGated = authConfigured && subscriptionStatus !== 'pro';
+  // VITE_DISABLE_PRO_GATE force-opens them regardless; set it on Vercel
+  // Preview deploys so testing doesn't require sign-in (never set in prod).
+  const proGated =
+    authConfigured &&
+    subscriptionStatus !== 'pro' &&
+    !import.meta.env.VITE_DISABLE_PRO_GATE;
   const [topMode, setTopMode] = useState<TopMode>('single');
   const tabBarRef = useRef<HTMLDivElement>(null);
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
