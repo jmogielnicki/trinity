@@ -234,7 +234,7 @@ export function SpaghettiChart({
       chart: {
         width: null as any,
         height,
-        margin: [16, 16, 36, 72],
+        margin: [16, 16, 36, 86],
         zooming: { type: 'xy' } as any,
         events: {
           click: clickHandler,
