@@ -21,9 +21,9 @@ export function StatPanel({ result }: Props) {
   const hasProjection = result.projectedSuccessRate != null;
 
   return (
-    <div className="flex flex-col min-[450px]:flex-row gap-3 mb-4 items-stretch">
+    <div className="flex flex-col min-[450px]:flex-row gap-3 mb-4 items-stretch min-[1100px]:items-start">
       <HeroSuccessCard rate={result.successRate} />
-      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 auto-rows-fr gap-3 flex-1">
+      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 auto-rows-fr min-[1100px]:auto-rows-min gap-3 flex-1">
         {hasProjection && (
           <Stat
             label="Success rate (bootstrap-projected)"
@@ -82,10 +82,8 @@ function SuccessDonut({ rate }: { rate: number }) {
   const c = 2 * Math.PI * r;
   return (
     <svg
-      width={D}
-      height={D}
       viewBox={`0 0 ${D} ${D}`}
-      className="flex-shrink-0"
+      className="flex-shrink-0 w-40 h-40 min-[1100px]:w-32 min-[1100px]:h-32"
       role="img"
       aria-label={`${pct} percent success`}
     >
