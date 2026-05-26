@@ -31,7 +31,9 @@ function mkResult(
     metrics: {
       successRate,
       p5Final: p50Final * 0.5,
+      p25Final: p50Final * 0.75,
       p50Final,
+      p75Final: p50Final * 1.25,
       p95Final,
       avgAnnualWithdrawal,
       avgYearsNearDepletion: 0,

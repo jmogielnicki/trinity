@@ -13,6 +13,10 @@ export type CandidateMetrics = {
   p50Final: number;
   /** 5th-percentile final balance (downside). */
   p5Final: number;
+  /** 25th-percentile final balance (lower quartile). */
+  p25Final: number;
+  /** 75th-percentile final balance (upper quartile). */
+  p75Final: number;
   /** 95th-percentile final balance (upside). */
   p95Final: number;
   /**
@@ -125,7 +129,9 @@ export function metricsFromResult(
 ): CandidateMetrics {
   const finals = finalBalances(result);
   const p5 = finals.length ? weightedQuantile(finals, 0.05) : NaN;
+  const p25 = finals.length ? weightedQuantile(finals, 0.25) : NaN;
   const p50 = finals.length ? weightedQuantile(finals, 0.5) : NaN;
+  const p75 = finals.length ? weightedQuantile(finals, 0.75) : NaN;
   const p95 = finals.length ? weightedQuantile(finals, 0.95) : NaN;
 
   // Per-sim averages: only count completed sims (in-progress sims have
@@ -161,7 +167,9 @@ export function metricsFromResult(
     // otherwise the observed historical rate.
     successRate: result.projectedSuccessRate ?? result.successRate,
     p5Final: p5,
+    p25Final: p25,
     p50Final: p50,
+    p75Final: p75,
     p95Final: p95,
     avgAnnualWithdrawal,
     avgYearsNearDepletion,
