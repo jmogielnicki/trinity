@@ -462,7 +462,7 @@ export function App() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-text mb-1.5">Outcomes by retirement start year</h3>
+                    <h3 className="text-sm font-medium text-text mb-1.5">Spending and final balance by retirement start year (real $)</h3>
                     <StartYearChart
                       result={result}
                       initialBalance={scenario.initialBalance}
