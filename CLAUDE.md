@@ -397,9 +397,11 @@ Toggle two scenarios A/B. Spaghetti view shows both fans in different colors wit
 - **Data**: shipped as a single \~50KB gzipped JSON in `/public/data/historical.json`.  
 - **Testing**: Vitest for the sim engine (golden-master tests against published Trinity Study / Bengen results). Playwright for one or two end-to-end smoke tests.
 
-### **Why no backend**
+### **Why (almost) no backend**
 
-The whole simulation is \< 100MB of computed numbers worst case, and most sweeps finish in under a second on a modern laptop. Adding a backend buys nothing, costs latency, and complicates deploys.
+The whole simulation is \< 100MB of computed numbers worst case, and most sweeps finish in under a second on a modern laptop. The simulation engine stays entirely client-side — a backend buys nothing for compute, costs latency, and complicates deploys.
+
+> **Update (freemium layer added later):** there is now a **minimal Stripe-only** backend — two Vercel serverless functions in `api/` for one-time "Pro" checkout + webhook. Identity is **Neon Auth** and cloud-saved scenarios go through the **Neon Data API + RLS** (no custom scenario endpoints). The engine is still 100% client-side. Anonymous users get the full calculator with local saves; this layer is purely for accounts, cloud saves, and unlocking the advanced tabs. See **`AUTH_PLAN.md`** for the full design and `AGENTS.md` §10 for the short version.
 
 ## **8\. File Structure**
 
