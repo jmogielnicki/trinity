@@ -22,11 +22,8 @@ export function StatPanel({ result }: Props) {
 
   return (
     <div className="flex flex-col sm:flex-row gap-3 mb-4 items-stretch">
-      <HeroSuccessCard
-        label={hasProjection ? 'Success rate (observed)' : '% success'}
-        rate={result.successRate}
-      />
-      <div className="grid grid-cols-2 auto-rows-fr gap-3 flex-1">
+      <HeroSuccessCard rate={result.successRate} />
+      <div className="grid grid-cols-2 auto-rows-fr gap-3 w-full sm:max-w-[440px]">
         {hasProjection && (
           <Stat
             label="Success rate (bootstrap-projected)"
@@ -63,10 +60,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function HeroSuccessCard({ label, rate }: { label: string; rate: number }) {
+function HeroSuccessCard({ rate }: { rate: number }) {
   return (
-    <div className="bg-surface rounded-md shadow-card border-t-2 border-survived px-4 py-3 flex flex-col items-center justify-center text-center sm:w-[196px] flex-shrink-0">
-      <div className="text-xs text-text-muted uppercase tracking-[0.04em] mb-2">{label}</div>
+    <div className="flex items-center justify-center sm:w-[200px] flex-shrink-0">
       {Number.isFinite(rate) ? (
         <SuccessDonut rate={rate} />
       ) : (
@@ -78,10 +74,11 @@ function HeroSuccessCard({ label, rate }: { label: string; rate: number }) {
 
 function SuccessDonut({ rate }: { rate: number }) {
   const clamped = Math.max(0, Math.min(1, rate));
-  const D = 96;
+  const pct = Math.floor(clamped * 100);
+  const D = 128;
   const cx = D / 2;
-  const r = 39;
-  const sw = 10;
+  const r = 52;
+  const sw = 16;
   const c = 2 * Math.PI * r;
   return (
     <svg
@@ -90,7 +87,7 @@ function SuccessDonut({ rate }: { rate: number }) {
       viewBox={`0 0 ${D} ${D}`}
       className="flex-shrink-0"
       role="img"
-      aria-label={`${(clamped * 100).toFixed(1)} percent success`}
+      aria-label={`${pct} percent success`}
     >
       <g transform={`translate(${cx},${cx})`}>
         <circle r={r} fill="none" stroke={OUTCOME.depleted} strokeWidth={sw} />
@@ -106,14 +103,25 @@ function SuccessDonut({ rate }: { rate: number }) {
       </g>
       <text
         x={cx}
-        y={cx}
+        y={cx - 6}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={19}
-        fontWeight={600}
+        fontSize={30}
+        fontWeight={700}
         fill={OUTCOME.survived}
       >
-        {`${(clamped * 100).toFixed(1)}%`}
+        {`${pct}%`}
+      </text>
+      <text
+        x={cx}
+        y={cx + 19}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight={500}
+        fill="#666"
+      >
+        success
       </text>
     </svg>
   );
