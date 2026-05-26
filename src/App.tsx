@@ -9,6 +9,7 @@ import { Legend } from './components/results/Legend';
 import { StartYearChart } from './components/results/StartYearChart';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
+import { QuickSelectYears } from './components/results/QuickSelectYears';
 import { FrontierView } from './components/optimize/FrontierView';
 import { EvolveView } from './components/evolve/EvolveView';
 import { CompareScenariosView } from './components/compare/CompareScenariosView';
@@ -449,6 +450,7 @@ export function App() {
                 <StatPanel result={result} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                   <div className="min-w-0">
+                    <h3 className="text-sm font-medium text-text mb-1.5">Portfolio balance over time</h3>
                     <SpaghettiChart
                       result={result}
                       overlay={null}
@@ -456,20 +458,28 @@ export function App() {
                       onToggle={toggleYear}
                       onMarquee={marqueeYears}
                       onClear={clearSelection}
-                      height={400}
+                      height={320}
                     />
                   </div>
                   <div className="min-w-0">
+                    <h3 className="text-sm font-medium text-text mb-1.5">Outcomes by retirement start year</h3>
                     <StartYearChart
                       result={result}
                       initialBalance={scenario.initialBalance}
-                      height={400}
+                      height={320}
                       selectedYears={selectedYears}
                       onToggle={toggleYear}
                       onMarquee={marqueeYears}
                     />
                   </div>
                 </div>
+                <QuickSelectYears
+                  result={result}
+                  selectedYears={selectedYears}
+                  onSelect={(year, alreadySelected) =>
+                    alreadySelected ? clearSelection() : marqueeYears([year])
+                  }
+                />
                 {selectedYears.size > 0 && (
                   [...selectedYears].sort((a, b) => a - b).map((year) => {
                     const sim = result.sims.find(s => s.startYear === year);
