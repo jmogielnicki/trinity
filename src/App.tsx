@@ -480,6 +480,7 @@ export function App() {
                     alreadySelected ? clearSelection() : marqueeYears([year])
                   }
                 />
+                <Legend />
                 {selectedYears.size > 0 && (
                   [...selectedYears].sort((a, b) => a - b).map((year) => {
                     const sim = result.sims.find(s => s.startYear === year);
@@ -493,7 +494,6 @@ export function App() {
                     ) : null;
                   })
                 )}
-                <Legend />
               </>
             )}
             </>}

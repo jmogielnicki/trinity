@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 import type { ScenarioResult, SimulationResult } from '../../engine/types';
-import { ToggleButton } from '../ui/ToggleButton';
-import { TabBar } from '../ui/TabBar';
 
 type Props = {
   result: ScenarioResult;
@@ -43,16 +41,23 @@ export function QuickSelectYears({ result, selectedYears, onSelect }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2 mt-3">
       <span className="text-xs text-text-muted">Jump to a notable start year:</span>
-      <TabBar>
-        {picks.map((p) => {
-          const active = selectedYears.size === 1 && selectedYears.has(p.year);
-          return (
-            <ToggleButton key={p.key} active={active} onClick={() => onSelect(p.year, active)}>
-              {p.label} · {p.year}
-            </ToggleButton>
-          );
-        })}
-      </TabBar>
+      {picks.map((p) => {
+        const active = selectedYears.size === 1 && selectedYears.has(p.year);
+        return (
+          <button
+            key={p.key}
+            type="button"
+            onClick={() => onSelect(p.year, active)}
+            className={`text-xs font-medium px-3 py-1.5 rounded-md border cursor-pointer transition-colors duration-[120ms] ${
+              active
+                ? 'bg-secondary text-white border-secondary'
+                : 'bg-surface text-secondary border-secondary hover:bg-secondary hover:text-white'
+            }`}
+          >
+            {p.label} · {p.year}
+          </button>
+        );
+      })}
     </div>
   );
 }
