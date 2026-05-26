@@ -364,6 +364,8 @@ Remaining work, in rough priority:
 3. **OAuth (deferred).** Email/password only today. Adding Google/GitHub needs a router + `/auth/callback` route, the provider configured in Neon Auth, and the callback origin added to trusted domains (see §8 #2 and §12).
 4. **Optional polish.** Code-split the client bundle (Vite warns it's >500 kB) — unrelated to auth; purely a load-time nicety.
 
+**Preview testing:** set `VITE_DISABLE_PRO_GATE=1` in Vercel **scoped to Preview** (not Production) to force-open the Optimize/Evolve tabs without signing in — handy because each preview URL is a fresh origin (so you're signed out) and a signed-in account is only `free` anyway. Production stays gated.
+
 ---
 
 ## 12. Going live on a custom domain
