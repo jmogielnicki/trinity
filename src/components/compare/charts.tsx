@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
@@ -6,17 +6,6 @@ import { fmtMoney } from '../../engine/strategyDescriptions';
 import { quantile } from '../../engine/stats';
 import type { CompareEntry } from '../../store/compareScenariosStore';
 import { colorAt, withAlpha } from './compareColors';
-
-type BoxPoint = {
-  low: number;
-  q1: number;
-  median: number;
-  q3: number;
-  high: number;
-  color: string;
-  fillColor: string;
-  medianColor: string;
-};
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -32,32 +21,25 @@ function moneyAxis(v: number): string {
   return `$${Math.round(v)}`;
 }
 
-const STATIC_WD = new Set(['fixedPercent', 'fixedDollar']);
-
-/** Avg-spend-by-start-year is only interesting when some strategy spends dynamically. */
-export function hasDynamicSpend(entries: CompareEntry[]): boolean {
-  return entries.some((e) => !STATIC_WD.has(e.saved.state.withdrawal.type));
-}
-
-function ChartCard({
-  title,
-  right,
-  children,
-}: {
-  title: string;
-  right?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="border border-border-light rounded p-2 bg-surface-page min-w-0">
-      <div className="flex justify-between items-center gap-3 text-xs text-text-secondary mb-1.5">
-        <span>{title}</span>
-        {right}
-      </div>
+      <div className="text-xs text-text-secondary mb-1.5">{title}</div>
       {children}
     </div>
   );
 }
+
+type BoxPoint = {
+  low: number;
+  q1: number;
+  median: number;
+  q3: number;
+  high: number;
+  color: string;
+  fillColor: string;
+  medianColor: string;
+};
 
 // ---------------------------------------------------------------------------
 // Distribution boxplots — p5 / p25 / median / p75 / p95 (shared)
@@ -190,369 +172,167 @@ export function SpendDistributionChart({ entries }: { entries: CompareEntry[] })
 }
 
 // ---------------------------------------------------------------------------
-// Trajectory envelope — median balance over years into retirement
+// Lines over years-into-retirement — median balance and median spend
 // ---------------------------------------------------------------------------
 
-export function TrajectoryEnvelopeChart({ entries }: { entries: CompareEntry[] }) {
-  const [showBand, setShowBand] = useState(true);
-  const chartRef = useRef<HighchartsReact.RefObject>(null);
-
-  const seriesArr = useMemo(() => {
-    const out: any[] = [];
-    entries.forEach((e, i) => {
-      const color = colorAt(i);
-      const bands = e.result.percentiles;
-      if (showBand) {
-        out.push({
-          type: 'arearange',
-          name: `${truncate(e.saved.name, 24)} (25–75)`,
-          color,
-          lineWidth: 0,
-          fillOpacity: 0.14,
-          data: bands.map((b) => [b.t, b.values.p25, b.values.p75]),
-          enableMouseTracking: false,
-          showInLegend: false,
-          zIndex: 0,
-        });
-      }
-      out.push({
-        type: 'line',
-        name: truncate(e.saved.name, 28),
-        color,
-        lineWidth: 1.75,
-        marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
-        data: bands.map((b) => [b.t, b.values.p50]),
-        zIndex: 2,
-      });
-    });
-    return out;
-  }, [entries, showBand]);
-
-  const options: Options = useMemo(
-    () => ({
-      chart: {
-        type: 'line',
-        width: null as any,
-        height: 340,
-        margin: [16, 16, 48, 80],
-      },
-      xAxis: {
-        title: { text: 'years into retirement' },
-        labels: { style: { fontSize: '10px' } },
-        allowDecimals: false,
-      },
-      yAxis: {
-        min: 0,
-        title: { text: '' },
-        labels: {
-          formatter() {
-            return moneyAxis(this.value as number);
-          },
-        },
-      },
-      tooltip: {
+function timeSeriesOptions(series: any[]): Options {
+  return {
+    chart: { type: 'line', width: null as any, height: 320, margin: [16, 16, 48, 72] },
+    xAxis: {
+      title: { text: 'years into retirement' },
+      labels: { style: { fontSize: '10px' } },
+      allowDecimals: false,
+    },
+    yAxis: {
+      min: 0,
+      title: { text: '' },
+      labels: {
         formatter() {
-          const yr = this.x ?? 0;
-          return `<b>${this.series.name}</b><br/>Year ${yr}: ${fmtMoney(this.y ?? 0)} median balance`;
+          return moneyAxis(this.value as number);
         },
       },
-      legend: { enabled: false },
-      series: seriesArr,
-    }),
-    [seriesArr],
-  );
-
-  return (
-    <ChartCard
-      title="Median balance over time"
-      right={
-        <label className="flex items-center gap-1.5 cursor-pointer text-text-secondary">
-          <input
-            type="checkbox"
-            checked={showBand}
-            onChange={(e) => setShowBand(e.target.checked)}
-          />
-          25–75 band
-        </label>
-      }
-    >
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        ref={chartRef}
-        immutable={false}
-      />
-    </ChartCard>
-  );
+    },
+    tooltip: {
+      formatter() {
+        const yr = this.x ?? 0;
+        return `<b>${this.series.name}</b><br/>Year ${yr}: ${fmtMoney(this.y ?? 0)}`;
+      },
+    },
+    legend: { enabled: false },
+    series,
+  };
 }
 
-// ---------------------------------------------------------------------------
-// Avg annual spend by start year — one line per scenario (dynamic strategies)
-// ---------------------------------------------------------------------------
-
-export function SpendChart({ entries }: { entries: CompareEntry[] }) {
-  const chartRef = useRef<HighchartsReact.RefObject>(null);
-
-  const seriesArr = useMemo(() => {
-    return entries
-      .map((e, i) => {
-        const color = colorAt(i);
-        const completed = e.result.sims
-          .filter((s) => !s.inProgress)
-          .sort((a, b) => a.startYear - b.startYear);
-        const inProgress = e.result.sims
-          .filter((s) => s.inProgress)
-          .sort((a, b) => a.startYear - b.startYear);
-
-        const avgSpend = (s: (typeof completed)[number]) =>
-          s.trajectory.length > 0
-            ? s.trajectory.reduce((sum, y) => sum + y.withdrawal, 0) /
-              s.trajectory.length
-            : 0;
-
-        const completedData = completed.map((s) => [s.startYear, avgSpend(s)]);
-        const inProgressData = inProgress.map((s) => [s.startYear, avgSpend(s)]);
-
-        const series: any[] = [
-          {
-            type: 'line',
-            name: truncate(e.saved.name, 28),
-            color,
-            lineWidth: 1.5,
-            marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
-            data: completedData,
-            zIndex: 2,
-          },
-        ];
-
-        if (inProgressData.length > 0) {
-          series.push({
-            type: 'line',
-            name: `${truncate(e.saved.name, 24)} (in-progress)`,
-            color,
-            lineWidth: 1.5,
-            dashStyle: 'Dash',
-            opacity: 0.45,
-            marker: { enabled: false },
-            showInLegend: false,
-            linkedTo: ':previous',
-            data:
-              completedData.length > 0
-                ? [completedData[completedData.length - 1], ...inProgressData]
-                : inProgressData,
-            zIndex: 1,
-          });
-        }
-
-        return series;
-      })
-      .flat();
-  }, [entries]);
-
-  const options: Options = useMemo(
-    () => ({
-      chart: {
-        type: 'line',
-        width: null as any,
-        height: 340,
-        margin: [16, 16, 48, 80],
-      },
-      xAxis: {
-        title: { text: 'retirement start year' },
-        labels: { style: { fontSize: '10px' } },
-      },
-      yAxis: {
-        min: 0,
-        title: { text: '' },
-        labels: {
-          formatter() {
-            return moneyAxis(this.value as number);
-          },
-        },
-      },
-      tooltip: {
-        formatter() {
-          const yr = this.x ?? 0;
-          return `<b>${this.series.name}</b><br/>Start ${yr}: ${fmtMoney(this.y ?? 0)} avg annual spend`;
-        },
-      },
-      legend: { enabled: false },
-      series: seriesArr,
-    }),
-    [seriesArr],
-  );
-
-  return (
-    <ChartCard title="Avg annual spend by start year">
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        ref={chartRef}
-        immutable={false}
-      />
-    </ChartCard>
-  );
+function lineSeries(e: CompareEntry, i: number, data: [number, number][]) {
+  return {
+    type: 'line',
+    name: truncate(e.saved.name, 28),
+    color: colorAt(i),
+    lineWidth: 1.75,
+    marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
+    data,
+  };
 }
 
-// ---------------------------------------------------------------------------
-// Scatter — each scenario as a point on two selectable metric axes
-// ---------------------------------------------------------------------------
-
-type MetricKey =
-  | 'successRate'
-  | 'p5Final'
-  | 'p25Final'
-  | 'p50Final'
-  | 'p75Final'
-  | 'p95Final'
-  | 'avgAnnualWithdrawal'
-  | 'minBalance';
-
-const METRIC_LABEL: Record<MetricKey, string> = {
-  successRate: 'Success rate',
-  p5Final: '5th-pct final balance',
-  p25Final: '25th-pct final balance',
-  p50Final: 'Median final balance',
-  p75Final: '75th-pct final balance',
-  p95Final: '95th-pct final balance',
-  avgAnnualWithdrawal: 'Avg annual withdrawal',
-  minBalance: 'Min balance reached',
-};
-
-export function ScatterPlot({ entries }: { entries: CompareEntry[] }) {
-  const [xAxis, setXAxis] = useState<MetricKey>('successRate');
-  const [yAxis, setYAxis] = useState<MetricKey>('p50Final');
-  const chartRef = useRef<HighchartsReact.RefObject>(null);
-
-  const fmt = (k: MetricKey, v: number) =>
-    k === 'successRate' ? `${(v * 100).toFixed(0)}%` : fmtMoney(v);
-
-  const xVals = entries.map((e) => e.metrics[xAxis]).filter(Number.isFinite);
-  const yVals = entries.map((e) => e.metrics[yAxis]).filter(Number.isFinite);
-
-  const seriesData = useMemo(
+export function MedianBalanceChart({ entries }: { entries: CompareEntry[] }) {
+  const series = useMemo(
     () =>
-      entries
-        .filter(
-          (e) =>
-            Number.isFinite(e.metrics[xAxis]) && Number.isFinite(e.metrics[yAxis]),
-        )
-        .map((e, i) => ({
-          x: e.metrics[xAxis],
-          y: e.metrics[yAxis],
-          color: colorAt(i),
-          custom: { entry: e },
-          dataLabels: {
-            enabled: true,
-            format: truncate(e.saved.name, 16),
-            style: {
-              fontSize: '10px',
-              color: '#444',
-              fontWeight: 'normal',
-              textOutline: 'none',
-            },
-            x: 9,
-            y: 3,
-            align: 'left' as const,
-          },
-        })),
-    [entries, xAxis, yAxis],
+      entries.map((e, i) =>
+        lineSeries(e, i, e.result.percentiles.map((b) => [b.t, b.values.p50])),
+      ),
+    [entries],
   );
+  const options = useMemo(() => timeSeriesOptions(series), [series]);
+  return (
+    <ChartCard title="Median balance over time">
+      <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
+    </ChartCard>
+  );
+}
 
-  const options: Options = useMemo(() => {
-    const xMin = xVals.length ? Math.min(0, Math.min(...xVals)) : 0;
-    const yMin = yVals.length ? Math.min(0, Math.min(...yVals)) : 0;
+/** Median withdrawal at each year into retirement, over completed observed sims. */
+function medianSpendSeries(e: CompareEntry): [number, number][] {
+  const horizon = e.saved.state.horizonYears;
+  const sims = e.result.sims.filter((s) => !s.bootstrapped && !s.inProgress);
+  const out: [number, number][] = [];
+  for (let t = 0; t < horizon; t++) {
+    const vals: number[] = [];
+    for (const s of sims) {
+      const rec = s.trajectory[t];
+      if (rec) vals.push(rec.withdrawal);
+    }
+    if (vals.length === 0) continue;
+    vals.sort((a, b) => a - b);
+    out.push([t, quantile(vals, 0.5)]);
+  }
+  return out;
+}
 
-    return {
+export function MedianSpendChart({ entries }: { entries: CompareEntry[] }) {
+  const series = useMemo(
+    () => entries.map((e, i) => lineSeries(e, i, medianSpendSeries(e))),
+    [entries],
+  );
+  const options = useMemo(() => timeSeriesOptions(series), [series]);
+  return (
+    <ChartCard title="Median spending over time">
+      <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
+    </ChartCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Final-balance outcome buckets — 100% stacked bar per scenario
+// ---------------------------------------------------------------------------
+
+const BUCKETS: { label: string; color: string; test: (r: number) => boolean }[] = [
+  { label: 'Depleted', color: '#c0392b', test: (r) => r <= 0 },
+  { label: '< 1×',     color: '#e2792f', test: (r) => r > 0 && r < 1 },
+  { label: '1–2×',     color: '#e6b800', test: (r) => r >= 1 && r < 2 },
+  { label: '2–3×',     color: '#9bbf3c', test: (r) => r >= 2 && r < 3 },
+  { label: '3–4×',     color: '#4f9d3a', test: (r) => r >= 3 && r < 4 },
+  { label: '≥ 4×',     color: '#1a7f37', test: (r) => r >= 4 },
+];
+
+function bucketCounts(e: CompareEntry): number[] {
+  const init = e.saved.state.initialBalance;
+  const counts = new Array(BUCKETS.length).fill(0);
+  for (const s of e.result.sims) {
+    if (s.bootstrapped || s.inProgress) continue;
+    const fb = s.success
+      ? s.finalBalance ?? s.trajectory[s.trajectory.length - 1]?.balance ?? 0
+      : 0;
+    const r = init > 0 ? fb / init : 0;
+    const idx = BUCKETS.findIndex((b) => b.test(r));
+    counts[idx >= 0 ? idx : 0] += 1;
+  }
+  return counts;
+}
+
+export function FinalBalanceBucketChart({ entries }: { entries: CompareEntry[] }) {
+  const categories = entries.map((e) => truncate(e.saved.name, 28));
+  const counts = entries.map(bucketCounts);
+
+  const options: Options = useMemo(
+    () => ({
       chart: {
-        type: 'scatter',
+        type: 'bar',
         width: null as any,
-        height: 340,
-        margin: [16, 100, 48, 80],
+        height: Math.max(170, entries.length * 40 + 80),
+        margin: [10, 16, 56, 12],
       },
-      xAxis: {
-        min: xMin,
-        title: { text: METRIC_LABEL[xAxis] },
-        labels: {
-          formatter() {
-            return fmt(xAxis, this.value as number);
-          },
-        },
-      },
+      xAxis: { categories, labels: { style: { fontSize: '11px' } } },
       yAxis: {
-        min: yMin,
-        title: { text: METRIC_LABEL[yAxis] },
-        labels: {
-          formatter() {
-            return fmt(yAxis, this.value as number);
-          },
-        },
+        min: 0,
+        max: 100,
+        reversedStacks: false,
+        title: { text: '' },
+        labels: { format: '{value}%' },
       },
       tooltip: {
         formatter() {
           const ctx = this as any;
-          const e = ctx.point?.options?.custom?.entry as CompareEntry | undefined;
-          if (!e) return false;
-          const m = e.metrics;
-          return `<span style="font-size:11px">
-            <b>${truncate(e.saved.name, 32)}</b><br/>
-            success ${Number.isFinite(m.successRate) ? `${(m.successRate * 100).toFixed(1)}%` : '—'} · median ${fmtMoney(m.p50Final)}<br/>
-            p5 ${fmtMoney(m.p5Final)} · p95 ${fmtMoney(m.p95Final)}
-          </span>`;
+          const total = (ctx.point?.stackTotal as number) ?? 0;
+          return `<b>${ctx.series.name}</b><br/>${ctx.key}: ${ctx.y} of ${total} start years (${(ctx.percentage ?? 0).toFixed(0)}%)`;
         },
       },
       plotOptions: {
-        scatter: {
-          marker: { radius: 5, symbol: 'circle', lineColor: '#fff', lineWidth: 1.5 },
-          dataLabels: { enabled: true },
-          states: { hover: { marker: { radius: 7 } } },
-        },
+        series: { stacking: 'percent', borderWidth: 0, groupPadding: 0.08 },
       },
-      legend: { enabled: false },
-      series: [{ type: 'scatter', data: seriesData, turboThreshold: 0 } as any],
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xAxis, yAxis, xVals, yVals, seriesData]);
-
-  if (xVals.length === 0 || yVals.length === 0) return null;
-
-  const axisSelect = (
-    label: string,
-    value: MetricKey,
-    onChange: (k: MetricKey) => void,
-  ) => (
-    <label className="flex gap-1.5 items-center">
-      {label}
-      <select
-        className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
-        value={value}
-        onChange={(e) => onChange(e.target.value as MetricKey)}
-      >
-        {(Object.keys(METRIC_LABEL) as MetricKey[]).map((k) => (
-          <option key={k} value={k}>
-            {METRIC_LABEL[k]}
-          </option>
-        ))}
-      </select>
-    </label>
+      legend: { enabled: true, reversed: false, itemStyle: { fontSize: '11px' } },
+      series: BUCKETS.map((b, bi) => ({
+        type: 'bar',
+        name: b.label,
+        color: b.color,
+        data: counts.map((c) => c[bi]),
+      })) as any,
+    }),
+    [categories, counts, entries.length],
   );
 
   return (
-    <ChartCard
-      title="Plot any two metrics"
-      right={
-        <div className="flex gap-4 text-sm text-text-secondary">
-          {axisSelect('x:', xAxis, setXAxis)}
-          {axisSelect('y:', yAxis, setYAxis)}
-        </div>
-      }
-    >
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        ref={chartRef}
-        immutable={false}
-      />
+    <ChartCard title="Where the final balance lands (share of historical start years, × starting balance)">
+      <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
     </ChartCard>
   );
 }

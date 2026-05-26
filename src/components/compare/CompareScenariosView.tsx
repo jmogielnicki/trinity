@@ -13,10 +13,9 @@ import { colorAt } from './compareColors';
 import {
   FinalBalanceDistributionChart,
   SpendDistributionChart,
-  TrajectoryEnvelopeChart,
-  SpendChart,
-  ScatterPlot,
-  hasDynamicSpend,
+  MedianBalanceChart,
+  MedianSpendChart,
+  FinalBalanceBucketChart,
 } from './charts';
 
 type PickerItem = SavedScenario & { isPreset: boolean; description?: string };
@@ -34,14 +33,13 @@ function SummaryTable({ entries }: { entries: CompareEntry[] }) {
   const thCls =
     'px-2 py-1 text-left text-2xs font-medium text-text-muted uppercase tracking-[0.04em] whitespace-nowrap';
   return (
-    <div className="overflow-x-auto border border-border-light rounded bg-surface-page">
-      <table className="border-collapse text-sm w-full">
+    <div className="overflow-x-auto border border-border-light rounded bg-surface-page self-start">
+      <table className="border-collapse text-sm">
         <thead>
           <tr>
             <th className={thCls}></th>
             <th className={thCls}>Scenario</th>
             <th className={`${thCls} text-right`}>Success</th>
-            <th className={`${thCls} text-right`}>Worst start</th>
           </tr>
         </thead>
         <tbody>
@@ -62,9 +60,6 @@ function SummaryTable({ entries }: { entries: CompareEntry[] }) {
                 {Number.isFinite(e.metrics.successRate)
                   ? `${(e.metrics.successRate * 100).toFixed(1)}%`
                   : '—'}
-              </td>
-              <td className={`${tdCls} text-right tabular-nums text-text-secondary`}>
-                {e.metrics.worstStartYear ?? '—'}
               </td>
             </tr>
           ))}
@@ -219,19 +214,18 @@ export function CompareScenariosView() {
         </p>
       ) : (
         <>
-          <SummaryTable entries={entries} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_1fr] gap-3 items-start">
+            <SummaryTable entries={entries} />
             <FinalBalanceDistributionChart entries={entries} />
             <SpendDistributionChart entries={entries} />
-            <div className="lg:col-span-2">
-              <TrajectoryEnvelopeChart entries={entries} />
-            </div>
-            <div className={hasDynamicSpend(entries) ? '' : 'lg:col-span-2'}>
-              <ScatterPlot entries={entries} />
-            </div>
-            {hasDynamicSpend(entries) && <SpendChart entries={entries} />}
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <MedianBalanceChart entries={entries} />
+            <MedianSpendChart entries={entries} />
+          </div>
+
+          <FinalBalanceBucketChart entries={entries} />
 
           <details className="border border-border-light rounded bg-surface-page">
             <summary className="cursor-pointer px-3 py-2 text-sm text-text-secondary select-none">
