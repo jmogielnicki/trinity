@@ -207,7 +207,7 @@ export function StartYearChart({
           transform={`translate(${ml - 60},${spendY0 + spendH / 2}) rotate(-90)`}
           textAnchor="middle" fontSize={11} fill="#555"
         >
-          avg annual spend (real $)
+          avg annual spend
         </text>
         {/* Lines */}
         {completedSims.length > 1 && (
@@ -261,7 +261,7 @@ export function StartYearChart({
           transform={`translate(${ml - 60},${balY0 + balH / 2}) rotate(-90)`}
           textAnchor="middle" fontSize={11} fill="#555"
         >
-          terminal balance (real $)
+          terminal balance
         </text>
         {/* Lines */}
         {completedSims.length > 1 && (
