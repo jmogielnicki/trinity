@@ -26,7 +26,7 @@ export function StatPanel({ result }: Props) {
         label={hasProjection ? 'Success rate (observed)' : '% success'}
         rate={result.successRate}
       />
-      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] gap-3 flex-1 content-start">
+      <div className="grid grid-cols-2 auto-rows-fr gap-3 flex-1">
         {hasProjection && (
           <Stat
             label="Success rate (bootstrap-projected)"
@@ -56,8 +56,8 @@ export function StatPanel({ result }: Props) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-surface-muted px-3 py-2.5 rounded-md">
-      <div className="text-xs text-text-muted uppercase tracking-[0.04em]">{label}</div>
+    <div className="bg-surface-muted px-3 py-2 rounded-md flex flex-col justify-center">
+      <div className="text-2xs text-text-muted uppercase tracking-[0.04em] leading-tight">{label}</div>
       <div className="text-lg font-medium mt-0.5">{value}</div>
     </div>
   );
