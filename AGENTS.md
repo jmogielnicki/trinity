@@ -7,13 +7,16 @@ Practical guide for picking up this codebase mid-stream. Skim this; read `CLAUDE
 ```bash
 npm install
 npm run build-data        # regenerates public/data/historical.json from CSVs
-npm test                  # 47 tests across 9 files, ~1s
+npm test                  # 100 tests across 16 files, ~1s
 npm run dev               # vite dev server
-npm run build             # production build
+npm run build             # tsc -b + api typecheck + vite build
 npm run sim -- --scenario=bengen-4pct   # CLI smoke test
+npm run db:migrate        # apply scripts/migrations/*.sql (needs DATABASE_URL)
 ```
 
-Type-check: `npx tsc -b`. Worker bundle emits separately as `sim.worker-*.js`.
+Type-check: `npx tsc -b` (app/engine) and `npx tsc -p api/tsconfig.json` (serverless functions — `npm run build` runs both). Worker bundle emits separately as `sim.worker-*.js`.
+
+Auth/payments are **optional locally**: without the `VITE_NEON_*` env vars (`.env.example`) the app runs in pure anonymous mode (local saves only). See `AUTH_PLAN.md` for the full setup.
 
 ## 2. Repo layout
 
@@ -25,7 +28,17 @@ public/data/
 scripts/
   build-data.ts      # CSVs → historical.json
   sim.ts             # CLI sim harness (Bengen / Trinity scenarios)
+  migrate.ts         # raw-SQL migration runner (npm run db:migrate)
+  migrations/        # 0001_auth.sql … (saved_scenarios + user_profiles + RLS)
+api/                 # Vercel serverless functions — the ONLY backend (Stripe only)
+  _lib/              # auth (JWKS verify), db (Neon), stripe — shared helpers
+  create-checkout.ts # one-time Pro Checkout Session
+  stripe-webhook.ts  # grants Pro on checkout.session.completed
+  tsconfig.json      # NodeNext — relative imports need .js (ESM at runtime!)
+vercel.json          # SPA rewrite that preserves /api/*
 src/
+  auth.ts            # Neon Auth + Data API client (createClient) + getAccessToken
+  billing.ts         # startCheckout → POST /api/create-checkout
   engine/            # pure simulation logic, no React/DOM
     simulate.ts      # core sim loop (sleeve-level)
     strategies.ts    # WithdrawalStrategy + AllocationStrategy unions + executors
@@ -40,6 +53,7 @@ src/
     stats.ts         # percentiles, success rate
     types.ts         # shared types (Weights, Sleeves, ScenarioResult, …)
   components/        # React UI
+    auth/            # AuthControl (header sign-in/account), AuthModal, ProGate
     controls/        # left-rail strategy editors
     results/         # spaghetti, calendar, WhereAmI, StartYearChart, SimDetailPanel
     optimize/        # FrontierView, StudyConfigPanel, StudyHeatmaps, StudyTrajectories
@@ -47,10 +61,11 @@ src/
     compare/         # CompareScenariosView (multi-scenario comparison tab)
     ui/              # TabBar, ToggleButton, fieldCls
     AboutPanel.tsx
+    SaveScenarioModal.tsx
     colors.ts
   store/             # zustand slices
   worker/            # Comlink-wrapped engine in a Web Worker pool
-  data/              # data loading, URL state, presets, CSV export
+  data/              # data loading, URL state, presets, CSV export, scenarioRepo (local+cloud)
 tests/engine/        # vitest, 16 files, 99 tests
 ```
 
@@ -102,9 +117,10 @@ App holds `selectedYears: Set<number>`. The spaghetti chart and outcome strip bo
 - `compareScenariosStore` — drives the **Compare** tab; holds a set of saved scenarios and their computed results + metrics for side-by-side display
 - `optimizeStore` — study configuration + Pareto-front results for the **Optimize** tab
 - `evolveStore` — genetic algorithm state (running flag, generation history, island snapshots) for the **Evolve** tab
-- `libraryStore` — localStorage-backed named scenarios
+- `authStore` — Neon Auth session: `status` (`loading`/`anon`/`authed`), `user`, `subscriptionStatus` (`'free'`/`'pro'`), sign-in/up/out, and a shared `authModalOpen` flag. Inert when auth isn't configured.
+- `libraryStore` — named scenarios, **source-aware + async**: anonymous → `localStorage`, signed-in → Neon Data API (`scenarioRepo`). Reloads on auth change; offers a one-time local→cloud migration.
 
-State that needs to round-trip (URL hash, library, presets) goes through `SerializedState` in `src/data/urlState.ts`.
+State that needs to round-trip (URL hash, library, presets) goes through `SerializedState` in `src/data/urlState.ts` — the same blob stored in `saved_scenarios.state`.
 
 ## 5. UI map (`src/components/`)
 
@@ -118,7 +134,9 @@ State that needs to round-trip (URL hash, library, presets) goes through `Serial
 
 `AllocationEditor` and `WithdrawalEditor` wrap their underlying chart editor with a `glide/rules/script` (alloc) or `curve/rules/script` (withdrawal) mode toggle. Mode switches between visual editor, rule builder, and `customSrc` script editor.
 
-**Header:** title + `ScenarioActions` (share / export csv / snapshot) toolbar + `?` button toggling `AboutPanel`.
+**Header:** title + `ScenarioActions` (share / export csv / snapshot) toolbar + `AuthControl` (Sign in / account menu, only when auth is configured) + `?` button toggling `AboutPanel`.
+
+**Pro gating:** when auth is configured and `subscriptionStatus !== 'pro'`, the **Optimize** and **Evolve** tabs render `ProGate` (an "Upgrade to Pro" paywall) instead of the tool. This gate is **cosmetic** — the compute is client-side; see `AUTH_PLAN.md` §2. The only hard-enforced things are cloud save (RLS) and the Pro flag itself (set only by the Stripe webhook).
 
 **Single-scenario results (main pane):**
 - View toggle: `spaghetti / calendar`. `WhereAmI` is a drill-down reached from an in-progress-cohorts banner on the spaghetti view (with a back link), not a peer toggle.
@@ -157,7 +175,7 @@ ie_data.csv + TB3MS.csv
 
 Both `Total Return Price` (stocks) and `Total Bond Returns` cumulative columns from Shiller are **already in real terms**. Build script ratios successive Decembers for real returns, reconstructs nominal via inflation. Cash is annual TB3MS factors compounded.
 
-## 7. Tests (99, all in `tests/engine/`)
+## 7. Tests (100, all in `tests/engine/`)
 
 | File | What |
 |---|---|
@@ -189,6 +207,9 @@ Add a test when adding a strategy type, source type, or non-trivial engine behav
 - **Comments** — explain non-obvious *why* / hidden invariants; avoid restating the code.
 - **No animation, no toast libs** — small and direct beats fancy.
 - **Visual checks** — I cannot run a browser in this environment. Always note "visual not run" in PR descriptions when UI changes ship.
+- **API functions are ESM** — `api/*` runs under Node's ESM loader (`"type": "module"`), so **relative imports need an explicit `.js` extension** (e.g. `./_lib/auth.js`). `api/tsconfig.json` is NodeNext so a missing one is a typecheck error.
+- **Secrets are server-only** — never prefix a secret with `VITE_` (that ships it in the client bundle). `STRIPE_*`, `DATABASE_URL`, `NEON_AUTH_JWKS_URL` live only in Vercel function env; only Neon's public URLs are `VITE_`.
+- **`user_profiles` is read-only to clients** — `subscription_status` is written solely by the Stripe webhook over a direct DB connection. Don't add a client write path.
 
 ## 9. Known limitations
 
@@ -216,5 +237,6 @@ CLAUDE.md describes the original product vision; here's what's actually been bui
 - **Evolve tab** (`EvolveView`) — genetic algorithm discovers withdrawal/allocation strategies. 7-gene genome over a 4-island population. Built on `engine/evolve.ts`; state in `evolveStore`.
 - **Compare tab** (`CompareScenariosView`) — multi-scenario comparison picked from the library; runs each against history and shows a unified Highcharts spaghetti + metrics table. Separate from the inline A/B snapshot overlay (`compareStore`) which overlays one saved result on the single-scenario chart.
 - **Chart library** — read-only output charts (SpaghettiChart, SimDetailPanel, WhereAmI, CalendarHeatmap backdrop, optimize scatter, compare spaghetti) use **Highcharts**, not Recharts/visx as originally planned. D3 is still used for the editable controllers (WithdrawalCurve, GlidePath) and SVG-based D3 canvas in StartYearChart.
+- **Freemium auth + payments** — a three-tier model (anonymous → free → pro) added on top, contradicting CLAUDE.md §7's "no backend": there's now a **minimal Stripe-only** backend in `api/`. Identity is **Neon Auth** (Better Auth), cloud-saved scenarios go through the **Neon Data API + RLS** (no scenario endpoints — RLS is the boundary), and **Stripe** one-time payment unlocks the advanced tabs. Full design + live-setup runbook in **`AUTH_PLAN.md`** (the source of truth for this layer).
 
 If you're picking up cold: load the **Cash bucket with refill — 50/35/15** preset, click a spaghetti line, and switch to the sleeve-composition chart tab to see the most novel piece working end-to-end.
