@@ -232,7 +232,7 @@ export function MedianBalanceChart({ entries }: { entries: CompareEntry[] }) {
 
 /** Median withdrawal at each year into retirement, over completed observed sims. */
 function medianSpendSeries(e: CompareEntry): [number, number][] {
-  const horizon = e.saved.state.horizonYears;
+  const horizon = e.horizonYears;
   const sims = e.result.sims.filter((s) => !s.bootstrapped && !s.inProgress);
   const out: [number, number][] = [];
   for (let t = 0; t < horizon; t++) {
@@ -262,23 +262,26 @@ export function MedianSpendChart({ entries }: { entries: CompareEntry[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Final-balance outcome buckets — 100% stacked bar per scenario
+// Final-balance outcome buckets — grouped horizontal bars (bucket on y-axis,
+// one bar per scenario, colored consistently with the rest of the page)
 // ---------------------------------------------------------------------------
 
-const BUCKETS: { label: string; color: string; test: (r: number) => boolean }[] = [
-  { label: 'Depleted', color: '#c0392b', test: (r) => r <= 0 },
-  { label: '< 1×',     color: '#e2792f', test: (r) => r > 0 && r < 1 },
-  { label: '1–2×',     color: '#e6b800', test: (r) => r >= 1 && r < 2 },
-  { label: '2–3×',     color: '#9bbf3c', test: (r) => r >= 2 && r < 3 },
-  { label: '3–4×',     color: '#4f9d3a', test: (r) => r >= 3 && r < 4 },
-  { label: '≥ 4×',     color: '#1a7f37', test: (r) => r >= 4 },
+const BUCKETS: { label: string; test: (r: number) => boolean }[] = [
+  { label: 'Depleted', test: (r) => r <= 0 },
+  { label: '< 1×',     test: (r) => r > 0 && r < 1 },
+  { label: '1–2×',     test: (r) => r >= 1 && r < 2 },
+  { label: '2–3×',     test: (r) => r >= 2 && r < 3 },
+  { label: '> 3×',     test: (r) => r >= 3 },
 ];
 
-function bucketCounts(e: CompareEntry): number[] {
-  const init = e.saved.state.initialBalance;
+/** Share (and count) of completed start years that landed in each bucket. */
+function bucketStats(e: CompareEntry): { pct: number; count: number; total: number }[] {
+  const init = e.initialBalance;
   const counts = new Array(BUCKETS.length).fill(0);
+  let total = 0;
   for (const s of e.result.sims) {
     if (s.bootstrapped || s.inProgress) continue;
+    total += 1;
     const fb = s.success
       ? s.finalBalance ?? s.trajectory[s.trajectory.length - 1]?.balance ?? 0
       : 0;
@@ -286,52 +289,49 @@ function bucketCounts(e: CompareEntry): number[] {
     const idx = BUCKETS.findIndex((b) => b.test(r));
     counts[idx >= 0 ? idx : 0] += 1;
   }
-  return counts;
+  return counts.map((count) => ({
+    count,
+    total,
+    pct: total > 0 ? (count / total) * 100 : 0,
+  }));
 }
 
 export function FinalBalanceBucketChart({ entries }: { entries: CompareEntry[] }) {
-  const categories = entries.map((e) => truncate(e.saved.name, 28));
-  const counts = entries.map(bucketCounts);
+  const series = useMemo(
+    () =>
+      entries.map((e, i) => {
+        const stats = bucketStats(e);
+        return {
+          type: 'bar',
+          name: truncate(e.saved.name, 28),
+          color: colorAt(i),
+          data: stats.map((s) => ({ y: s.pct, custom: { count: s.count, total: s.total } })),
+        };
+      }),
+    [entries],
+  );
 
   const options: Options = useMemo(
     () => ({
-      chart: {
-        type: 'bar',
-        width: null as any,
-        height: Math.max(170, entries.length * 40 + 80),
-        margin: [10, 16, 56, 12],
-      },
-      xAxis: { categories, labels: { style: { fontSize: '11px' } } },
-      yAxis: {
-        min: 0,
-        max: 100,
-        reversedStacks: false,
-        title: { text: '' },
-        labels: { format: '{value}%' },
-      },
+      chart: { type: 'bar', width: null as any, height: 320, margin: [10, 16, 28, 44] },
+      xAxis: { categories: BUCKETS.map((b) => b.label), labels: { style: { fontSize: '11px' } } },
+      yAxis: { min: 0, title: { text: '' }, labels: { format: '{value}%' } },
       tooltip: {
         formatter() {
           const ctx = this as any;
-          const total = (ctx.point?.stackTotal as number) ?? 0;
-          return `<b>${ctx.series.name}</b><br/>${ctx.key}: ${ctx.y} of ${total} start years (${(ctx.percentage ?? 0).toFixed(0)}%)`;
+          const c = ctx.point?.custom ?? {};
+          return `<b>${ctx.series.name}</b><br/>${ctx.key}: ${c.count} of ${c.total} start years (${(ctx.y ?? 0).toFixed(0)}%)`;
         },
       },
-      plotOptions: {
-        series: { stacking: 'percent', borderWidth: 0, groupPadding: 0.08 },
-      },
-      legend: { enabled: true, reversed: false, itemStyle: { fontSize: '11px' } },
-      series: BUCKETS.map((b, bi) => ({
-        type: 'bar',
-        name: b.label,
-        color: b.color,
-        data: counts.map((c) => c[bi]),
-      })) as any,
+      plotOptions: { bar: { borderWidth: 0, groupPadding: 0.12, pointPadding: 0.02 } },
+      legend: { enabled: false },
+      series: series as any,
     }),
-    [categories, counts, entries.length],
+    [series],
   );
 
   return (
-    <ChartCard title="Where the final balance lands (share of historical start years, × starting balance)">
+    <ChartCard title="Where the final balance lands (× starting balance, share of start years)">
       <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
     </ChartCard>
   );

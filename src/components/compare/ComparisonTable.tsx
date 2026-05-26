@@ -65,8 +65,8 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
                 <td className={tdCls}>{e.saved.name}</td>
                 <td className={tdCls}>{describeWithdrawal(e.saved.state.withdrawal)}</td>
                 <td className={tdCls}>{describeAllocation(e.saved.state.allocation)}</td>
-                <td className={`${tdCls} ${numCls}`}>{e.saved.state.horizonYears}y</td>
-                <td className={`${tdCls} ${numCls}`}>{fmtMoney(e.saved.state.initialBalance)}</td>
+                <td className={`${tdCls} ${numCls}`}>{e.horizonYears}y</td>
+                <td className={`${tdCls} ${numCls}`}>{fmtMoney(e.initialBalance)}</td>
                 <td className={`${tdCls} ${lead(m.successRate, bestSuccess)}`}>
                   {Number.isFinite(m.successRate)
                     ? `${(m.successRate * 100).toFixed(1)}%`

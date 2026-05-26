@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLibraryStore, type SavedScenario } from '../../store/libraryStore';
 import { useResultsStore } from '../../store/resultsStore';
+import { useScenarioStore } from '../../store/scenarioStore';
 import {
   COMPARE_MAX,
   useCompareScenariosStore,
@@ -75,6 +76,9 @@ export function CompareScenariosView() {
   const removeFromLibrary = useLibraryStore((s) => s.remove);
   const pool = useResultsStore((s) => s.pool);
   const data = useResultsStore((s) => s.data);
+  // Balance + horizon are global (the page inputs), applied to every scenario.
+  const initialBalance = useScenarioStore((s) => s.initialBalance);
+  const horizonYears = useScenarioStore((s) => s.horizonYears);
   const { selectedIds, entries, running, computeMs, toggle, setSelection, clear, run } =
     useCompareScenariosStore();
 
@@ -109,19 +113,23 @@ export function CompareScenariosView() {
   useEffect(() => {
     if (selectedIds.length > 0) return;
     if (saved.length > 0) {
-      setSelection(saved.slice(0, Math.min(6, saved.length)).map((s) => s.id));
+      setSelection(saved.slice(0, Math.min(COMPARE_MAX, saved.length)).map((s) => s.id));
     } else {
       setSelection(presetItems.slice(0, 3).map((p) => p.id));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saved]);
 
-  // Re-run whenever the selection changes (debounced, like the single view).
+  // Re-run whenever the selection or the global balance/horizon changes
+  // (debounced, like the single view).
   useEffect(() => {
     if (!pool || !data) return;
-    const id = setTimeout(() => void run(allItems, pool), 150);
+    const id = setTimeout(
+      () => void run(allItems, pool, { initialBalance, horizonYears }),
+      150,
+    );
     return () => clearTimeout(id);
-  }, [pool, data, allItems, selectedIds, run]);
+  }, [pool, data, allItems, selectedIds, initialBalance, horizonYears, run]);
 
   const colorById = useMemo(() => {
     const m = new Map<string, string>();
@@ -220,12 +228,11 @@ export function CompareScenariosView() {
             <SpendDistributionChart entries={entries} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
             <MedianBalanceChart entries={entries} />
             <MedianSpendChart entries={entries} />
+            <FinalBalanceBucketChart entries={entries} />
           </div>
-
-          <FinalBalanceBucketChart entries={entries} />
 
           <details className="border border-border-light rounded bg-surface-page">
             <summary className="cursor-pointer px-3 py-2 text-sm text-text-secondary select-none">
