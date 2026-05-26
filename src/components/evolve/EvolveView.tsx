@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Btn } from '../ui/Btn';
 import { useEvolveStore, latestChampions } from '../../store/evolveStore';
 import { useResultsStore } from '../../store/resultsStore';
@@ -500,13 +500,27 @@ function IslandTables({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
+      }
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
   const TOP = 5;
   const thCls = 'px-2 py-1.5 text-left border-b border-border-light whitespace-nowrap text-text-muted font-medium text-xs uppercase tracking-[0.04em] bg-surface-hover';
   const tdCls = 'px-2 py-1.5 text-left border-b border-border-light whitespace-nowrap text-sm';
   return (
-    <div className="flex flex-col gap-3.5">
+    <div ref={containerRef} className="flex flex-col gap-3.5">
       {islands.map((isl, idx) => (
-        <div key={isl.profile.id} className="overflow-x-auto">
+        <div key={isl.profile.id} className="overflow-x-auto overscroll-x-contain">
           <div
             className="text-xs text-text-secondary mb-1.5"
             style={{ color: islandColor(idx) }}

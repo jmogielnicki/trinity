@@ -599,6 +599,20 @@ function ComparisonTable({
   onRemove: (id: string) => void;
   onApply: (r: CandidateResult) => void;
 }) {
+  const tableRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = tableRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
+      }
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
   if (selectedIds.length === 0) {
     return (
       <p className="text-sm text-text-faint py-3 text-center border border-dashed border-text-disabled rounded">
@@ -616,7 +630,7 @@ function ComparisonTable({
   const tdCls = 'px-2 py-1.5 border-b border-border-light whitespace-nowrap';
 
   return (
-    <div className="overflow-x-auto">
+    <div ref={tableRef} className="overflow-x-auto overscroll-x-contain">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
@@ -842,6 +856,20 @@ function FrontierList({
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
 }) {
+  const tableRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = tableRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
+      }
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
   if (frontier.length === 0) return null;
 
   const thCls = 'px-2 py-1.5 text-left text-xs font-medium text-text-muted uppercase tracking-[0.04em] bg-surface-hover border-b border-border-light whitespace-nowrap';
@@ -850,7 +878,7 @@ function FrontierList({
   return (
     <details className="[&_summary]:cursor-pointer [&_summary]:text-sm [&_summary]:text-text-secondary [&_summary]:py-1 [&[open]_summary]:mb-1.5">
       <summary>Show all {frontier.length} frontier strategies</summary>
-      <div className="overflow-x-auto">
+      <div ref={tableRef} className="overflow-x-auto overscroll-x-contain">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
