@@ -62,7 +62,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function HeroSuccessCard({ rate }: { rate: number }) {
   return (
-    <div className="flex items-center justify-center min-[450px]:w-[220px] flex-shrink-0">
+    <div className="flex items-center justify-center min-[450px]:w-[220px] md:w-[180px] min-[1100px]:w-[220px] flex-shrink-0">
       {Number.isFinite(rate) ? (
         <SuccessDonut rate={rate} />
       ) : (

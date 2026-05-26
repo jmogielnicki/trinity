@@ -448,7 +448,7 @@ export function App() {
             {data && result && (
               <>
                 <StatPanel result={result} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                <div className="grid grid-cols-1 min-[1000px]:grid-cols-2 gap-3 items-start">
                   <div className="min-w-0">
                     <h3 className="text-sm font-medium text-text mb-1.5">Portfolio balance over time</h3>
                     <SpaghettiChart
