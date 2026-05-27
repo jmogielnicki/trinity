@@ -15,7 +15,7 @@ function colorScale(t: number): string {
   const clamped = Math.max(0, Math.min(1, t));
   return interpolatePlasma(0.1 + clamped * 0.7);
 }
-import { useOptimizeStore } from '../../store/optimizeStore';
+import { useOptimizeStore, OVERLAY_MAX } from '../../store/optimizeStore';
 import { useResultsStore } from '../../store/resultsStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { NEAR_DEPLETION_FRACTION, type CandidateResult } from '../../engine/optimize';
@@ -28,7 +28,16 @@ import { useLibraryStore } from '../../store/libraryStore';
 import { useSweepStore } from '../../store/sweepStore';
 import type { SerializedState } from '../../data/urlState';
 import { colorAt } from '../seriesColors';
-import { FinalBalanceDistributionChart, type Series } from '../results/overlayCharts';
+import {
+  FinalBalanceDistributionChart,
+  SpendDistributionChart,
+  BalanceOverTimeChart,
+  SpendOverTimeChart,
+  truncate,
+  type Series,
+  type YearMode,
+} from '../results/overlayCharts';
+import { FIELD_BASE } from '../ui/fieldCls';
 
 type Axis =
   | 'successRate'
@@ -148,7 +157,7 @@ export function FrontierView({ onApplied }: Props) {
     toggleSelected,
     setSelected,
     selectAllFrontier,
-    selectAll,
+    autoCurate,
     clearSelection,
     setMinSuccessRate,
   } = useOptimizeStore();
@@ -250,13 +259,6 @@ export function FrontierView({ onApplied }: Props) {
           <Btn size="md" onClick={runSearch} disabled={running || !pool || !data}>
             {running ? 'Running…' : results.length ? 'Re-run study' : 'Run study'}
           </Btn>
-          {!!results.length && (
-            <>
-              <Btn size="md" onClick={selectAll}>Select all</Btn>
-              <Btn size="md" onClick={selectAllFrontier}>Select frontier</Btn>
-              <Btn size="md" onClick={clearSelection}>Clear</Btn>
-            </>
-          )}
         </div>
       </div>
       <StudyBasePicker />
@@ -265,7 +267,7 @@ export function FrontierView({ onApplied }: Props) {
         <div className="text-xs text-text-faint">
           {filteredResults.length}/{results.length} variants passing ·{' '}
           {frontier.length} on Pareto frontier · compute {computeMs.toFixed(0)} ms ·{' '}
-          {selectedIds.length} selected
+          {selectedIds.length}/{OVERLAY_MAX} overlaid
           {(studyDirty ||
             (lastConfig &&
               lastConfig.horizonYears !== scenario.horizonYears)) && (
@@ -288,6 +290,22 @@ export function FrontierView({ onApplied }: Props) {
 
       {results.length > 0 && !is2D && (
         <>
+          <OverlaySection
+            series={selectedSeries}
+            results={results}
+            selectedIds={selectedIds}
+            onToggle={toggleSelected}
+            onApply={applyStrategy}
+            onAutoCurate={autoCurate}
+            onSelectFrontier={selectAllFrontier}
+            onClear={clearSelection}
+            frontierCount={frontier.length}
+          />
+
+          <div className="border-t border-border-light pt-3.5 mt-1 flex flex-col gap-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Explore all {results.length} variants
+            </div>
           <div className="flex flex-wrap gap-[18px] text-sm text-text-secondary items-center py-1">
             <div className="mr-1">
               <TabBar>
@@ -377,15 +395,6 @@ export function FrontierView({ onApplied }: Props) {
                 yAxis={yAxis}
                 colorBy={colorBy}
               />
-              <ComparisonTable
-                results={results}
-                selectedIds={selectedIds}
-                onRemove={toggleSelected}
-                onApply={applyStrategy}
-              />
-              {selectedSeries.length > 0 && (
-                <FinalBalanceDistributionChart series={selectedSeries} />
-              )}
               <FrontierList
                 frontier={frontier}
                 selectedIds={selectedSet}
@@ -395,6 +404,127 @@ export function FrontierView({ onApplied }: Props) {
           ) : (
             <StudyTrajectories results={results} />
           )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Curated overlay — the primary compare-style surface (≤ OVERLAY_MAX variants)
+// ---------------------------------------------------------------------------
+
+function OverlaySection({
+  series,
+  results,
+  selectedIds,
+  onToggle,
+  onApply,
+  onAutoCurate,
+  onSelectFrontier,
+  onClear,
+  frontierCount,
+}: {
+  series: Series[];
+  results: CandidateResult[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  onApply: (r: CandidateResult) => void;
+  onAutoCurate: () => void;
+  onSelectFrontier: () => void;
+  onClear: () => void;
+  frontierCount: number;
+}) {
+  const [yearMode, setYearMode] = useState<YearMode>('median');
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex items-baseline gap-0.5 pr-3 border-r border-border-light flex-shrink-0">
+          <span className="text-lg font-semibold text-text tabular-nums">{series.length}</span>
+          <span className="text-sm text-text-muted tabular-nums">/{OVERLAY_MAX}</span>
+          <span className="text-[11px] uppercase tracking-[0.06em] text-text-muted ml-2 font-medium">
+            overlaid
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+          {series.length === 0 ? (
+            <span className="text-xs text-text-faint italic">
+              Nothing overlaid — auto-pick a spread, take the frontier, or click
+              points in the scatter below.
+            </span>
+          ) : (
+            series.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onToggle(s.id)}
+                className="inline-flex items-center gap-1.5 h-[26px] px-2 rounded-full border-[1.5px] text-xs font-medium cursor-pointer hover:-translate-y-px hover:shadow-sm transition-all"
+                style={{ borderColor: s.color, backgroundColor: `${s.color}1a` }}
+                title="Remove from overlay"
+              >
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                <span className="leading-none whitespace-nowrap text-text">
+                  {truncate(s.label, 28)}
+                </span>
+                <span className="tabular-nums text-text-muted">
+                  {Number.isFinite(s.metrics.successRate)
+                    ? `${(s.metrics.successRate * 100).toFixed(0)}%`
+                    : '—'}
+                </span>
+                <svg className="opacity-55 ml-0.5" width="10" height="10" viewBox="0 0 10 10">
+                  <path d="M2 2 L8 8 M8 2 L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            ))
+          )}
+        </div>
+        <div className="flex gap-1.5 flex-shrink-0">
+          <Btn size="sm" onClick={onAutoCurate}>Auto-pick {OVERLAY_MAX}</Btn>
+          {frontierCount > 0 && <Btn size="sm" onClick={onSelectFrontier}>Top frontier</Btn>}
+          {series.length > 0 && <Btn size="sm" onClick={onClear}>Clear</Btn>}
+        </div>
+      </div>
+
+      {series.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <FinalBalanceDistributionChart series={series} />
+            <SpendDistributionChart series={series} />
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-text-secondary mt-1">
+            <span>Play out each variant's</span>
+            <select
+              className={`${FIELD_BASE} px-2 py-[3px] text-text`}
+              value={yearMode}
+              onChange={(e) => setYearMode(e.target.value as YearMode)}
+            >
+              <option value="worst">worst</option>
+              <option value="median">median</option>
+              <option value="best">best</option>
+            </select>
+            <span>historical start year (by final balance).</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <BalanceOverTimeChart series={series} mode={yearMode} />
+            <SpendOverTimeChart series={series} mode={yearMode} />
+          </div>
+
+          <details className="border border-border-light rounded bg-surface-page">
+            <summary className="cursor-pointer px-3 py-2 text-sm text-text-secondary select-none hover:bg-surface-hover">
+              Show full metrics table
+            </summary>
+            <div className="px-2 pb-2">
+              <ComparisonTable
+                results={results}
+                selectedIds={selectedIds}
+                onRemove={onToggle}
+                onApply={onApply}
+              />
+            </div>
+          </details>
         </>
       )}
     </div>

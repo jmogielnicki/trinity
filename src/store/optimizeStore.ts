@@ -56,11 +56,39 @@ export type OptimizeState = {
   toggleSelected: (id: string) => void;
   setSelected: (ids: string[]) => void;
   selectAllFrontier: () => void;
-  selectAll: () => void;
+  /** Re-pick an evenly-spaced set of up to OVERLAY_MAX variants to overlay. */
+  autoCurate: () => void;
   clearSelection: () => void;
   setMinSuccessRate: (v: number) => void;
   reset: () => void;
 };
+
+/** Max # of variants overlaid in the compare-style charts at once. */
+export const OVERLAY_MAX = 8;
+
+/** Pick up to `max` items evenly spaced across the list (always incl. ends). */
+function evenlySpaced<T>(arr: T[], max: number): T[] {
+  if (arr.length <= max) return arr.slice();
+  const picked: T[] = [];
+  const seen = new Set<number>();
+  for (let i = 0; i < max; i++) {
+    const idx = Math.round((i * (arr.length - 1)) / (max - 1));
+    if (!seen.has(idx)) {
+      seen.add(idx);
+      picked.push(arr[idx]);
+    }
+  }
+  return picked;
+}
+
+function curate(results: CandidateResult[], axes: { length: number }): string[] {
+  // Only 1D studies use the overlay; 2D studies read the heatmap instead.
+  if (axes.length !== 1) return [];
+  return evenlySpaced(
+    results.map((r) => r.candidate.id),
+    OVERLAY_MAX,
+  );
+}
 
 
 function filterAndFront(
@@ -125,7 +153,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         results,
         axes,
         frontier,
-        selectedIds: [],
+        selectedIds: curate(results, axes),
         running: false,
         studyDirty: false,
         computeMs: performance.now() - t0,
@@ -138,21 +166,28 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       if (cur.includes(id)) {
         set({ selectedIds: cur.filter((x) => x !== id) });
       } else {
-        set({ selectedIds: [...cur, id] });
+        // Cap the overlay; adding past the cap drops the oldest selection.
+        set({ selectedIds: [...cur, id].slice(-OVERLAY_MAX) });
       }
     },
 
     setSelected(ids) {
-      set({ selectedIds: ids });
+      set({ selectedIds: evenlySpaced(ids, OVERLAY_MAX) });
     },
 
     selectAllFrontier() {
       const frontier = get().frontier;
-      set({ selectedIds: frontier.map((r) => r.candidate.id) });
+      set({
+        selectedIds: evenlySpaced(
+          frontier.map((r) => r.candidate.id),
+          OVERLAY_MAX,
+        ),
+      });
     },
 
-    selectAll() {
-      set({ selectedIds: get().results.map((r) => r.candidate.id) });
+    autoCurate() {
+      const { results, axes } = get();
+      set({ selectedIds: curate(results, axes) });
     },
 
     clearSelection() {
