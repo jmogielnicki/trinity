@@ -280,12 +280,32 @@ export function FrontierView({ onApplied }: Props) {
       )}
 
       {results.length > 0 && is2D && (
-        <StudyHeatmaps
-          results={results}
-          axes={axes}
-          onApply={applyStrategy}
-          onSave={saveVariant}
-        />
+        <>
+          <OverlaySection
+            series={selectedSeries}
+            results={results}
+            selectedIds={selectedIds}
+            onToggle={toggleSelected}
+            onApply={applyStrategy}
+            onSave={saveVariant}
+            onSelectFrontier={selectAllFrontier}
+            onClear={clearSelection}
+            frontierCount={frontier.length}
+            pickSource="heatmap"
+          />
+
+          <div className="border-t border-border-light pt-3.5 mt-1 flex flex-col gap-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Explore the full {results.length}-variant grid
+            </div>
+            <StudyHeatmaps
+              results={results}
+              axes={axes}
+              selectedIds={selectedSet}
+              onToggle={toggleSelected}
+            />
+          </div>
+        </>
       )}
 
       {results.length > 0 && !is2D && (
@@ -296,10 +316,12 @@ export function FrontierView({ onApplied }: Props) {
             selectedIds={selectedIds}
             onToggle={toggleSelected}
             onApply={applyStrategy}
+            onSave={saveVariant}
             onAutoCurate={autoCurate}
             onSelectFrontier={selectAllFrontier}
             onClear={clearSelection}
             frontierCount={frontier.length}
+            pickSource="scatter"
           />
 
           <div className="border-t border-border-light pt-3.5 mt-1 flex flex-col gap-3.5">
@@ -421,20 +443,25 @@ function OverlaySection({
   selectedIds,
   onToggle,
   onApply,
+  onSave,
   onAutoCurate,
   onSelectFrontier,
   onClear,
   frontierCount,
+  pickSource,
 }: {
   series: Series[];
   results: CandidateResult[];
   selectedIds: string[];
   onToggle: (id: string) => void;
   onApply: (r: CandidateResult) => void;
-  onAutoCurate: () => void;
+  onSave?: (r: CandidateResult) => void;
+  /** When omitted (2D studies) the "Auto-pick" shortcut is hidden. */
+  onAutoCurate?: () => void;
   onSelectFrontier: () => void;
   onClear: () => void;
   frontierCount: number;
+  pickSource: 'scatter' | 'heatmap';
 }) {
   const [yearMode, setYearMode] = useState<YearMode>('median');
 
@@ -451,8 +478,9 @@ function OverlaySection({
         <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
           {series.length === 0 ? (
             <span className="text-xs text-text-faint italic">
-              Nothing overlaid — auto-pick a spread, take the frontier, or click
-              points in the scatter below.
+              Nothing overlaid —{' '}
+              {onAutoCurate ? 'auto-pick a spread, take the frontier, or ' : 'take the frontier, or '}
+              click {pickSource === 'heatmap' ? 'cells in the grid' : 'points in the scatter'} below.
             </span>
           ) : (
             series.map((s) => (
@@ -480,7 +508,7 @@ function OverlaySection({
           )}
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
-          <Btn size="sm" onClick={onAutoCurate}>Auto-pick {OVERLAY_MAX}</Btn>
+          {onAutoCurate && <Btn size="sm" onClick={onAutoCurate}>Auto-pick {OVERLAY_MAX}</Btn>}
           {frontierCount > 0 && <Btn size="sm" onClick={onSelectFrontier}>Top frontier</Btn>}
           {series.length > 0 && <Btn size="sm" onClick={onClear}>Clear</Btn>}
         </div>
@@ -522,6 +550,7 @@ function OverlaySection({
                 selectedIds={selectedIds}
                 onRemove={onToggle}
                 onApply={onApply}
+                onSave={onSave}
               />
             </div>
           </details>
@@ -741,11 +770,13 @@ function ComparisonTable({
   selectedIds,
   onRemove,
   onApply,
+  onSave,
 }: {
   results: CandidateResult[];
   selectedIds: string[];
   onRemove: (id: string) => void;
   onApply: (r: CandidateResult) => void;
+  onSave?: (r: CandidateResult) => void;
 }) {
   if (selectedIds.length === 0) {
     return (
@@ -783,6 +814,7 @@ function ComparisonTable({
             </th>
             <th className={thCls}>Worst start</th>
             <th className={thCls}></th>
+            {onSave && <th className={thCls}></th>}
             <th className={thCls}></th>
           </tr>
         </thead>
@@ -819,11 +851,22 @@ function ComparisonTable({
                   Apply
                 </button>
               </td>
+              {onSave && (
+                <td className={tdCls}>
+                  <button
+                    className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-code hover:border-border"
+                    onClick={() => onSave(r)}
+                    title="Save this variant to your library"
+                  >
+                    Save
+                  </button>
+                </td>
+              )}
               <td className={tdCls}>
                 <button
                   className="bg-transparent border-none text-stale cursor-pointer text-base leading-none px-1 hover:text-error"
                   onClick={() => onRemove(r.candidate.id)}
-                  title="Remove from comparison"
+                  title="Remove from overlay"
                 >
                   ×
                 </button>
