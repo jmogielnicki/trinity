@@ -33,7 +33,7 @@ function SummaryTable({ entries }: { entries: CompareEntry[] }) {
 	return (
 		<div className="border border-border-light rounded p-2 bg-surface-page flex flex-col h-full min-w-0">
 			<div className="flex items-center justify-between gap-4 text-xs text-text-muted mb-1.5 px-1">
-				<span>Scenario</span>
+				<span>Strategy</span>
 				<span>Success</span>
 			</div>
 			<div className="h-2.5 shrink-0" />
@@ -213,12 +213,11 @@ export function CompareScenariosView() {
 
 	useEffect(() => {
 		if (selectedIds.length > 0) return;
-		if (saved.length > 0) {
-			setSelection(
-				saved
-					.slice(0, Math.min(COMPARE_MAX, saved.length))
-					.map((s) => s.id),
-			);
+		if (saved.length >= 2) {
+			// Enough saved strategies to compare on their own — focus on them
+			// and tuck the presets away.
+			setSelection(saved.slice(0, COMPARE_MAX).map((s) => s.id));
+			setPresetsOpen(false);
 		} else {
 			setSelection(presetItems.slice(0, 3).map((p) => p.id));
 		}
@@ -302,7 +301,7 @@ const renderCard = (item: PickerItem) => {
 			/>
 
 			<div className="text-text-secondary text-sm leading-[1.4] max-w-[760px] -mt-1">
-				<strong>Compare scenarios</strong> — pick strategies (your saved
+				<strong>Compare strategies</strong> — pick strategies (your saved
 				ones, or the presets below) and run each across every historical
 				start year, lined up side by side. Pick up to {COMPARE_MAX}.
 			</div>
@@ -312,7 +311,7 @@ const renderCard = (item: PickerItem) => {
 				<div className="flex flex-col">
 					<div className="flex items-baseline gap-2 px-1 pb-2">
 						<span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-							Your saved scenarios
+							Your saved strategies
 						</span>
 						<span className="text-[11.5px] font-medium text-text-faint">
 							{savedItems.length === 0
@@ -337,7 +336,7 @@ const renderCard = (item: PickerItem) => {
 								/>
 							</svg>
 							<span>
-								No saved scenarios yet — click{" "}
+								No saved strategies yet — click{" "}
 								<b className="font-semibold text-text-secondary">
 									Save
 								</b>{" "}
@@ -395,8 +394,9 @@ const renderCard = (item: PickerItem) => {
 
 			{entries.length > 0 && (
 				<div className="text-xs text-text-faint mt-4 border-t border-border-light pt-4">
-					{entries.length} scenario{entries.length === 1 ? "" : "s"}{" "}
-					compared · compute {computeMs.toFixed(0)} ms
+					{entries.length}{" "}
+					{entries.length === 1 ? "strategy" : "strategies"} compared ·
+					compute {computeMs.toFixed(0)} ms
 					{running ? " · updating…" : ""}
 				</div>
 			)}
@@ -404,7 +404,7 @@ const renderCard = (item: PickerItem) => {
 			{entries.length === 0 ? (
 				<p className="text-sm text-text-faint py-4 text-center border border-dashed border-text-disabled rounded">
 					{selectedIds.length === 0
-						? "Select at least one scenario above to compare."
+						? "Select at least one strategy above to compare."
 						: "Computing…"}
 				</p>
 			) : (
@@ -459,7 +459,7 @@ const renderCard = (item: PickerItem) => {
 					/>
 					<div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[360px] flex flex-col gap-4 p-5 animate-in fade-in zoom-in-95 duration-150">
 						<h2 className="m-0 text-lg font-bold text-text">
-							Delete scenario?
+							Delete strategy?
 						</h2>
 						<p className="text-sm text-text-secondary leading-[1.5]">
 							“{pendingDelete.name}” will be permanently removed
