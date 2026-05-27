@@ -74,13 +74,11 @@ function CompareBar({
 	selectedIds,
 	allItems,
 	toggle,
-	clear,
 	max = COMPARE_MAX,
 }: {
 	selectedIds: string[];
 	allItems: PickerItem[];
 	toggle: (id: string) => void;
-	clear: () => void;
 	max?: number;
 }) {
 	const items = selectedIds
@@ -91,18 +89,7 @@ function CompareBar({
 		.filter((x) => x.s);
 
 	return (
-		<div className="sticky top-0 z-20 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 mb-2 bg-surface-page/90 backdrop-blur-md border-b border-border-light min-h-[52px]">
-			<div className="flex items-baseline gap-0.5 pr-3 border-r border-border-light flex-shrink-0">
-				<span className="text-lg font-semibold text-text tabular-nums">
-					{selectedIds.length}
-				</span>
-				<span className="text-sm text-text-muted tabular-nums">
-					/{max}
-				</span>
-				<span className="text-[11px] uppercase tracking-[0.06em] text-text-muted ml-2 font-medium">
-					comparing
-				</span>
-			</div>
+		<div className="sticky top-[var(--header-h)] z-20 -mx-3 px-3 sm:-mx-6 sm:px-6 flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 mb-2 bg-surface-page/90 backdrop-blur-md border-b border-border-light min-h-[52px]">
 			<div className="flex flex-wrap items-center gap-1.5 flex-1 min-h-[28px]">
 				{items.length === 0 && (
 					<span className="text-xs text-text-faint italic">
@@ -113,7 +100,7 @@ function CompareBar({
 					<button
 						key={s!.id}
 						onClick={() => toggle(s!.id)}
-						className="inline-flex items-center gap-1.5 h-[26px] px-2 rounded-full border-[1.5px] text-xs font-medium cursor-pointer hover:-translate-y-px hover:shadow-sm transition-all"
+						className="inline-flex items-center gap-1.5 h-[26px] px-2 rounded-full border-[1.5px] text-xs font-medium cursor-pointer hover:-translate-y-px hover:shadow-sm transition-all min-w-0 max-w-[calc(50%-3px)] sm:max-w-none"
 						style={{
 							borderColor: c,
 							backgroundColor: `${c}1a`,
@@ -122,14 +109,14 @@ function CompareBar({
 						title="Remove"
 					>
 						<span
-							className="w-2 h-2 rounded-full"
+							className="w-2 h-2 rounded-full shrink-0"
 							style={{ backgroundColor: c }}
 						/>
-						<span className="leading-none whitespace-nowrap text-text">
+						<span className="leading-none truncate min-w-0 text-text">
 							{s!.name}
 						</span>
 						<svg
-							className="opacity-55 ml-0.5 hover:opacity-100 transition-opacity"
+							className="opacity-55 ml-0.5 hover:opacity-100 transition-opacity shrink-0"
 							width="10"
 							height="10"
 							viewBox="0 0 10 10"
@@ -153,14 +140,6 @@ function CompareBar({
 						/>
 					))}
 			</div>
-			{selectedIds.length > 0 && (
-				<button
-					onClick={clear}
-					className="flex-shrink-0 bg-transparent border border-border-light rounded-md px-2.5 py-1 text-xs text-text-secondary hover:bg-surface hover:border-border transition-colors cursor-pointer"
-				>
-					Clear
-				</button>
-			)}
 		</div>
 	);
 }
@@ -180,7 +159,6 @@ export function CompareScenariosView() {
 		computeMs,
 		toggle,
 		setSelection,
-		clear,
 		run,
 	} = useCompareScenariosStore();
 
@@ -296,7 +274,6 @@ const renderCard = (item: PickerItem) => {
 				selectedIds={selectedIds}
 				allItems={allItems}
 				toggle={toggle}
-				clear={clear}
 				max={COMPARE_MAX}
 			/>
 
