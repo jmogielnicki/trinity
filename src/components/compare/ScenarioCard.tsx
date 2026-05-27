@@ -1,14 +1,6 @@
-import { Fragment } from 'react';
 import type { AllocationStrategy, WithdrawalStrategy } from '../../engine/strategies';
 import type { WithdrawalSource } from '../../engine/withdrawalSource';
-import {
-  allocTypeName,
-  wdTypeName,
-  srcTypeName,
-  allocRows,
-  wdRows,
-  srcRows,
-} from '../../engine/strategyDescriptions';
+import { StrategyDetails } from './StrategyDetails';
 
 type Props = {
   name: string;
@@ -26,33 +18,6 @@ type Props = {
   onSave?: () => void;
   onDelete?: () => void;
 };
-
-function Section({
-  label,
-  type,
-  rows,
-}: {
-  label: string;
-  type: string;
-  rows: [string, string][];
-}) {
-  return (
-    <>
-      <div className="col-span-2 mt-1.5 first:mt-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-          {label}
-        </span>
-        <span className="ml-1 text-2xs text-text-secondary">— {type}</span>
-      </div>
-      {rows.map(([k, v]) => (
-        <Fragment key={k}>
-          <div className="text-text-muted">{k}</div>
-          <div className="text-text font-medium truncate">{v}</div>
-        </Fragment>
-      ))}
-    </>
-  );
-}
 
 export function ScenarioCard({
   name,
@@ -133,11 +98,11 @@ export function ScenarioCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-px text-2xs items-baseline">
-        <Section label="Allocation" type={allocTypeName(allocation)} rows={allocRows(allocation)} />
-        <Section label="Withdrawal" type={wdTypeName(withdrawal)} rows={wdRows(withdrawal)} />
-        <Section label="Source" type={srcTypeName(withdrawalSource)} rows={srcRows(withdrawalSource)} />
-      </div>
+      <StrategyDetails
+        allocation={allocation}
+        withdrawal={withdrawal}
+        withdrawalSource={withdrawalSource}
+      />
     </div>
   );
 }

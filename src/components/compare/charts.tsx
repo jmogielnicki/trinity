@@ -124,6 +124,26 @@ function DistributionBoxplot({
   );
 }
 
+export function FinalBalanceDistributionChart({ entries }: { entries: CompareEntry[] }) {
+  const data = entries.map((e, i) =>
+    boxPoint(i, {
+      p5: e.metrics.p5Final,
+      p25: e.metrics.p25Final,
+      p50: e.metrics.p50Final,
+      p75: e.metrics.p75Final,
+      p95: e.metrics.p95Final,
+    }),
+  );
+  return (
+    <DistributionBoxplot
+      title="Final-balance distribution (p5–p95, median bar)"
+      axisTitle="final balance (real $)"
+      entries={entries}
+      data={data}
+    />
+  );
+}
+
 /** Distribution of per-sim average annual spend, over completed observed sims. */
 function spendQuantiles(e: CompareEntry) {
   const means: number[] = [];
@@ -146,7 +166,7 @@ export function SpendDistributionChart({ entries }: { entries: CompareEntry[] })
   const data = entries.map((e, i) => boxPoint(i, spendQuantiles(e)));
   return (
     <DistributionBoxplot
-      title="Avg annual spend percentiles (p5–p95, median bar)"
+      title="Avg annual spend distribution (p5–p95, median bar)"
       axisTitle="avg annual spend (real $)"
       entries={entries}
       data={data}
@@ -197,24 +217,42 @@ function lineSeries(e: CompareEntry, i: number, data: [number, number][]) {
   };
 }
 
+function endBalance(s: SimulationResult): number {
+  return s.success ? s.finalBalance ?? s.trajectory[s.trajectory.length - 1]?.balance ?? 0 : 0;
+}
+
+function minBalance(s: SimulationResult): number {
+  let m = Infinity;
+  for (const rec of s.trajectory) if (rec.balance < m) m = rec.balance;
+  return Number.isFinite(m) ? m : 0;
+}
+
 /**
- * Pick one actual start year per scenario to play out. Rank completed observed
- * sims by final balance (failures = $0, broken earlier = worse); "worst" is the
- * lowest, "best" the highest, "median" the middle.
+ * Pick one actual start year per scenario to play out:
+ *  - best: highest ending balance
+ *  - median: middle-ranked ending balance
+ *  - worst: soonest depletion if any cohort depleted; otherwise the cohort that
+ *    came closest to depletion (lowest balance touched at any point)
  */
 function representativeSim(e: CompareEntry, mode: YearMode): SimulationResult | undefined {
   const sims = e.result.sims.filter((s) => !s.bootstrapped && !s.inProgress);
   if (sims.length === 0) return undefined;
-  const scored = sims
-    .map((s) => ({
-      s,
-      fb: s.success ? s.finalBalance ?? s.trajectory[s.trajectory.length - 1]?.balance ?? 0 : 0,
-      depletedAt: s.depletedAt ?? Infinity,
-    }))
-    .sort((a, b) => a.fb - b.fb || a.depletedAt - b.depletedAt);
-  if (mode === 'worst') return scored[0].s;
-  if (mode === 'best') return scored[scored.length - 1].s;
-  return scored[Math.floor((scored.length - 1) / 2)].s;
+
+  if (mode === 'best') {
+    return sims.reduce((best, s) => (endBalance(s) > endBalance(best) ? s : best));
+  }
+  if (mode === 'median') {
+    const sorted = [...sims].sort((a, b) => endBalance(a) - endBalance(b));
+    return sorted[Math.floor((sorted.length - 1) / 2)];
+  }
+  // worst
+  const depleted = sims.filter((s) => !s.success);
+  if (depleted.length > 0) {
+    return depleted.reduce((worst, s) =>
+      (s.depletedAt ?? Infinity) < (worst.depletedAt ?? Infinity) ? s : worst,
+    );
+  }
+  return sims.reduce((worst, s) => (minBalance(s) < minBalance(worst) ? s : worst));
 }
 
 function trajectoryOptions(series: any[]): Options {
@@ -280,95 +318,5 @@ export function SpendOverTimeChart({
     <ChartCard title="Spending over the retirement">
       <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
     </ChartCard>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Final balance vs starting balance — small-multiples vertical bars, one band
-// per scenario (aligned with the summary table / boxplot rows), five buckets.
-// ---------------------------------------------------------------------------
-
-const BUCKETS: { label: string; test: (r: number) => boolean }[] = [
-  { label: 'Depleted', test: (r) => r <= 0 },
-  { label: '< 1×',     test: (r) => r > 0 && r < 1 },
-  { label: '1–3×',     test: (r) => r >= 1 && r < 3 },
-  { label: '3–10×',    test: (r) => r >= 3 && r < 10 },
-  { label: '> 10×',    test: (r) => r >= 10 },
-];
-
-/** Share (and count) of completed start years that landed in each bucket. */
-function bucketStats(e: CompareEntry): { pct: number; count: number; total: number }[] {
-  const init = e.initialBalance;
-  const counts = new Array(BUCKETS.length).fill(0);
-  let total = 0;
-  for (const s of e.result.sims) {
-    if (s.bootstrapped || s.inProgress) continue;
-    total += 1;
-    const fb = s.success
-      ? s.finalBalance ?? s.trajectory[s.trajectory.length - 1]?.balance ?? 0
-      : 0;
-    const r = init > 0 ? fb / init : 0;
-    const idx = BUCKETS.findIndex((b) => b.test(r));
-    counts[idx >= 0 ? idx : 0] += 1;
-  }
-  return counts.map((count) => ({
-    count,
-    total,
-    pct: total > 0 ? (count / total) * 100 : 0,
-  }));
-}
-
-export function FinalBalanceVsStartingChart({ entries }: { entries: CompareEntry[] }) {
-  const rows = entries.map((e, i) => ({
-    id: e.saved.id,
-    color: colorAt(i),
-    stats: bucketStats(e),
-  }));
-  const maxPct = Math.max(1, ...rows.flatMap((r) => r.stats.map((s) => s.pct)));
-
-  return (
-    <div className="border border-border-light rounded p-2 bg-surface-page flex flex-col h-full min-w-0">
-      <div className="text-xs text-text-secondary mb-1.5">
-        Final balance versus starting balance
-      </div>
-      <div className="h-2.5 shrink-0" />
-      <div className="flex-1 flex flex-col">
-        {rows.map((r) => (
-          <div
-            key={r.id}
-            className="flex-1 flex items-stretch gap-1 px-2 border-b border-border-light"
-          >
-            {BUCKETS.map((b, bi) => {
-              const s = r.stats[bi];
-              const h = (s.pct / maxPct) * 100;
-              const ctx = b.label === 'Depleted' ? 'Depleted' : `${b.label} starting balance`;
-              return (
-                <div
-                  key={b.label}
-                  className="flex-1 flex flex-col justify-end"
-                  title={`${ctx} — ${s.count} of ${s.total} start years (${Math.round(s.pct)}%)`}
-                >
-                  <div
-                    className="w-full rounded-t-[2px]"
-                    style={{
-                      height: `${h}%`,
-                      minHeight: s.pct > 0 ? 2 : 0,
-                      background: r.color,
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <div className="h-9 shrink-0 flex items-start gap-1 px-2 pt-1 text-2xs text-text-secondary">
-        {BUCKETS.map((b) => (
-          <div key={b.label} className="flex-1 text-center whitespace-nowrap">
-            {b.label}
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }

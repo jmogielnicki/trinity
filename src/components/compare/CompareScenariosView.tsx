@@ -12,7 +12,7 @@ import { ScenarioCard } from './ScenarioCard';
 import { ComparisonTable } from './ComparisonTable';
 import { colorAt } from './compareColors';
 import {
-  FinalBalanceVsStartingChart,
+  FinalBalanceDistributionChart,
   SpendDistributionChart,
   BalanceOverTimeChart,
   SpendOverTimeChart,
@@ -225,7 +225,7 @@ export function CompareScenariosView() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_1fr] gap-3">
             <SummaryTable entries={entries} />
-            <FinalBalanceVsStartingChart entries={entries} />
+            <FinalBalanceDistributionChart entries={entries} />
             <SpendDistributionChart entries={entries} />
           </div>
 
