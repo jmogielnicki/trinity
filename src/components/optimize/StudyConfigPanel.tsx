@@ -7,6 +7,8 @@ import { ToggleButton } from '../ui/ToggleButton';
 import { FIELD_AXIS } from '../ui/fieldCls';
 import {
   SOURCE_PRESETS,
+  WITHDRAWAL_ARCHETYPES,
+  WITHDRAWAL_EDITOR_UNSUPPORTED,
   allocationRangeVariants,
   describeAllocation,
   describeSource,
@@ -565,19 +567,36 @@ function ListEditor({
   }
   if (dim === 'withdrawal') {
     return (
-      <EntryList
-        items={study.withdrawalList}
-        onChange={(withdrawalList) => update({ withdrawalList })}
-        describe={describeWithdrawal}
-        makeNew={() => ({ type: 'fixedPercent', rate: 0.04 })}
-        render={(item, onChange) => (
-          <WithdrawalEditor
-            horizonYears={horizonYears}
-            withdrawal={item}
-            onChange={onChange}
-          />
-        )}
-      />
+      <div className="flex flex-col gap-1.5">
+        <div className="text-xs text-text-faint">
+          Race different withdrawal families against each other — add any mix
+          of archetypes below, then tune the ones that support it.
+        </div>
+        <EntryList
+          items={study.withdrawalList}
+          onChange={(withdrawalList) => update({ withdrawalList })}
+          describe={describeWithdrawal}
+          makeNew={() => ({ type: 'fixedPercent', rate: 0.04 })}
+          addPalette={WITHDRAWAL_ARCHETYPES.map((a) => ({
+            id: a.id,
+            label: a.label,
+            make: a.make,
+          }))}
+          render={(item, onChange) =>
+            WITHDRAWAL_EDITOR_UNSUPPORTED.has(item.type) ? (
+              <div className="text-xs text-text-faint py-1">
+                Runs with its standard parameters (not tunable here).
+              </div>
+            ) : (
+              <WithdrawalEditor
+                horizonYears={horizonYears}
+                withdrawal={item}
+                onChange={onChange}
+              />
+            )
+          }
+        />
+      </div>
     );
   }
   return (
@@ -599,12 +618,15 @@ function EntryList<T extends AllocationStrategy | WithdrawalStrategy | Withdrawa
   describe,
   makeNew,
   render,
+  addPalette,
 }: {
   items: T[];
   onChange: (items: T[]) => void;
   describe: (item: T) => string;
   makeNew: () => T;
   render: (item: T, onChange: (next: T) => void) => ReactNode;
+  /** When set, the add control is a palette of typed building blocks. */
+  addPalette?: Array<{ id: string; label: string; make: () => T }>;
 }) {
   return (
     <div className="study-list">
@@ -628,13 +650,28 @@ function EntryList<T extends AllocationStrategy | WithdrawalStrategy | Withdrawa
           )}
         </div>
       ))}
-      <button
-        className="x-btn"
-        onClick={() => onChange([...items, makeNew()])}
-        style={{ marginTop: 4 }}
-      >
-        + add variant
-      </button>
+      {addPalette ? (
+        <div className="flex flex-wrap gap-1.5" style={{ marginTop: 4 }}>
+          {addPalette.map((p) => (
+            <button
+              key={p.id}
+              className="x-btn"
+              onClick={() => onChange([...items, p.make()])}
+              title={`Add ${p.label}`}
+            >
+              + {p.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          className="x-btn"
+          onClick={() => onChange([...items, makeNew()])}
+          style={{ marginTop: 4 }}
+        >
+          + add variant
+        </button>
+      )}
     </div>
   );
 }
