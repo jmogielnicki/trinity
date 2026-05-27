@@ -71,7 +71,7 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
           </tr>
           <tr>
             <th className={thCls}></th>
-            <th className={thCls}>Scenario</th>
+            <th className={thCls}>Strategy</th>
             <th className={`${thCls} text-right`}>Success</th>
             {TABLE_BUCKETS.map((b, bi) => (
               <th

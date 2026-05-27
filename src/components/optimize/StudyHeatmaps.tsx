@@ -98,7 +98,7 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
               className="text-sm px-2.5 py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-surface-muted"
               onClick={() => onApply(selected)}
             >
-              Apply to single scenario
+              Apply to build strategy
             </button>
             <button
               className="text-sm px-2.5 py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-surface-muted"

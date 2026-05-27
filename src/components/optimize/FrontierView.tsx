@@ -666,7 +666,7 @@ function ComparisonTable({
                 <button
                   className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-chart-blue hover:bg-surface-code hover:border-chart-blue"
                   onClick={() => onApply(r)}
-                  title="Load this strategy into the single-scenario view"
+                  title="Load this strategy into the build-strategy view"
                 >
                   Apply
                 </button>

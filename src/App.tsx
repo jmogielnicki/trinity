@@ -11,7 +11,6 @@ import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
 import { QuickSelectYears } from './components/results/QuickSelectYears';
 import { FrontierView } from './components/optimize/FrontierView';
-import { EvolveView } from './components/evolve/EvolveView';
 import { CompareScenariosView } from './components/compare/CompareScenariosView';
 import { AboutPanel } from './components/AboutPanel';
 import { AuthControl } from './components/auth/AuthControl';
@@ -27,7 +26,7 @@ import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
-type TopMode = 'single' | 'optimize' | 'evolve' | 'compare';
+type TopMode = 'single' | 'optimize' | 'compare';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -302,25 +301,19 @@ export function App() {
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5l5-5 4 4 5-7 4 4" />
             </svg>
-            Single scenario
+            Build strategy
           </NavTab>
           <NavTab active={topMode === 'compare'} onClick={() => setTopMode('compare')}>
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
             </svg>
-            Compare scenarios
+            Compare strategies
           </NavTab>
           <NavTab active={topMode === 'optimize'} onClick={() => setTopMode('optimize')}>
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
             </svg>
-            Study / optimize
-          </NavTab>
-          <NavTab active={topMode === 'evolve'} onClick={() => setTopMode('evolve')}>
-            <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-            Evolve
+            Optimize strategies
           </NavTab>
         </div>
 
@@ -430,21 +423,11 @@ export function App() {
             {topMode === 'optimize' && (
               proGated ? (
                 <ProGate
-                  title="Study &amp; optimize"
+                  title="Optimize strategies"
                   blurb="Sweep allocation and withdrawal strategies across every historical start year and compare them on a Pareto frontier. Available with Pro."
                 />
               ) : (
                 <FrontierView onApplied={() => setTopMode('single')} />
-              )
-            )}
-            {topMode === 'evolve' && (
-              proGated ? (
-                <ProGate
-                  title="Evolve"
-                  blurb="Run a genetic algorithm to discover glide-path and withdrawal strategies tuned to the historical record. Available with Pro."
-                />
-              ) : (
-                <EvolveView />
               )
             )}
             {topMode === 'compare' && <CompareScenariosView />}

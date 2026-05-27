@@ -28,7 +28,7 @@ export function ScenarioLibrary() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium text-text-secondary">Saved scenarios</div>
+        <div className="text-sm font-medium text-text-secondary">Saved strategies</div>
         {source === 'cloud' && (
           <span className="text-2xs text-text-faint uppercase tracking-wide">cloud</span>
         )}
@@ -38,7 +38,7 @@ export function ScenarioLibrary() {
       {source === 'cloud' && localPending > 0 && (
         <div className="text-xs bg-surface-panel rounded-md p-2 flex flex-col gap-1.5">
           <span className="text-text-secondary">
-            You have {localPending} scenario{localPending === 1 ? '' : 's'} saved on this device.
+            You have {localPending} {localPending === 1 ? 'strategy' : 'strategies'} saved on this device.
           </span>
           <div className="flex gap-2">
             <button
@@ -62,7 +62,7 @@ export function ScenarioLibrary() {
       {loading && saved.length === 0 ? (
         <div className="text-xs text-text-faint">loading…</div>
       ) : saved.length === 0 ? (
-        <div className="text-xs text-text-faint">no saved scenarios yet</div>
+        <div className="text-xs text-text-faint">no saved strategies yet</div>
       ) : (
         <ul className="list-none p-0 m-0 flex flex-col gap-1">
           {saved.map((s) => (
