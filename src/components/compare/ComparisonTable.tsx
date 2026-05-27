@@ -60,11 +60,26 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
+            <th className="bg-surface-hover border-b border-border-light" colSpan={3} />
+            <th
+              className="px-2 py-1 text-center text-2xs font-semibold text-text-muted uppercase tracking-[0.04em] bg-surface-hover border-b border-l border-r border-border-light whitespace-nowrap"
+              colSpan={TABLE_BUCKETS.length}
+            >
+              Final balance vs initial balance
+            </th>
+            <th className="bg-surface-hover border-b border-border-light" colSpan={6} />
+          </tr>
+          <tr>
             <th className={thCls}></th>
             <th className={thCls}>Scenario</th>
             <th className={`${thCls} text-right`}>Success</th>
-            {TABLE_BUCKETS.map((b) => (
-              <th key={b.label} className={`${thCls} text-right`}>
+            {TABLE_BUCKETS.map((b, bi) => (
+              <th
+                key={b.label}
+                className={`${thCls} text-right ${
+                  bi === 0 ? 'border-l border-border-light' : ''
+                } ${bi === TABLE_BUCKETS.length - 1 ? 'border-r border-border-light' : ''}`}
+              >
                 {b.label}
               </th>
             ))}
