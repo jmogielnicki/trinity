@@ -76,6 +76,7 @@
     color: var(--color-text);
     background: var(--color-surface-page);
     --scroll-p: 0;
+    --header-h: 0px;
   }
 
   body {

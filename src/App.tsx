@@ -50,6 +50,7 @@ export function App() {
     !import.meta.env.VITE_DISABLE_PRO_GATE;
   const [topMode, setTopMode] = useState<TopMode>('single');
   const tabBarRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -245,10 +246,28 @@ export function App() {
     return () => el.removeEventListener('wheel', handler);
   }, []);
 
+  // Publish the sticky header's live height as --header-h so descendant sticky
+  // elements (e.g. the compare-tab legend bar) can pin themselves directly below
+  // it. The header's height is scroll-driven and collapses as you scroll, so a
+  // ResizeObserver keeps the value in sync frame-by-frame.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const write = () =>
+      document.documentElement.style.setProperty(
+        '--header-h',
+        `${el.getBoundingClientRect().height}px`,
+      );
+    write();
+    const ro = new ResizeObserver(write);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div>
       {/* ── Shrinking sticky header shell ── */}
-      <div className="sticky top-0 z-30 bg-surface shadow-sticky">
+      <div ref={headerRef} className="sticky top-0 z-30 bg-surface shadow-sticky">
         <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
           {/* Title row — height + h1 font-size driven by .shrinking-title-box CSS */}
           <div className="shrinking-title-box">
