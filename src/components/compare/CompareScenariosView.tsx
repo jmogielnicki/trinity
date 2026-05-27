@@ -89,7 +89,7 @@ function CompareBar({
 		.filter((x) => x.s);
 
 	return (
-		<div className="sticky top-[var(--header-h)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 mb-2 bg-surface-page/90 backdrop-blur-md border-b border-border-light min-h-[52px]">
+		<div className="sticky top-[var(--header-h)] z-20 -mx-3 px-3 sm:-mx-6 sm:px-6 flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 mb-2 bg-surface-page/90 backdrop-blur-md border-b border-border-light min-h-[52px]">
 			<div className="flex flex-wrap items-center gap-1.5 flex-1 min-h-[28px]">
 				{items.length === 0 && (
 					<span className="text-xs text-text-faint italic">
