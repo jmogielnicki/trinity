@@ -10,14 +10,15 @@ import {
 import { PRESETS } from "../../data/presets";
 import { ScenarioCard } from "./ScenarioCard";
 import { ComparisonTable } from "./ComparisonTable";
-import { colorAt } from "./compareColors";
+import { colorAt } from "../seriesColors";
 import {
 	FinalBalanceDistributionChart,
 	SpendDistributionChart,
 	BalanceOverTimeChart,
 	SpendOverTimeChart,
+	type Series,
 	type YearMode,
-} from "./charts";
+} from "../results/overlayCharts";
 import { FIELD_BASE } from "../ui/fieldCls";
 
 type PickerItem = SavedScenario & { isPreset: boolean; description?: string };
@@ -238,6 +239,18 @@ export function CompareScenariosView() {
 		return m;
 	}, [selectedIds]);
 
+	const chartSeries = useMemo<Series[]>(
+		() =>
+			entries.map((e, i) => ({
+				id: e.saved.id,
+				label: e.saved.name,
+				color: colorAt(i),
+				metrics: e.metrics,
+				result: e.result,
+			})),
+		[entries],
+	);
+
 	const confirmDelete = async () => {
 		if (!pendingDelete) return;
 		const id = pendingDelete.id;
@@ -411,8 +424,8 @@ const renderCard = (item: PickerItem) => {
 				<div className="flex flex-col gap-4">
 					<div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_1fr] gap-3">
 						<SummaryTable entries={entries} />
-						<FinalBalanceDistributionChart entries={entries} />
-						<SpendDistributionChart entries={entries} />
+						<FinalBalanceDistributionChart series={chartSeries} />
+						<SpendDistributionChart series={chartSeries} />
 					</div>
 
 					<div className="flex items-center gap-2 text-sm text-text-secondary mt-2">
@@ -433,10 +446,10 @@ const renderCard = (item: PickerItem) => {
 
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
 						<BalanceOverTimeChart
-							entries={entries}
+							series={chartSeries}
 							mode={yearMode}
 						/>
-						<SpendOverTimeChart entries={entries} mode={yearMode} />
+						<SpendOverTimeChart series={chartSeries} mode={yearMode} />
 					</div>
 
 					<details className="border border-border-light rounded bg-surface-page mt-2">

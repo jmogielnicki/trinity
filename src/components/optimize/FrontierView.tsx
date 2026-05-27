@@ -26,6 +26,8 @@ import { StudyTrajectories } from './StudyTrajectories';
 import { useLibraryStore } from '../../store/libraryStore';
 import { useSweepStore } from '../../store/sweepStore';
 import type { SerializedState } from '../../data/urlState';
+import { colorAt } from '../seriesColors';
+import { FinalBalanceDistributionChart, type Series } from '../results/overlayCharts';
 
 type Axis =
   | 'successRate'
@@ -120,11 +122,6 @@ function formatColorValue(c: ColorBy, v: number): string {
   }
 }
 
-const SERIES_COLORS = [
-  '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-  '#8c564b', '#e377c2', '#17becf', '#bcbd22', '#7f7f7f',
-];
-
 type Props = {
   onApplied?: () => void;
 };
@@ -196,6 +193,22 @@ export function FrontierView({ onApplied }: Props) {
     [frontier],
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // Selected candidates as overlay-chart series, in selection order with
+  // colors that match the comparison-table row swatches.
+  const selectedSeries = useMemo<Series[]>(() => {
+    const byId = new Map(results.map((r) => [r.candidate.id, r]));
+    return selectedIds
+      .map((id) => byId.get(id))
+      .filter((r): r is CandidateResult => !!r)
+      .map((r, i) => ({
+        id: r.candidate.id,
+        label: r.candidate.label,
+        color: colorAt(i),
+        metrics: r.metrics,
+        result: r.result,
+      }));
+  }, [results, selectedIds]);
 
   const applyStrategy = (r: CandidateResult) => {
     scenario.setAllocation(r.candidate.allocation);
@@ -367,7 +380,9 @@ export function FrontierView({ onApplied }: Props) {
                 onRemove={toggleSelected}
                 onApply={applyStrategy}
               />
-              <ComparisonBars results={results} selectedIds={selectedIds} />
+              {selectedSeries.length > 0 && (
+                <FinalBalanceDistributionChart series={selectedSeries} />
+              )}
               <FrontierList
                 frontier={frontier}
                 selectedIds={selectedSet}
@@ -644,7 +659,7 @@ function ComparisonTable({
               <td className={tdCls}>
                 <span
                   className="inline-block w-3 h-3 rounded-sm"
-                  style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }}
+                  style={{ background: colorAt(i) }}
                 />
               </td>
               <td className={tdCls}>{r.candidate.label}</td>
@@ -684,151 +699,6 @@ function ComparisonTable({
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Comparison bars (final-balance P5/Median/P95 whiskers)
-// ---------------------------------------------------------------------------
-
-function ComparisonBars({
-  results,
-  selectedIds,
-}: {
-  results: CandidateResult[];
-  selectedIds: string[];
-}) {
-  if (selectedIds.length === 0) return null;
-  const byId = new Map(results.map((r) => [r.candidate.id, r]));
-  const selected = selectedIds
-    .map((id) => byId.get(id))
-    .filter((r): r is CandidateResult => !!r);
-
-  if (selected.length === 0) return null;
-
-  const chartHeight = selected.length * 28 + 40;
-
-  // Build three scatter series (p5, p50, p95) plus one line series per strategy
-  // that connects the p5 and p95 endpoints. We use inverted chart for horizontal bars.
-  const categories = selected.map((r) => truncate(r.candidate.label, 36));
-
-  // One line series per strategy connecting p5–p95
-  const connectorSeries = selected.map((r, i) => ({
-    type: 'line' as const,
-    name: truncate(r.candidate.label, 36),
-    color: SERIES_COLORS[i % SERIES_COLORS.length],
-    lineWidth: 2,
-    opacity: 0.5,
-    marker: { enabled: false },
-    enableMouseTracking: false,
-    showInLegend: false,
-    data: [
-      { x: i, y: r.metrics.p5Final },
-      { x: i, y: r.metrics.p95Final },
-    ] as any,
-  }));
-
-  // P5 dots
-  const p5Series = {
-    type: 'scatter' as const,
-    name: 'P5',
-    showInLegend: false,
-    enableMouseTracking: false,
-    data: selected.map((r, i) => ({
-      x: i,
-      y: r.metrics.p5Final,
-      color: SERIES_COLORS[i % SERIES_COLORS.length],
-      marker: { radius: 4, fillOpacity: 0.55 },
-    })),
-  };
-
-  // P95 dots
-  const p95Series = {
-    type: 'scatter' as const,
-    name: 'P95',
-    showInLegend: false,
-    enableMouseTracking: false,
-    data: selected.map((r, i) => ({
-      x: i,
-      y: r.metrics.p95Final,
-      color: SERIES_COLORS[i % SERIES_COLORS.length],
-      marker: { radius: 4, fillOpacity: 0.55 },
-    })),
-  };
-
-  // P50 as scatter with dataLabels showing the value
-  const p50Series = {
-    type: 'scatter' as const,
-    name: 'Median',
-    showInLegend: false,
-    enableMouseTracking: false,
-    data: selected.map((r, i) => ({
-      x: i,
-      y: r.metrics.p50Final,
-      color: SERIES_COLORS[i % SERIES_COLORS.length],
-      marker: { radius: 5, symbol: 'square' },
-      dataLabels: {
-        enabled: true,
-        format: `${fmtMoney(r.metrics.p50Final)}`,
-        style: { fontSize: '10px', color: '#666', fontWeight: 'normal' },
-        x: 8,
-      },
-    })),
-  };
-
-  const options: Options = {
-    chart: {
-      type: 'scatter',
-      inverted: true,
-      width: null as any,
-      height: chartHeight,
-      margin: [8, 80, 8, 200],
-    },
-    xAxis: {
-      categories,
-      title: { text: '' },
-      tickWidth: 0,
-      lineWidth: 0,
-    },
-    yAxis: {
-      min: 0,
-      title: { text: '' },
-      labels: {
-        formatter() {
-          const v = this.value as number;
-          return `$${(v / 1e6).toFixed(1)}M`;
-        },
-      },
-    },
-    tooltip: {
-      formatter() {
-        const ctx = this as any;
-        const r = selected[ctx.point?.x];
-        if (!r) return false;
-        const m = r.metrics;
-        return `<b>${r.candidate.label}</b><br/>P5: ${fmtMoney(m.p5Final)} · Median: ${fmtMoney(m.p50Final)} · P95: ${fmtMoney(m.p95Final)}`;
-      },
-    },
-    plotOptions: {
-      scatter: {
-        marker: { symbol: 'circle' },
-        dataLabels: { enabled: false },
-      },
-    },
-    series: [...connectorSeries, p5Series as any, p95Series as any, p50Series as any],
-  };
-
-  return (
-    <div className="border border-border-light rounded p-2.5 bg-surface-page">
-      <div className="text-xs text-text-secondary mb-1.5">
-        Final-balance distribution (P5 / Median / P95) per selected strategy
-      </div>
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        immutable={false}
-      />
     </div>
   );
 }
@@ -932,8 +802,4 @@ function fmtMoney(n: number): string {
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}k`;
   return `$${Math.round(n)}`;
-}
-
-function truncate(s: string, n: number): string {
-  return s.length > n ? s.slice(0, n - 1) + '…' : s;
 }
