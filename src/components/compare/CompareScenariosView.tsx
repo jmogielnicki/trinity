@@ -12,12 +12,13 @@ import { ScenarioCard } from './ScenarioCard';
 import { ComparisonTable } from './ComparisonTable';
 import { colorAt } from './compareColors';
 import {
-  FinalBalanceDistributionChart,
+  FinalBalanceVsStartingChart,
   SpendDistributionChart,
-  MedianBalanceChart,
-  MedianSpendChart,
-  FinalBalanceBucketChart,
+  BalanceOverTimeChart,
+  SpendOverTimeChart,
+  type YearMode,
 } from './charts';
+import { FIELD_BASE } from '../ui/fieldCls';
 
 type PickerItem = SavedScenario & { isPreset: boolean; description?: string };
 
@@ -82,6 +83,7 @@ export function CompareScenariosView() {
     useCompareScenariosStore();
 
   const [pendingDelete, setPendingDelete] = useState<PickerItem | null>(null);
+  const [yearMode, setYearMode] = useState<YearMode>('median');
 
   const presetItems = useMemo<PickerItem[]>(
     () =>
@@ -223,14 +225,27 @@ export function CompareScenariosView() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_1fr] gap-3">
             <SummaryTable entries={entries} />
-            <FinalBalanceDistributionChart entries={entries} />
+            <FinalBalanceVsStartingChart entries={entries} />
             <SpendDistributionChart entries={entries} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
-            <MedianBalanceChart entries={entries} />
-            <MedianSpendChart entries={entries} />
-            <FinalBalanceBucketChart entries={entries} />
+          <div className="flex items-center gap-2 text-sm text-text-secondary">
+            <span>Play out each strategy's</span>
+            <select
+              className={`${FIELD_BASE} px-2 py-[3px] text-text`}
+              value={yearMode}
+              onChange={(e) => setYearMode(e.target.value as YearMode)}
+            >
+              <option value="worst">worst</option>
+              <option value="median">median</option>
+              <option value="best">best</option>
+            </select>
+            <span>historical start year (by final balance).</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <BalanceOverTimeChart entries={entries} mode={yearMode} />
+            <SpendOverTimeChart entries={entries} mode={yearMode} />
           </div>
 
           <details className="border border-border-light rounded bg-surface-page">

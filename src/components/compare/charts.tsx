@@ -1,11 +1,14 @@
-import { Fragment, useMemo } from 'react';
+import { useMemo } from 'react';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
 import { fmtMoney } from '../../engine/strategyDescriptions';
 import { quantile } from '../../engine/stats';
+import type { SimulationResult } from '../../engine/types';
 import type { CompareEntry } from '../../store/compareScenariosStore';
 import { colorAt, withAlpha } from './compareColors';
+
+export type YearMode = 'worst' | 'median' | 'best';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -121,26 +124,6 @@ function DistributionBoxplot({
   );
 }
 
-export function FinalBalanceDistributionChart({ entries }: { entries: CompareEntry[] }) {
-  const data = entries.map((e, i) =>
-    boxPoint(i, {
-      p5: e.metrics.p5Final,
-      p25: e.metrics.p25Final,
-      p50: e.metrics.p50Final,
-      p75: e.metrics.p75Final,
-      p95: e.metrics.p95Final,
-    }),
-  );
-  return (
-    <DistributionBoxplot
-      title="Final-balance percentiles (p5–p95, median bar)"
-      axisTitle="final balance (real $)"
-      entries={entries}
-      data={data}
-    />
-  );
-}
-
 /** Distribution of per-sim average annual spend, over completed observed sims. */
 function spendQuantiles(e: CompareEntry) {
   const means: number[] = [];
@@ -214,56 +197,95 @@ function lineSeries(e: CompareEntry, i: number, data: [number, number][]) {
   };
 }
 
-export function MedianBalanceChart({ entries }: { entries: CompareEntry[] }) {
+/**
+ * Pick one actual start year per scenario to play out. Rank completed observed
+ * sims by final balance (failures = $0, broken earlier = worse); "worst" is the
+ * lowest, "best" the highest, "median" the middle.
+ */
+function representativeSim(e: CompareEntry, mode: YearMode): SimulationResult | undefined {
+  const sims = e.result.sims.filter((s) => !s.bootstrapped && !s.inProgress);
+  if (sims.length === 0) return undefined;
+  const scored = sims
+    .map((s) => ({
+      s,
+      fb: s.success ? s.finalBalance ?? s.trajectory[s.trajectory.length - 1]?.balance ?? 0 : 0,
+      depletedAt: s.depletedAt ?? Infinity,
+    }))
+    .sort((a, b) => a.fb - b.fb || a.depletedAt - b.depletedAt);
+  if (mode === 'worst') return scored[0].s;
+  if (mode === 'best') return scored[scored.length - 1].s;
+  return scored[Math.floor((scored.length - 1) / 2)].s;
+}
+
+function trajectoryOptions(series: any[]): Options {
+  return {
+    ...timeSeriesOptions(series),
+    tooltip: {
+      formatter() {
+        const yr = this.x ?? 0;
+        const startYear = (this.series.options as any).custom?.startYear;
+        const label = startYear ? ` · started ${startYear}` : '';
+        return `<b>${this.series.name}</b>${label}<br/>Year ${yr}: ${fmtMoney(this.y ?? 0)}`;
+      },
+    },
+  };
+}
+
+function trajectorySeries(
+  entries: CompareEntry[],
+  mode: YearMode,
+  valueOf: (rec: SimulationResult['trajectory'][number]) => number,
+) {
+  return entries.map((e, i) => {
+    const sim = representativeSim(e, mode);
+    return {
+      ...lineSeries(e, i, sim ? sim.trajectory.map((rec) => [rec.t, valueOf(rec)]) : []),
+      custom: { startYear: sim?.startYear },
+    };
+  });
+}
+
+export function BalanceOverTimeChart({
+  entries,
+  mode,
+}: {
+  entries: CompareEntry[];
+  mode: YearMode;
+}) {
   const series = useMemo(
-    () =>
-      entries.map((e, i) =>
-        lineSeries(e, i, e.result.percentiles.map((b) => [b.t, b.values.p50])),
-      ),
-    [entries],
+    () => trajectorySeries(entries, mode, (rec) => rec.balance),
+    [entries, mode],
   );
-  const options = useMemo(() => timeSeriesOptions(series), [series]);
+  const options = useMemo(() => trajectoryOptions(series), [series]);
   return (
-    <ChartCard title="Median balance over time">
+    <ChartCard title="Balance over the retirement">
       <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
     </ChartCard>
   );
 }
 
-/** Median withdrawal at each year into retirement, over completed observed sims. */
-function medianSpendSeries(e: CompareEntry): [number, number][] {
-  const horizon = e.horizonYears;
-  const sims = e.result.sims.filter((s) => !s.bootstrapped && !s.inProgress);
-  const out: [number, number][] = [];
-  for (let t = 0; t < horizon; t++) {
-    const vals: number[] = [];
-    for (const s of sims) {
-      const rec = s.trajectory[t];
-      if (rec) vals.push(rec.withdrawal);
-    }
-    if (vals.length === 0) continue;
-    vals.sort((a, b) => a - b);
-    out.push([t, quantile(vals, 0.5)]);
-  }
-  return out;
-}
-
-export function MedianSpendChart({ entries }: { entries: CompareEntry[] }) {
+export function SpendOverTimeChart({
+  entries,
+  mode,
+}: {
+  entries: CompareEntry[];
+  mode: YearMode;
+}) {
   const series = useMemo(
-    () => entries.map((e, i) => lineSeries(e, i, medianSpendSeries(e))),
-    [entries],
+    () => trajectorySeries(entries, mode, (rec) => rec.withdrawal),
+    [entries, mode],
   );
-  const options = useMemo(() => timeSeriesOptions(series), [series]);
+  const options = useMemo(() => trajectoryOptions(series), [series]);
   return (
-    <ChartCard title="Median spending over time">
+    <ChartCard title="Spending over the retirement">
       <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
     </ChartCard>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Final-balance distribution — small-multiples bars (bucket per row, one
-// column per scenario, colored consistently with the rest of the page)
+// Final balance vs starting balance — small-multiples vertical bars, one band
+// per scenario (aligned with the summary table / boxplot rows), five buckets.
 // ---------------------------------------------------------------------------
 
 const BUCKETS: { label: string; test: (r: number) => boolean }[] = [
@@ -296,55 +318,57 @@ function bucketStats(e: CompareEntry): { pct: number; count: number; total: numb
   }));
 }
 
-export function FinalBalanceBucketChart({ entries }: { entries: CompareEntry[] }) {
-  const cols = entries.map((e, i) => ({
+export function FinalBalanceVsStartingChart({ entries }: { entries: CompareEntry[] }) {
+  const rows = entries.map((e, i) => ({
     id: e.saved.id,
     color: colorAt(i),
     stats: bucketStats(e),
   }));
-  const maxPct = Math.max(1, ...cols.flatMap((c) => c.stats.map((s) => s.pct)));
+  const maxPct = Math.max(1, ...rows.flatMap((r) => r.stats.map((s) => s.pct)));
 
   return (
-    <ChartCard title="Final-balance distribution">
-      <div
-        className="grid gap-x-2 gap-y-2 text-2xs items-center py-1"
-        style={{ gridTemplateColumns: `auto repeat(${cols.length}, minmax(0,1fr))` }}
-      >
-        {BUCKETS.map((b, bi) => (
-          <Fragment key={b.label}>
-            <div className="text-right text-text-secondary whitespace-nowrap pr-0.5">
-              {b.label}
-            </div>
-            {cols.map((c) => {
-              const s = c.stats[bi];
-              const w = (s.pct / maxPct) * 100;
-              const inside = w >= 32;
-              const label = `${Math.round(s.pct)}%`;
+    <div className="border border-border-light rounded p-2 bg-surface-page flex flex-col h-full min-w-0">
+      <div className="text-xs text-text-secondary mb-1.5">
+        Final balance versus starting balance
+      </div>
+      <div className="h-2.5 shrink-0" />
+      <div className="flex-1 flex flex-col">
+        {rows.map((r) => (
+          <div
+            key={r.id}
+            className="flex-1 flex items-stretch gap-1 px-2 border-b border-border-light"
+          >
+            {BUCKETS.map((b, bi) => {
+              const s = r.stats[bi];
+              const h = (s.pct / maxPct) * 100;
+              const ctx = b.label === 'Depleted' ? 'Depleted' : `${b.label} starting balance`;
               return (
                 <div
-                  key={c.id}
-                  className="flex items-center gap-1"
-                  title={`${s.count} of ${s.total} start years (${label})`}
+                  key={b.label}
+                  className="flex-1 flex flex-col justify-end"
+                  title={`${ctx} — ${s.count} of ${s.total} start years (${Math.round(s.pct)}%)`}
                 >
                   <div
-                    className="h-[18px] rounded-[2px] flex items-center justify-center shrink-0"
+                    className="w-full rounded-t-[2px]"
                     style={{
-                      width: `${w}%`,
-                      minWidth: s.pct > 0 ? 4 : 0,
-                      background: c.color,
+                      height: `${h}%`,
+                      minHeight: s.pct > 0 ? 2 : 0,
+                      background: r.color,
                     }}
-                  >
-                    {inside && <span className="text-white leading-none">{label}</span>}
-                  </div>
-                  {!inside && (
-                    <span className="text-text-secondary leading-none">{label}</span>
-                  )}
+                  />
                 </div>
               );
             })}
-          </Fragment>
+          </div>
         ))}
       </div>
-    </ChartCard>
+      <div className="h-9 shrink-0 flex items-start gap-1 px-2 pt-1 text-2xs text-text-secondary">
+        {BUCKETS.map((b) => (
+          <div key={b.label} className="flex-1 text-center whitespace-nowrap">
+            {b.label}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
