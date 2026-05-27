@@ -21,6 +21,7 @@ import { useScenarioStore } from '../../store/scenarioStore';
 import { NEAR_DEPLETION_FRACTION, type CandidateResult } from '../../engine/optimize';
 import { varyLabel } from '../../engine/study';
 import { StudyConfigPanel } from './StudyConfigPanel';
+import { StudyBasePicker } from './StudyBasePicker';
 import { StudyHeatmaps } from './StudyHeatmaps';
 import { StudyTrajectories } from './StudyTrajectories';
 import { useLibraryStore } from '../../store/libraryStore';
@@ -237,12 +238,13 @@ export function FrontierView({ onApplied }: Props) {
     <div className="flex flex-col gap-3.5 text-base">
       <div className="flex justify-between items-start gap-4">
         <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
-          <strong>Strategy study</strong> — pin some of {`{`}holdings mix,
-          withdrawal strategy, withdrawal source{`}`} and sweep the rest. Sweep
-          one dimension for a scatter / trajectory comparison; sweep two for a
-          heatmap grid. Every variant runs against all historical start years.
-          Uses the current horizon ({scenario.horizonYears}y), starting
-          balance, and tail method.
+          <strong>Strategy study</strong> — start from a preset or saved
+          strategy, then pin some of {`{`}holdings mix, withdrawal strategy,
+          withdrawal source{`}`} and sweep the rest. Sweep one dimension for a
+          scatter / trajectory comparison; sweep two for a heatmap grid. Every
+          variant runs against all historical start years. Uses the current
+          horizon ({scenario.horizonYears}y), starting balance, and tail
+          method.
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
           <Btn size="md" onClick={runSearch} disabled={running || !pool || !data}>
@@ -257,6 +259,7 @@ export function FrontierView({ onApplied }: Props) {
           )}
         </div>
       </div>
+      <StudyBasePicker />
       <StudyConfigPanel />
       {!!results.length && (
         <div className="text-xs text-text-faint">

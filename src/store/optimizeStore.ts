@@ -12,11 +12,29 @@ import {
   type StudyAxis,
   type StudyConfig,
 } from '../engine/study';
+import type {
+  AllocationStrategy,
+  WithdrawalStrategy,
+} from '../engine/strategies';
+import type { WithdrawalSource } from '../engine/withdrawalSource';
 import type { SimPool } from '../worker/pool';
+
+/** A base strategy loaded into the study as the pinned baseline. */
+export type StudyBase = {
+  allocation: AllocationStrategy;
+  withdrawal: WithdrawalStrategy;
+  source: WithdrawalSource;
+  label: string;
+};
 
 export type OptimizeState = {
   /** Study configuration that defines the candidate set. */
   study: StudyConfig;
+  /**
+   * Name of the preset / saved strategy the pinned baseline was loaded from,
+   * or null once the user edits the study away from it.
+   */
+  baseLabel: string | null;
   /** True when the study has changed since the last search — results are stale. */
   studyDirty: boolean;
   /** All candidates with metrics (unfiltered), row-major for 2D studies. */
@@ -32,6 +50,8 @@ export type OptimizeState = {
   computeMs: number;
   lastConfig: OptimizeConfig | null;
   setStudy: (study: StudyConfig) => void;
+  /** Load a preset / saved strategy as the pinned baseline for all dimensions. */
+  loadBase: (base: StudyBase) => void;
   run: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
   toggleSelected: (id: string) => void;
   setSelected: (ids: string[]) => void;
@@ -57,6 +77,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
   let pendingId = 0;
   return {
     study: DEFAULT_STUDY,
+    baseLabel: null,
     studyDirty: false,
     results: [],
     axes: [],
@@ -68,7 +89,21 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     lastConfig: null,
 
     setStudy(study) {
-      set({ study, studyDirty: true });
+      // Any manual edit detaches the study from the base it was loaded from.
+      set({ study, studyDirty: true, baseLabel: null });
+    },
+
+    loadBase(base) {
+      set((s) => ({
+        study: {
+          ...s.study,
+          lockedAllocation: base.allocation,
+          lockedWithdrawal: base.withdrawal,
+          lockedSource: base.source,
+        },
+        baseLabel: base.label,
+        studyDirty: true,
+      }));
     },
 
     async run(cfg, pool) {
@@ -135,6 +170,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       pendingId++;
       set({
         study: DEFAULT_STUDY,
+        baseLabel: null,
         studyDirty: false,
         results: [],
         axes: [],
