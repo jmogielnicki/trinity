@@ -78,7 +78,10 @@
     --scroll-p: 0;
   }
 
-  body { margin: 0; }
+  body {
+    margin: 0;
+    overflow-anchor: none;
+  }
 
   /* Strip browser spinners — can't be done with a utility class */
   input[type="number"]::-webkit-inner-spin-button,
