@@ -345,7 +345,7 @@ export function App() {
                   <h2 className="m-0 text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</h2>
                 </div>
                 <PresetPicker />
-                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Holdings mix</h3>
+                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Allocation</h3>
                 <AllocationEditor
                   horizonYears={scenario.horizonYears}
                   allocation={scenario.allocation}

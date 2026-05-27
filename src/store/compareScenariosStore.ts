@@ -9,7 +9,13 @@ export type CompareEntry = {
   saved: SavedScenario;
   result: ScenarioResult;
   metrics: CandidateMetrics;
+  /** Effective balance/horizon used for this run — global, from the page inputs. */
+  initialBalance: number;
+  horizonYears: number;
 };
+
+/** Balance + horizon are global (the page inputs), applied to every scenario. */
+export type CompareOverride = { initialBalance: number; horizonYears: number };
 
 export type CompareScenariosState = {
   /** ids of saved scenarios picked for comparison (also defines series order). */
@@ -20,16 +26,16 @@ export type CompareScenariosState = {
   toggle: (id: string) => void;
   setSelection: (ids: string[]) => void;
   clear: () => void;
-  run: (saved: SavedScenario[], pool: SimPool) => Promise<void>;
+  run: (saved: SavedScenario[], pool: SimPool, override: CompareOverride) => Promise<void>;
 };
 
-export const COMPARE_MAX = 10;
+export const COMPARE_MAX = 5;
 
-function savedToScenario(s: SavedScenario): Scenario {
+function savedToScenario(s: SavedScenario, override: CompareOverride): Scenario {
   const st = s.state;
   return {
-    initialBalance: st.initialBalance,
-    horizonYears: st.horizonYears,
+    initialBalance: override.initialBalance,
+    horizonYears: override.horizonYears,
     allocation: st.allocation,
     withdrawal: st.withdrawal,
     withdrawalSource: st.withdrawalSource,
@@ -63,7 +69,7 @@ export const useCompareScenariosStore = create<CompareScenariosState>(
         set({ selectedIds: [], entries: [] });
       },
 
-      async run(saved, pool) {
+      async run(saved, pool, override) {
         const picked = get()
           .selectedIds.map((id) => saved.find((s) => s.id === id))
           .filter((s): s is SavedScenario => !!s);
@@ -74,13 +80,15 @@ export const useCompareScenariosStore = create<CompareScenariosState>(
         const myId = ++pendingId;
         set({ running: true });
         const t0 = performance.now();
-        const scenarios = picked.map(savedToScenario);
+        const scenarios = picked.map((s) => savedToScenario(s, override));
         const results = await pool.runMany(scenarios);
         if (myId !== pendingId) return;
         const entries: CompareEntry[] = picked.map((s, i) => ({
           saved: s,
           result: results[i],
           metrics: metricsFromResult(results[i], scenarios[i].initialBalance),
+          initialBalance: override.initialBalance,
+          horizonYears: override.horizonYears,
         }));
         set({ entries, running: false, computeMs: performance.now() - t0 });
       },
