@@ -20,18 +20,40 @@ export type StudyDimension = 'allocation' | 'withdrawal' | 'source';
 export type VaryMode = 'range' | 'list';
 
 /**
- * Static-allocation sweep over two independent axes: stock % and bond %.
- * Every (stock, bond) combination is tried; cash fills whatever is left.
- * Combinations where stock + bond exceeds 100% are dropped.
+ * Allocation sweep. The `static` sub-mode sweeps three independent axes
+ * (stock / bond / cash) and only emits combinations that sum to 100% within
+ * float epsilon — there is no "residual" axis. The `glide` sub-mode varies a
+ * single glidepath parameter (start stock %, end stock %, or transition
+ * years) while pinning the rest; bonds fill the non-stock weight at each end
+ * and cash is held at zero (the canonical lifecycle shape).
  */
-export type AllocationRangeSpec = {
-  fromStock: number;
-  toStock: number;
-  stepStock: number;
-  fromBond: number;
-  toBond: number;
-  stepBond: number;
-};
+export type AllocationRangeSpec =
+  | {
+      subMode: 'static';
+      fromStock: number;
+      toStock: number;
+      stepStock: number;
+      fromBond: number;
+      toBond: number;
+      stepBond: number;
+      fromCash: number;
+      toCash: number;
+      stepCash: number;
+    }
+  | {
+      subMode: 'glide';
+      sweep: 'startStock' | 'endStock' | 'transitionYears';
+      startStock: number;
+      endStock: number;
+      transitionYears: number;
+      /**
+       * Range for the swept parameter. Units depend on `sweep`: fractional
+       * weights for startStock/endStock, integer years for transitionYears.
+       */
+      from: number;
+      to: number;
+      step: number;
+    };
 
 export type WithdrawalFamily =
   | 'fixedPercent'
@@ -186,12 +208,16 @@ export const DEFAULT_STUDY: StudyConfig = {
   lockedWithdrawal: { type: 'fixedPercent', rate: 0.04 },
   lockedSource: { type: 'proportional', rebalance: true },
   allocationRange: {
+    subMode: 'static',
     fromStock: 0.4,
     toStock: 1.0,
     stepStock: 0.1,
     fromBond: 0.0,
-    toBond: 0.4,
+    toBond: 0.6,
     stepBond: 0.1,
+    fromCash: 0.0,
+    toCash: 0.2,
+    stepCash: 0.05,
   },
   withdrawalRange: { family: 'fixedPercent', from: 0.03, to: 0.06, step: 0.0025 },
   sourcePresetIds: ['prop-rebal', 'waterfall', 'bucket'],
@@ -356,29 +382,69 @@ export function describeSource(s: WithdrawalSource): string {
 const MAX_ALLOC_COMBOS = 150;
 
 /**
- * Cartesian product of the stock and bond axes. cash = 1 − stock − bond;
- * combinations that would need negative cash are dropped.
+ * Cartesian product across the active sub-mode's axes. For `static`, that's
+ * stock × bond × cash with a strict sum-to-100% filter (no residual axis).
+ * For `glide`, that's a single swept glidepath parameter while the rest stay
+ * pinned; bonds fill the non-stock weight, cash held at zero.
  */
 export function allocationRangeVariants(
   spec: AllocationRangeSpec,
 ): AllocationStrategy[] {
+  if (spec.subMode === 'glide') return glideRangeVariants(spec);
+  return staticRangeVariants(spec);
+}
+
+function staticRangeVariants(
+  spec: Extract<AllocationRangeSpec, { subMode: 'static' }>,
+): AllocationStrategy[] {
   const stocks = rangeValues(spec.fromStock, spec.toStock, spec.stepStock);
   const bonds = rangeValues(spec.fromBond, spec.toBond, spec.stepBond);
+  const cashes = rangeValues(spec.fromCash, spec.toCash, spec.stepCash);
   const out: AllocationStrategy[] = [];
   for (const rawStock of stocks) {
     for (const rawBond of bonds) {
-      const stock = Math.max(0, Math.min(1, rawStock));
-      const bond = Math.max(0, Math.min(1, rawBond));
-      const cash = round6(1 - stock - bond);
-      if (cash < -1e-6) continue; // stock + bond > 100%
-      out.push({
-        type: 'static',
-        weights: { stock, bond, cash: Math.max(0, cash) },
-      });
-      if (out.length >= MAX_ALLOC_COMBOS) return out;
+      for (const rawCash of cashes) {
+        const stock = round6(Math.max(0, Math.min(1, rawStock)));
+        const bond = round6(Math.max(0, Math.min(1, rawBond)));
+        const cash = round6(Math.max(0, Math.min(1, rawCash)));
+        // Strict sum=1 filter. Loose tolerance covers float drift from the
+        // ranged steps (e.g. 0.05 + 0.05 + 0.9 may round to 0.99999...).
+        if (Math.abs(stock + bond + cash - 1) > 1e-4) continue;
+        out.push({ type: 'static', weights: { stock, bond, cash } });
+        if (out.length >= MAX_ALLOC_COMBOS) return out;
+      }
     }
   }
   return out;
+}
+
+function glideRangeVariants(
+  spec: Extract<AllocationRangeSpec, { subMode: 'glide' }>,
+): AllocationStrategy[] {
+  const vals = rangeValues(spec.from, spec.to, spec.step);
+  const out: AllocationStrategy[] = [];
+  for (const v of vals) {
+    const startStock =
+      spec.sweep === 'startStock' ? clamp01(v) : clamp01(spec.startStock);
+    const endStock =
+      spec.sweep === 'endStock' ? clamp01(v) : clamp01(spec.endStock);
+    const transitionYears =
+      spec.sweep === 'transitionYears'
+        ? Math.max(1, Math.round(v))
+        : Math.max(1, Math.round(spec.transitionYears));
+    out.push({
+      type: 'glidepath',
+      start: { stock: startStock, bond: round6(1 - startStock), cash: 0 },
+      end: { stock: endStock, bond: round6(1 - endStock), cash: 0 },
+      transitionYears,
+    });
+    if (out.length >= MAX_ALLOC_COMBOS) return out;
+  }
+  return out;
+}
+
+function clamp01(n: number): number {
+  return round6(Math.max(0, Math.min(1, n)));
 }
 
 function allocationVariants(study: StudyConfig): AllocationStrategy[] {
