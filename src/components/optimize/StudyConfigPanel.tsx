@@ -123,7 +123,8 @@ export function StudyConfigPanel() {
         for a scatter / trajectory comparison, or two for a heatmap grid (max
         two).
       </div>
-      {DIMENSIONS.map(({ key, label }) => {
+      <div className="grid grid-cols-1 min-[950px]:grid-cols-3 gap-2 items-start">
+        {DIMENSIONS.map(({ key, label }) => {
         const sweepIdx = study.varying.indexOf(key);
         const swept = sweepIdx >= 0;
         const role =
@@ -177,7 +178,8 @@ export function StudyConfigPanel() {
             </div>
           </div>
         );
-      })}
+        })}
+      </div>
     </div>
   );
 }
