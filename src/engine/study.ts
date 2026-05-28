@@ -101,6 +101,26 @@ export type WithdrawalRangeSpec =
       step: number;
     };
 
+/**
+ * Inside the source dimension's range mode, the user picks one of two
+ * sub-modes:
+ *   - `compare` races the selected source-preset types head to head
+ *     (proportional, waterfall, bucket, …). Categorical, no numeric axis.
+ *   - `bucketParam` sweeps a single numeric parameter of the first refill
+ *     rule on a base bucket source (floor / ceiling / sourceReturnGate /
+ *     sourceMinRatio), holding everything else constant.
+ */
+export type SourceRangeSubMode = 'compare' | 'bucketParam';
+
+export type BucketRangeSpec = {
+  sweep: 'floor' | 'ceiling' | 'sourceReturnGate' | 'sourceMinRatio';
+  /** Base bucket configuration whose first refill rule gets perturbed. */
+  base: Extract<WithdrawalSource, { type: 'bucket' }>;
+  from: number;
+  to: number;
+  step: number;
+};
+
 export type StudyConfig = {
   /**
    * Dimensions being swept: 1 entry for a 1D study, 2 for a 2D heatmap study.
@@ -117,8 +137,12 @@ export type StudyConfig = {
   /** Range-mode specs — only those for swept dimensions are consulted. */
   allocationRange: AllocationRangeSpec;
   withdrawalRange: WithdrawalRangeSpec;
-  /** Selected source-preset ids for source range mode. */
+  /** Active sub-mode for the source dimension's range editor. */
+  sourceRangeSubMode: SourceRangeSubMode;
+  /** Selected source-preset ids for the `compare` sub-mode. */
   sourcePresetIds: string[];
+  /** Bucket-param sweep config for the `bucketParam` sub-mode. */
+  sourceBucketRange: BucketRangeSpec;
   /** List-mode entries — only those for swept dimensions are consulted. */
   allocationList: AllocationStrategy[];
   withdrawalList: WithdrawalStrategy[];
@@ -194,7 +218,21 @@ export const DEFAULT_STUDY: StudyConfig = {
     stepBond: 0.1,
   },
   withdrawalRange: { family: 'fixedPercent', from: 0.03, to: 0.06, step: 0.0025 },
+  sourceRangeSubMode: 'compare',
   sourcePresetIds: ['prop-rebal', 'waterfall', 'bucket'],
+  sourceBucketRange: {
+    sweep: 'ceiling',
+    base: {
+      type: 'bucket',
+      order: DEFAULT_WATERFALL_ORDER,
+      refill: DEFAULT_REFILL_CHAIN,
+    },
+    // DEFAULT_REFILL_CHAIN[0] uses floorMode: 'withdrawalYears', so the
+    // sweep range is in years (default ceiling = 6 years).
+    from: 2,
+    to: 12,
+    step: 2,
+  },
   allocationList: [
     { type: 'static', weights: { stock: 0.5, bond: 0.5, cash: 0 } },
     { type: 'static', weights: { stock: 0.7, bond: 0.3, cash: 0 } },
@@ -348,6 +386,27 @@ export function describeSource(s: WithdrawalSource): string {
   }
 }
 
+/**
+ * Variant label for a bucket-param sweep. Includes the unit (yr / %) so
+ * scatter axes and legends are readable without consulting the spec.
+ */
+function bucketSweepLabel(spec: BucketRangeSpec, v: number): string {
+  const rule = spec.base.refill[0];
+  const targetName = rule?.targetSleeve ?? 'sleeve';
+  switch (spec.sweep) {
+    case 'floor':
+    case 'ceiling': {
+      const unit = rule?.floorMode === 'withdrawalYears' ? 'yr' : '';
+      const num = unit === 'yr' ? String(Math.round(v * 10) / 10) : pct(v);
+      return `${targetName} ${spec.sweep}=${num}${unit ? ' ' + unit : ''}`;
+    }
+    case 'sourceReturnGate':
+      return `${targetName} gate=${pct(v)}`;
+    case 'sourceMinRatio':
+      return `${targetName} minRatio=${pct(v)}`;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Variant resolution
 // ---------------------------------------------------------------------------
@@ -454,9 +513,38 @@ function withdrawalVariants(
 
 function sourceVariants(study: StudyConfig): WithdrawalSource[] {
   if (study.varyMode.source === 'list') return study.sourceList;
+  if (study.sourceRangeSubMode === 'bucketParam') {
+    return bucketRangeVariants(study.sourceBucketRange);
+  }
   return SOURCE_PRESETS.filter((p) => study.sourcePresetIds.includes(p.id)).map(
     (p) => p.source,
   );
+}
+
+/**
+ * Generate one variant per swept value by perturbing the first refill rule
+ * of the base bucket source. The rest of the base — order, other rules —
+ * stays identical across all variants.
+ */
+export function bucketRangeVariants(
+  spec: BucketRangeSpec,
+): WithdrawalSource[] {
+  if (spec.base.refill.length === 0) return [spec.base];
+  const vals = rangeValues(spec.from, spec.to, spec.step);
+  const out: WithdrawalSource[] = [];
+  for (const v of vals) {
+    const [first, ...rest] = spec.base.refill;
+    const perturbed: RefillRule = { ...first };
+    if (spec.sweep === 'floor') perturbed.floor = v;
+    else if (spec.sweep === 'ceiling') perturbed.ceiling = v;
+    else if (spec.sweep === 'sourceReturnGate') perturbed.sourceReturnGate = v;
+    else if (spec.sweep === 'sourceMinRatio') perturbed.sourceMinRatio = v;
+    out.push({
+      ...spec.base,
+      refill: [perturbed, ...rest],
+    });
+  }
+  return out;
 }
 
 /** Representative stock fraction for a static / glide allocation. */
@@ -501,6 +589,23 @@ function dimensionVariants(
       varyValue:
         numeric.withdrawalRate ?? numeric.floor ?? numeric.upsideRate ?? 0,
       numeric,
+    }));
+  }
+  // Source dim: if in bucket-param sweep mode, label each variant by the
+  // swept parameter's value (e.g. "bucket ceiling=4yr") and use that value
+  // as the numeric axis position.
+  if (
+    study.varyMode.source === 'range' &&
+    study.sourceRangeSubMode === 'bucketParam'
+  ) {
+    const spec = study.sourceBucketRange;
+    const vals = rangeValues(spec.from, spec.to, spec.step);
+    const sources = bucketRangeVariants(spec);
+    return sources.map((source, i) => ({
+      source,
+      label: bucketSweepLabel(spec, vals[i]),
+      varyValue: vals[i] ?? i,
+      numeric: { varyValue: vals[i] ?? i },
     }));
   }
   return sourceVariants(study).map((source, i) => ({

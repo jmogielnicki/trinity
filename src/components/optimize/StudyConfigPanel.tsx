@@ -11,11 +11,13 @@ import {
   WITHDRAWAL_ARCHETYPES,
   WITHDRAWAL_EDITOR_UNSUPPORTED,
   allocationRangeVariants,
+  bucketRangeVariants,
   describeAllocation,
   describeSource,
   describeWithdrawal,
   rangeValues,
   type AllocationRangeSpec,
+  type BucketRangeSpec,
   type StudyConfig,
   type StudyDimension,
   type WithdrawalFamily,
@@ -318,6 +320,8 @@ function VariantCount({
   } else if (dim === 'withdrawal') {
     const r = study.withdrawalRange;
     n = rangeValues(r.from, r.to, r.step).length;
+  } else if (study.sourceRangeSubMode === 'bucketParam') {
+    n = bucketRangeVariants(study.sourceBucketRange).length;
   } else {
     n = study.sourcePresetIds.length;
   }
@@ -375,29 +379,149 @@ function RangeEditor({
   if (dim === 'withdrawal') {
     return <WithdrawalRangeEditor spec={study.withdrawalRange} update={update} />;
   }
+  return <SourceRangeEditor study={study} update={update} />;
+}
+
+function SourceRangeEditor({
+  study,
+  update,
+}: {
+  study: StudyConfig;
+  update: (p: Partial<StudyConfig>) => void;
+}) {
+  const subMode = study.sourceRangeSubMode;
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-xs text-text-faint py-0.5 pb-1">Race these withdrawal-source strategies:</div>
-      {SOURCE_PRESETS.map((p) => (
-        <label key={p.id} className="flex items-center gap-1.5 text-sm text-text-secondary">
-          <input
-            type="checkbox"
-            checked={study.sourcePresetIds.includes(p.id)}
-            onChange={(e) => {
-              const set = new Set(study.sourcePresetIds);
-              if (e.target.checked) set.add(p.id);
-              else set.delete(p.id);
-              update({
-                sourcePresetIds: SOURCE_PRESETS.filter((x) => set.has(x.id)).map(
-                  (x) => x.id,
-                ),
-              });
-            }}
-          />
-          {p.label}
-        </label>
-      ))}
+      <TabBar>
+        <ToggleButton
+          active={subMode === 'compare'}
+          onClick={() => update({ sourceRangeSubMode: 'compare' })}
+        >
+          compare types
+        </ToggleButton>
+        <ToggleButton
+          active={subMode === 'bucketParam'}
+          onClick={() => update({ sourceRangeSubMode: 'bucketParam' })}
+        >
+          sweep bucket param
+        </ToggleButton>
+      </TabBar>
+      {subMode === 'compare' ? (
+        <>
+          <div className="text-xs text-text-faint py-0.5 pb-1">
+            Race these withdrawal-source strategies:
+          </div>
+          {SOURCE_PRESETS.map((p) => (
+            <label
+              key={p.id}
+              className="flex items-center gap-1.5 text-sm text-text-secondary"
+            >
+              <input
+                type="checkbox"
+                checked={study.sourcePresetIds.includes(p.id)}
+                onChange={(e) => {
+                  const set = new Set(study.sourcePresetIds);
+                  if (e.target.checked) set.add(p.id);
+                  else set.delete(p.id);
+                  update({
+                    sourcePresetIds: SOURCE_PRESETS.filter((x) =>
+                      set.has(x.id),
+                    ).map((x) => x.id),
+                  });
+                }}
+              />
+              {p.label}
+            </label>
+          ))}
+        </>
+      ) : (
+        <BucketParamRangeEditor
+          spec={study.sourceBucketRange}
+          update={update}
+        />
+      )}
     </div>
+  );
+}
+
+function BucketParamRangeEditor({
+  spec,
+  update,
+}: {
+  spec: BucketRangeSpec;
+  update: (p: Partial<StudyConfig>) => void;
+}) {
+  const setSpec = (s: BucketRangeSpec) => update({ sourceBucketRange: s });
+  const firstRule = spec.base.refill[0];
+  const isYears = firstRule?.floorMode === 'withdrawalYears';
+  return (
+    <>
+      <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
+        Sweep
+        <select
+          className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+          value={spec.sweep}
+          onChange={(e) => {
+            const sweep = e.target.value as BucketRangeSpec['sweep'];
+            // Each parameter lives in different units, so reset the range.
+            // floor/ceiling units depend on the rule's floorMode (years or
+            // portfolio fraction). Gate/MinRatio are always fractions.
+            const range = (() => {
+              if (sweep === 'floor' || sweep === 'ceiling') {
+                return isYears
+                  ? { from: 2, to: 12, step: 2 }
+                  : { from: 0.1, to: 0.5, step: 0.1 };
+              }
+              if (sweep === 'sourceReturnGate') {
+                return { from: -0.05, to: 0.1, step: 0.025 };
+              }
+              return { from: 0.3, to: 1.0, step: 0.1 };
+            })();
+            setSpec({ ...spec, sweep, ...range });
+          }}
+        >
+          <option value="ceiling">refill ceiling</option>
+          <option value="floor">refill floor (trigger)</option>
+          <option value="sourceReturnGate">source return gate</option>
+          <option value="sourceMinRatio">source min ratio</option>
+        </select>
+      </label>
+      <div className="text-xs text-text-faint py-0.5">
+        Perturbs the <strong>first refill rule</strong> of a base bucket
+        configuration: {firstRule
+          ? `refill ${firstRule.targetSleeve} from ${firstRule.sourceSleeve}, ${
+              isYears
+                ? `floor/ceiling in years (×annual withdrawal)`
+                : 'floor/ceiling as portfolio fraction'
+            }`
+          : '(no refill rules in base)'}
+        . Other rules and the base order stay constant.
+      </div>
+      {spec.sweep === 'floor' || spec.sweep === 'ceiling' ? (
+        isYears ? (
+          <YearRange
+            from={spec.from}
+            to={spec.to}
+            step={spec.step}
+            onChange={(from, to, step) => setSpec({ ...spec, from, to, step })}
+          />
+        ) : (
+          <PctRange
+            from={spec.from}
+            to={spec.to}
+            step={spec.step}
+            onChange={(from, to, step) => setSpec({ ...spec, from, to, step })}
+          />
+        )
+      ) : (
+        <PctRange
+          from={spec.from}
+          to={spec.to}
+          step={spec.step}
+          onChange={(from, to, step) => setSpec({ ...spec, from, to, step })}
+        />
+      )}
+    </>
   );
 }
 
@@ -858,6 +982,62 @@ function PctRange({
   );
 }
 
+function YearRange({
+  from,
+  to,
+  step,
+  onChange,
+}: {
+  from: number;
+  to: number;
+  step: number;
+  onChange: (from: number, to: number, step: number) => void;
+}) {
+  const parseYear = (s: string) => {
+    const n = parseInt(s, 10);
+    return isNaN(n) ? null : Math.max(1, n);
+  };
+  return (
+    <div className="flex gap-3 flex-wrap items-center">
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
+        from
+        <NumericInput
+          className={axisNumCls}
+          value={from}
+          format={(v) => String(Math.round(v))}
+          parse={parseYear}
+          min={1}
+          onChange={(v) => onChange(v, to, step)}
+        />
+        yr
+      </label>
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
+        to
+        <NumericInput
+          className={axisNumCls}
+          value={to}
+          format={(v) => String(Math.round(v))}
+          parse={parseYear}
+          min={1}
+          onChange={(v) => onChange(from, v, step)}
+        />
+        yr
+      </label>
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
+        step
+        <NumericInput
+          className={axisNumCls}
+          value={step}
+          format={(v) => String(Math.round(v))}
+          parse={parseYear}
+          min={1}
+          onChange={(v) => onChange(from, to, v)}
+        />
+        yr
+      </label>
+    </div>
+  );
+}
 
 function PctNum({
   label,
