@@ -12,6 +12,7 @@ import {
   allocRows, wdRows, srcRows,
 } from '../engine/strategyDescriptions';
 import type { AllocationStrategy, WithdrawalStrategy } from '../engine/strategies';
+import type { SerializedState } from '../data/urlState';
 
 function fmtBalance(n: number): string {
   if (n >= 1_000_000) return fmtMoney(n);
@@ -23,7 +24,34 @@ function defaultName(a: AllocationStrategy, w: WithdrawalStrategy, horizon: numb
   return `${describeAllocation(a)} · ${describeWithdrawal(w)} · ${horizon}yr`;
 }
 
-export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
+type Props = {
+  onClose: () => void;
+  /**
+   * Override the strategy being saved. When omitted, the modal saves the
+   * currently-active Build scenario (legacy behavior). Optimize-tab callers
+   * pass a candidate-derived state so the saved entry reflects the variant,
+   * not whatever's loaded in Build.
+   */
+  override?: SerializedState;
+  /** Default name when override is provided. Falls back to a describe-derived label. */
+  defaultName?: string;
+  /**
+   * Optional follow-up action shown as a checkbox under the name field. When
+   * checked at save time, fires after the library write succeeds (the
+   * SerializedState that was just saved is passed back, plus the chosen name).
+   */
+  postSaveAction?: {
+    label: string;
+    onAction: (saved: SerializedState, name: string) => void;
+  };
+};
+
+export function SaveScenarioModal({
+  onClose,
+  override,
+  defaultName: defaultNameProp,
+  postSaveAction,
+}: Props) {
   const scenario = useScenarioStore();
   const sweep = useSweepStore();
   const { save } = useLibraryStore();
@@ -31,9 +59,23 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
   const setAuthModalOpen = useAuthStore((s) => s.setAuthModalOpen);
   const showCloudNudge = authConfigured && !authed;
 
-  const [name, setName] = useState(() =>
-    defaultName(scenario.allocation, scenario.withdrawal, scenario.horizonYears),
+  // What we'll actually save — caller-supplied override beats the Build scenario.
+  const state: SerializedState = override ?? {
+    initialBalance: scenario.initialBalance,
+    horizonYears: scenario.horizonYears,
+    allocation: scenario.allocation,
+    withdrawal: scenario.withdrawal,
+    axes: sweep.axes,
+    tailMethod: scenario.tailMethod,
+    withdrawalSource: scenario.withdrawalSource,
+  };
+
+  const [name, setName] = useState(
+    () =>
+      defaultNameProp ??
+      defaultName(state.allocation, state.withdrawal, state.horizonYears),
   );
+  const [doPostAction, setDoPostAction] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -42,15 +84,8 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setErr(null);
     try {
-      await save(name, {
-        initialBalance: scenario.initialBalance,
-        horizonYears: scenario.horizonYears,
-        allocation: scenario.allocation,
-        withdrawal: scenario.withdrawal,
-        axes: sweep.axes,
-        tailMethod: scenario.tailMethod,
-        withdrawalSource: scenario.withdrawalSource,
-      });
+      await save(name, state);
+      if (postSaveAction && doPostAction) postSaveAction.onAction(state, name);
       onClose();
     } catch (e) {
       setErr((e as Error).message || 'Save failed');
@@ -63,9 +98,9 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
     setAuthModalOpen(true);
   };
 
-  const aRows = allocRows(scenario.allocation);
-  const wRows = wdRows(scenario.withdrawal);
-  const sRows = srcRows(scenario.withdrawalSource);
+  const aRows = allocRows(state.allocation);
+  const wRows = wdRows(state.withdrawal);
+  const sRows = srcRows(state.withdrawalSource);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -83,9 +118,9 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
 
             {/* Portfolio */}
             <div className="text-text-muted">Balance</div>
-            <div className="text-text font-medium">{fmtBalance(scenario.initialBalance)}</div>
+            <div className="text-text font-medium">{fmtBalance(state.initialBalance)}</div>
             <div className="text-text-muted">Horizon</div>
-            <div className="text-text font-medium">{scenario.horizonYears} years</div>
+            <div className="text-text font-medium">{state.horizonYears} years</div>
 
             {/* Allocation section */}
             <div className="col-span-2 mt-2.5 pt-2.5 border-t border-border-light">
@@ -93,7 +128,7 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
                 Allocation
               </span>
               <span className="ml-1.5 text-sm font-medium text-text-secondary">
-                — {allocTypeName(scenario.allocation)}
+                — {allocTypeName(state.allocation)}
               </span>
             </div>
             {aRows.map(([label, value]) => (
@@ -109,7 +144,7 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
                 Withdrawal
               </span>
               <span className="ml-1.5 text-sm font-medium text-text-secondary">
-                — {wdTypeName(scenario.withdrawal)}
+                — {wdTypeName(state.withdrawal)}
               </span>
             </div>
             {wRows.map(([label, value]) => (
@@ -125,7 +160,7 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
                 Source
               </span>
               <span className="ml-1.5 text-sm font-medium text-text-secondary">
-                — {srcTypeName(scenario.withdrawalSource)}
+                — {srcTypeName(state.withdrawalSource)}
               </span>
             </div>
             {sRows.map(([label, value]) => (
@@ -151,6 +186,18 @@ export function SaveScenarioModal({ onClose }: { onClose: () => void }) {
             placeholder="Name this strategy…"
           />
         </div>
+
+        {postSaveAction && (
+          <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer select-none -mt-1">
+            <input
+              type="checkbox"
+              checked={doPostAction}
+              onChange={(e) => setDoPostAction(e.target.checked)}
+              className="w-4 h-4 accent-secondary cursor-pointer"
+            />
+            {postSaveAction.label}
+          </label>
+        )}
 
         {showCloudNudge && (
           <div className="text-sm text-text-muted bg-surface-panel rounded-lg px-3 py-2">

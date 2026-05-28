@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AllocationStrategy, WithdrawalStrategy } from '../../engine/strategies';
 import type { WithdrawalSource } from '../../engine/withdrawalSource';
+import { Fragment } from 'react';
 import { NumericInput } from '../controls/NumericInput';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
@@ -20,6 +21,14 @@ import {
   type WithdrawalFamily,
   type WithdrawalRangeSpec,
 } from '../../engine/study';
+import {
+  allocRows,
+  allocTypeName,
+  srcRows,
+  srcTypeName,
+  wdRows,
+  wdTypeName,
+} from '../../engine/strategyDescriptions';
 import { useOptimizeStore } from '../../store/optimizeStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { AllocationEditor } from '../controls/AllocationEditor';
@@ -109,8 +118,8 @@ export function StudyConfigPanel() {
   };
   const setSwept = (key: StudyDimension) => {
     if (study.varying.includes(key)) return;
-    if (study.varying.length >= 2) return; // 2D max
-    update({ varying: [...study.varying, key] });
+    // Radio-button semantics — exactly one swept dimension at a time.
+    update({ varying: [key] });
   };
 
   const TOGGLE_EXTRA = 'inline-flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed';
@@ -124,35 +133,34 @@ export function StudyConfigPanel() {
             <SweepIcon />
             <strong>sweep</strong>
           </span>{' '}
-          on one (or two) dimensions below to choose what to vary across the
-          study. The rest stay pinned at the baseline above.
+          on one dimension below to choose what to vary across the study. The
+          other two stay pinned at the baseline above.
         </div>
       ) : (
         <div className="text-sm text-text-muted leading-[1.4]">
-          Pin the dimensions you want held constant and sweep the rest. Sweep
-          one for a scatter / trajectory comparison, or two for a heatmap grid
-          (max two).
+          One dimension sweeps across many variants; the other two stay pinned
+          at the baseline above. Click another dimension's{' '}
+          <span className="inline-flex items-center gap-1 align-text-bottom">
+            <SweepIcon />
+            <strong>sweep</strong>
+          </span>{' '}
+          to switch what's being varied.
         </div>
       )}
       <div className="grid grid-cols-1 min-[950px]:grid-cols-3 gap-2 items-start">
         {DIMENSIONS.map(({ key, label }) => {
-        const sweepIdx = study.varying.indexOf(key);
-        const swept = sweepIdx >= 0;
-        const role =
-          swept && sweptCount === 2 ? (sweepIdx === 0 ? 'rows' : 'columns') : null;
+        const swept = study.varying.includes(key);
         return (
           <div key={key} className={`border rounded-[5px] bg-surface px-2.5 py-2${swept ? ' border-primary shadow-[0_0_0_1px_var(--color-primary)_inset]' : ' border-border'}`}>
             <div className="flex justify-between items-center gap-3">
               <span className="text-base font-semibold text-text-body">
                 {label}
-                {role && <span className="font-medium text-text-faint text-xs"> · {role}</span>}
               </span>
               <div className="flex-shrink-0">
                 <TabBar>
                   <ToggleButton
                     active={!swept}
                     onClick={() => setPinned(key)}
-                    disabled={swept && sweptCount <= 1}
                     title="Hold this dimension constant"
                     className={TOGGLE_EXTRA}
                   >
@@ -161,7 +169,6 @@ export function StudyConfigPanel() {
                   <ToggleButton
                     active={swept}
                     onClick={() => setSwept(key)}
-                    disabled={!swept && sweptCount >= 2}
                     title="Sweep this dimension across many variants"
                     className={TOGGLE_EXTRA}
                   >
@@ -179,12 +186,7 @@ export function StudyConfigPanel() {
                   horizonYears={horizonYears}
                 />
               ) : (
-                <LockedEditor
-                  dim={key}
-                  study={study}
-                  update={update}
-                  horizonYears={horizonYears}
-                />
+                <PinnedSummary dim={key} study={study} />
               )}
             </div>
           </div>
@@ -196,44 +198,32 @@ export function StudyConfigPanel() {
 }
 
 // ---------------------------------------------------------------------------
-// Locked (pinned) dimension editors — reuse the single-scenario controls.
+// Pinned dimension summary — view-only. Editing the baseline happens in the
+// Build tab, then the user re-picks (or saves) to bring it back here.
 // ---------------------------------------------------------------------------
 
-function LockedEditor({
-  dim,
-  study,
-  update,
-  horizonYears,
-}: {
-  dim: StudyDimension;
-  study: StudyConfig;
-  update: (p: Partial<StudyConfig>) => void;
-  horizonYears: number;
-}) {
-  if (dim === 'allocation') {
-    return (
-      <AllocationEditor
-        horizonYears={horizonYears}
-        allocation={study.lockedAllocation}
-        onChange={(a) => update({ lockedAllocation: a })}
-      />
-    );
-  }
-  if (dim === 'withdrawal') {
-    return (
-      <WithdrawalEditor
-        horizonYears={horizonYears}
-        withdrawal={study.lockedWithdrawal}
-        onChange={(w) => update({ lockedWithdrawal: w })}
-      />
-    );
-  }
+function PinnedSummary({ dim, study }: { dim: StudyDimension; study: StudyConfig }) {
+  const { typeName, rows } =
+    dim === 'allocation'
+      ? { typeName: allocTypeName(study.lockedAllocation), rows: allocRows(study.lockedAllocation) }
+      : dim === 'withdrawal'
+        ? { typeName: wdTypeName(study.lockedWithdrawal), rows: wdRows(study.lockedWithdrawal) }
+        : { typeName: srcTypeName(study.lockedSource), rows: srcRows(study.lockedSource) };
+
   return (
-    <WithdrawalSourceInput
-      hideLabel
-      value={study.lockedSource}
-      onChange={(s) => update({ lockedSource: s })}
-    />
+    <div className="text-sm">
+      <div className="text-text-secondary font-medium mb-1.5">{typeName}</div>
+      {rows.length > 0 ? (
+        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 items-baseline">
+          {rows.map(([k, v]) => (
+            <Fragment key={k}>
+              <div className="text-text-muted text-xs">{k}</div>
+              <div className="text-text text-xs font-medium">{v}</div>
+            </Fragment>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
