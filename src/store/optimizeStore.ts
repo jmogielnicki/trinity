@@ -35,6 +35,12 @@ export type OptimizeState = {
    * or null once the user edits the study away from it.
    */
   baseLabel: string | null;
+  /**
+   * True once a base has ever been loaded in this session. Stays true even
+   * after the user edits the locked baseline away from that base — used by
+   * the UI to keep the sweep editor and run button visible.
+   */
+  hasBase: boolean;
   /** True when the study has changed since the last search — results are stale. */
   studyDirty: boolean;
   /** All candidates with metrics (unfiltered), row-major for 2D studies. */
@@ -106,6 +112,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
   return {
     study: DEFAULT_STUDY,
     baseLabel: null,
+    hasBase: false,
     studyDirty: false,
     results: [],
     axes: [],
@@ -117,19 +124,36 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     lastConfig: null,
 
     setStudy(study) {
-      // Any manual edit detaches the study from the base it was loaded from.
-      set({ study, studyDirty: true, baseLabel: null });
+      // Detach the base label only when the locked baseline itself changed
+      // — toggling pin/sweep or tweaking sweep ranges still varies "around"
+      // the named base, so the label and editor visibility stay put.
+      set((s) => {
+        const prev = s.study;
+        const lockedChanged =
+          prev.lockedAllocation !== study.lockedAllocation ||
+          prev.lockedWithdrawal !== study.lockedWithdrawal ||
+          prev.lockedSource !== study.lockedSource;
+        return {
+          study,
+          studyDirty: true,
+          baseLabel: lockedChanged ? null : s.baseLabel,
+        };
+      });
     },
 
     loadBase(base) {
       set((s) => ({
         study: {
           ...s.study,
+          // Picking (or re-picking) a base restarts the sweep flow: all
+          // three dimensions pinned, user chooses what to vary.
+          varying: [],
           lockedAllocation: base.allocation,
           lockedWithdrawal: base.withdrawal,
           lockedSource: base.source,
         },
         baseLabel: base.label,
+        hasBase: true,
         studyDirty: true,
       }));
     },
@@ -206,6 +230,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       set({
         study: DEFAULT_STUDY,
         baseLabel: null,
+        hasBase: false,
         studyDirty: false,
         results: [],
         axes: [],

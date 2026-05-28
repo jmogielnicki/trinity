@@ -150,7 +150,7 @@ export const SOURCE_PRESETS: SourcePreset[] = [
 ];
 
 export const DEFAULT_STUDY: StudyConfig = {
-  varying: ['allocation'],
+  varying: [],
   varyMode: { allocation: 'range', withdrawal: 'range', source: 'range' },
   lockedAllocation: {
     type: 'static',

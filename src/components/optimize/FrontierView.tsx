@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useMemo, useRef, useState, useCallback } from 'react';
 import { interpolatePlasma } from 'd3-scale-chromatic';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
@@ -145,6 +145,7 @@ export function FrontierView({ onApplied }: Props) {
   const {
     study,
     studyDirty,
+    hasBase,
     results,
     axes,
     frontier,
@@ -180,12 +181,6 @@ export function FrontierView({ onApplied }: Props) {
       pool,
     );
   };
-
-  useEffect(() => {
-    if (!pool || !data) return;
-    if (results.length === 0 && !running) runSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pool, data]);
 
   // Filtered results — drives both the scatter (hides non-passers) and the
   // frontier set (the store already recomputes the front on filter change).
@@ -245,24 +240,28 @@ export function FrontierView({ onApplied }: Props) {
 
   return (
     <div className="flex flex-col gap-3.5 text-base">
-      <div className="flex justify-between items-start gap-4">
-        <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
-          <strong>Strategy study</strong> — start from a preset or saved
-          strategy, then pin some of {`{`}holdings mix, withdrawal strategy,
-          withdrawal source{`}`} and sweep the rest. Sweep one dimension for a
-          scatter / trajectory comparison; sweep two for a heatmap grid. Every
-          variant runs against all historical start years. Uses the current
-          horizon ({scenario.horizonYears}y), starting balance, and tail
-          method.
-        </div>
-        <div className="flex gap-1.5 flex-shrink-0">
-          <Btn size="md" onClick={runSearch} disabled={running || !pool || !data}>
-            {running ? 'Running…' : results.length ? 'Re-run study' : 'Run study'}
-          </Btn>
-        </div>
+      <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
+        <strong>Strategy study</strong> — start from a preset or saved
+        strategy, then pin some of {`{`}holdings mix, withdrawal strategy,
+        withdrawal source{`}`} and sweep the rest. Sweep one dimension for a
+        scatter / trajectory comparison; sweep two for a heatmap grid. Every
+        variant runs against all historical start years. Uses the current
+        horizon ({scenario.horizonYears}y), starting balance, and tail
+        method.
       </div>
       <StudyBasePicker />
-      <StudyConfigPanel />
+      {hasBase && (
+        <>
+          <StudyConfigPanel />
+          <RunStudyButton
+            running={running}
+            disabled={running || !pool || !data || study.varying.length === 0}
+            hasResults={results.length > 0}
+            sweptCount={study.varying.length}
+            onClick={runSearch}
+          />
+        </>
+      )}
       {!!results.length && (
         <div className="text-xs text-text-faint">
           {filteredResults.length}/{results.length} variants passing ·{' '}
@@ -429,6 +428,48 @@ export function FrontierView({ onApplied }: Props) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Big bottom CTA that runs the study — the user's "go" button after they've
+// picked a base and chosen what to sweep.
+// ---------------------------------------------------------------------------
+
+function RunStudyButton({
+  running,
+  disabled,
+  hasResults,
+  sweptCount,
+  onClick,
+}: {
+  running: boolean;
+  disabled: boolean;
+  hasResults: boolean;
+  sweptCount: number;
+  onClick: () => void;
+}) {
+  const label = running
+    ? 'Running…'
+    : hasResults
+      ? 'Re-run study'
+      : 'Run study';
+  const hint =
+    sweptCount === 0
+      ? 'Pick at least one dimension to sweep before running.'
+      : `Runs every variant against all historical start years.`;
+  return (
+    <div className="flex flex-col items-center gap-1.5 py-1">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="px-6 py-3 rounded-md text-base font-semibold bg-primary text-white shadow-sm cursor-pointer hover:brightness-110 disabled:bg-text-disabled disabled:text-text-faint disabled:cursor-not-allowed disabled:shadow-none transition-all"
+      >
+        {label}
+      </button>
+      <div className="text-xs text-text-muted">{hint}</div>
     </div>
   );
 }

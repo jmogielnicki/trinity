@@ -105,7 +105,6 @@ export function StudyConfigPanel() {
 
   const setPinned = (key: StudyDimension) => {
     if (!study.varying.includes(key)) return;
-    if (study.varying.length <= 1) return; // always keep one swept
     update({ varying: study.varying.filter((d) => d !== key) });
   };
   const setSwept = (key: StudyDimension) => {
@@ -118,11 +117,23 @@ export function StudyConfigPanel() {
 
   return (
     <div className="flex flex-col gap-2 border border-border rounded-md p-3 bg-surface-page">
-      <div className="text-sm text-text-muted leading-[1.4]">
-        Pin the dimensions you want held constant and sweep the rest. Sweep one
-        for a scatter / trajectory comparison, or two for a heatmap grid (max
-        two).
-      </div>
+      {sweptCount === 0 ? (
+        <div className="text-sm text-primary leading-[1.4] font-medium">
+          Click{' '}
+          <span className="inline-flex items-center gap-1 align-text-bottom">
+            <SweepIcon />
+            <strong>sweep</strong>
+          </span>{' '}
+          on one (or two) dimensions below to choose what to vary across the
+          study. The rest stay pinned at the baseline above.
+        </div>
+      ) : (
+        <div className="text-sm text-text-muted leading-[1.4]">
+          Pin the dimensions you want held constant and sweep the rest. Sweep
+          one for a scatter / trajectory comparison, or two for a heatmap grid
+          (max two).
+        </div>
+      )}
       <div className="grid grid-cols-1 min-[950px]:grid-cols-3 gap-2 items-start">
         {DIMENSIONS.map(({ key, label }) => {
         const sweepIdx = study.varying.indexOf(key);
