@@ -35,9 +35,10 @@ export type AllocationRangeSpec = {
 
 export type WithdrawalFamily =
   | 'fixedPercent'
-  | 'percentOfBalance'
   | 'floorAndUpside'
-  | 'ratchet';
+  | 'ratchet'
+  | 'curve'
+  | 'cape';
 
 /**
  * A withdrawal sweep always varies exactly one numeric parameter of a chosen
@@ -47,13 +48,6 @@ export type WithdrawalFamily =
  */
 export type WithdrawalRangeSpec =
   | { family: 'fixedPercent'; from: number; to: number; step: number }
-  | {
-      family: 'percentOfBalance';
-      floor: number;
-      from: number;
-      to: number;
-      step: number;
-    }
   | {
       family: 'floorAndUpside';
       sweep: 'floor' | 'upsideRate';
@@ -69,6 +63,39 @@ export type WithdrawalRangeSpec =
       baseRate: number;
       stepSize: number;
       stepBoost: number;
+      from: number;
+      to: number;
+      step: number;
+    }
+  /**
+   * Withdrawal curve as a 2-point piecewiseLinear ramp (start rate → end rate
+   * over `transitionYears`). The sweep parameter perturbs the whole curve:
+   *   - `shift`  — adds `delta` to both rates (parallel shift up/down).
+   *   - `scale`  — multiplies both rates by `k` (steeper or flatter ramp).
+   * The engine extrapolates flat past the transition point, so horizons longer
+   * than `transitionYears` just hold at the end rate.
+   */
+  | {
+      family: 'curve';
+      sweep: 'shift' | 'scale';
+      startRate: number;
+      endRate: number;
+      transitionYears: number;
+      from: number;
+      to: number;
+      step: number;
+    }
+  /**
+   * CAPE-based withdrawal: rate = a + b / CAPE. Sweep one of:
+   *   - `a` — constant baseline (the "always-on" floor).
+   *   - `b` — sensitivity to (1 / CAPE) (higher = more aggressive in cheap markets).
+   */
+  | {
+      family: 'cape';
+      sweep: 'a' | 'b';
+      a: number;
+      b: number;
+      fallbackCape: number;
       from: number;
       to: number;
       step: number;
@@ -373,11 +400,6 @@ function withdrawalVariants(
         wd: { type: 'fixedPercent', rate },
         numeric: { withdrawalRate: rate },
       }));
-    case 'percentOfBalance':
-      return vals.map((rate) => ({
-        wd: { type: 'percentOfBalance', rate, floor: spec.floor },
-        numeric: { withdrawalRate: rate, floor: spec.floor },
-      }));
     case 'floorAndUpside':
       return vals.map((v) => {
         const floor = spec.sweep === 'floor' ? v : spec.floor;
@@ -399,6 +421,32 @@ function withdrawalVariants(
             stepBoost,
           },
           numeric: { withdrawalRate: baseRate },
+        };
+      });
+    case 'curve':
+      return vals.map((v) => {
+        const startRate =
+          spec.sweep === 'shift' ? spec.startRate + v : spec.startRate * v;
+        const endRate =
+          spec.sweep === 'shift' ? spec.endRate + v : spec.endRate * v;
+        return {
+          wd: {
+            type: 'piecewiseLinear',
+            points: [
+              { t: 0, rate: startRate },
+              { t: spec.transitionYears, rate: endRate },
+            ],
+          },
+          numeric: { withdrawalRate: (startRate + endRate) / 2 },
+        };
+      });
+    case 'cape':
+      return vals.map((v) => {
+        const a = spec.sweep === 'a' ? v : spec.a;
+        const b = spec.sweep === 'b' ? v : spec.b;
+        return {
+          wd: { type: 'capeWithdrawal', a, b, fallbackCape: spec.fallbackCape },
+          numeric: { withdrawalRate: a + b / spec.fallbackCape },
         };
       });
   }

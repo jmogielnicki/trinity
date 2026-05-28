@@ -114,8 +114,10 @@ describe('generateStudyCandidates', () => {
       ...DEFAULT_STUDY,
       varying: ['withdrawal'],
       withdrawalRange: {
-        family: 'percentOfBalance',
+        family: 'floorAndUpside',
+        sweep: 'floor',
         floor: 0.0325,
+        upsideRate: 0.03,
         from: 0.03,
         to: 0.05,
         step: 0.005,
@@ -124,9 +126,64 @@ describe('generateStudyCandidates', () => {
     const cands = generateStudyCandidates(study);
     expect(cands.length).toBe(5);
     for (const c of cands) {
-      expect(c.withdrawal.type).toBe('percentOfBalance');
-      if (c.withdrawal.type === 'percentOfBalance') {
-        expect(c.withdrawal.floor).toBe(0.0325);
+      expect(c.withdrawal.type).toBe('floorAndUpside');
+      if (c.withdrawal.type === 'floorAndUpside') {
+        expect(c.withdrawal.upsideRate).toBe(0.03);
+      }
+    }
+  });
+
+  it('sweeps a CAPE withdrawal "a" while pinning "b"', () => {
+    const study: StudyConfig = {
+      ...DEFAULT_STUDY,
+      varying: ['withdrawal'],
+      withdrawalRange: {
+        family: 'cape',
+        sweep: 'a',
+        a: 0.0175,
+        b: 0.5,
+        fallbackCape: 20,
+        from: 0.01,
+        to: 0.025,
+        step: 0.0025,
+      },
+    };
+    const cands = generateStudyCandidates(study);
+    expect(cands.length).toBe(7);
+    for (const c of cands) {
+      expect(c.withdrawal.type).toBe('capeWithdrawal');
+      if (c.withdrawal.type === 'capeWithdrawal') {
+        expect(c.withdrawal.b).toBe(0.5);
+        expect(c.withdrawal.fallbackCape).toBe(20);
+      }
+    }
+  });
+
+  it('sweeps a withdrawal curve via parallel shift', () => {
+    const study: StudyConfig = {
+      ...DEFAULT_STUDY,
+      varying: ['withdrawal'],
+      withdrawalRange: {
+        family: 'curve',
+        sweep: 'shift',
+        startRate: 0.035,
+        endRate: 0.045,
+        transitionYears: 30,
+        from: -0.01,
+        to: 0.01,
+        step: 0.005,
+      },
+    };
+    const cands = generateStudyCandidates(study);
+    expect(cands.length).toBe(5);
+    for (const c of cands) {
+      expect(c.withdrawal.type).toBe('piecewiseLinear');
+      if (c.withdrawal.type === 'piecewiseLinear') {
+        const [start, end] = c.withdrawal.points;
+        // Shift preserves the slope: endRate − startRate = 0.045 − 0.035 = 0.01.
+        expect(end.rate - start.rate).toBeCloseTo(0.01, 6);
+        expect(start.t).toBe(0);
+        expect(end.t).toBe(30);
       }
     }
   });
