@@ -112,17 +112,20 @@ export function StudyConfigPanel() {
   const update = (patch: Partial<StudyConfig>) => setStudy({ ...study, ...patch });
   const sweptCount = study.varying.length;
 
-  const setPinned = (key: StudyDimension) => {
-    if (!study.varying.includes(key)) return;
-    update({ varying: study.varying.filter((d) => d !== key) });
-  };
-  const setSwept = (key: StudyDimension) => {
-    if (study.varying.includes(key)) return;
-    // Radio-button semantics — exactly one swept dimension at a time.
-    update({ varying: [key] });
+  const toggleSwept = (key: StudyDimension) => {
+    // Single-button toggle with radio semantics: clicking a pinned card sweeps
+    // it (replacing whatever else was swept); clicking the swept card pins it
+    // again (leaves zero swept; user has to pick another to enable Run).
+    if (study.varying.includes(key)) {
+      update({ varying: study.varying.filter((d) => d !== key) });
+    } else {
+      update({ varying: [key] });
+    }
   };
 
-  const TOGGLE_EXTRA = 'inline-flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed';
+  const TOGGLE_BASE = 'inline-flex items-center gap-1 px-2 py-[5px] rounded text-xs font-medium cursor-pointer transition-colors';
+  const TOGGLE_PINNED = `${TOGGLE_BASE} text-text-muted bg-surface border border-border hover:bg-surface-hover hover:text-text-secondary`;
+  const TOGGLE_SWEEP = `${TOGGLE_BASE} text-white bg-primary border border-primary hover:brightness-110`;
 
   return (
     <div className="flex flex-col gap-2 border border-border rounded-md p-3 bg-surface-page">
@@ -156,26 +159,26 @@ export function StudyConfigPanel() {
               <span className="text-base font-semibold text-text-body">
                 {label}
               </span>
-              <div className="flex-shrink-0">
-                <TabBar>
-                  <ToggleButton
-                    active={!swept}
-                    onClick={() => setPinned(key)}
-                    title="Hold this dimension constant"
-                    className={TOGGLE_EXTRA}
-                  >
-                    <PinIcon /> pinned
-                  </ToggleButton>
-                  <ToggleButton
-                    active={swept}
-                    onClick={() => setSwept(key)}
-                    title="Sweep this dimension across many variants"
-                    className={TOGGLE_EXTRA}
-                  >
+              <button
+                type="button"
+                onClick={() => toggleSwept(key)}
+                className={swept ? TOGGLE_SWEEP : TOGGLE_PINNED}
+                title={
+                  swept
+                    ? 'This dimension sweeps across many variants. Click to pin it.'
+                    : 'This dimension is held constant. Click to sweep it instead.'
+                }
+              >
+                {swept ? (
+                  <>
                     <SweepIcon /> sweep
-                  </ToggleButton>
-                </TabBar>
-              </div>
+                  </>
+                ) : (
+                  <>
+                    <PinIcon /> pinned
+                  </>
+                )}
+              </button>
             </div>
             <div className="mt-2">
               {swept ? (
