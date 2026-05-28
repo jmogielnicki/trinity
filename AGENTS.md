@@ -206,7 +206,7 @@ Add a test when adding a strategy type, source type, or non-trivial engine behav
 - **Commits** — concise summary, then explanation of *why* not just *what*.
 - **Comments** — explain non-obvious *why* / hidden invariants; avoid restating the code.
 - **No animation, no toast libs** — small and direct beats fancy.
-- **Visual checks** — I cannot run a browser in this environment. Always note "visual not run" in PR descriptions when UI changes ship.
+- **Visual checks** — the web execution container ships with Playwright + headless Chromium pre-installed globally, so UI changes **can and should** be exercised in a real browser before reporting them done. See §11 below for the exact pattern. Type checks and tests verify correctness, not feature behavior.
 - **API functions are ESM** — `api/*` runs under Node's ESM loader (`"type": "module"`), so **relative imports need an explicit `.js` extension** (e.g. `./_lib/auth.js`). `api/tsconfig.json` is NodeNext so a missing one is a typecheck error.
 - **Secrets are server-only** — never prefix a secret with `VITE_` (that ships it in the client bundle). `STRIPE_*`, `DATABASE_URL`, `NEON_AUTH_JWKS_URL` live only in Vercel function env; only Neon's public URLs are `VITE_`.
 - **`user_profiles` is read-only to clients** — `subscription_status` is written solely by the Stripe webhook over a direct DB connection. Don't add a client write path.
@@ -240,3 +240,36 @@ CLAUDE.md describes the original product vision; here's what's actually been bui
 - **Freemium auth + payments** — a three-tier model (anonymous → free → pro) added on top, contradicting CLAUDE.md §7's "no backend": there's now a **minimal Stripe-only** backend in `api/`. Identity is **Neon Auth** (Better Auth), cloud-saved scenarios go through the **Neon Data API + RLS** (no scenario endpoints — RLS is the boundary), and **Stripe** one-time payment unlocks the advanced tabs. Full design + live-setup runbook in **`AUTH_PLAN.md`** (the source of truth for this layer).
 
 If you're picking up cold: load the **Cash bucket with refill — 50/35/15** preset, click a spaghetti line, and switch to the sleeve-composition chart tab to see the most novel piece working end-to-end.
+
+## 11. Browser-based verification (Claude Code on the web)
+
+The remote execution container has **Playwright 1.56+ and headless Chromium pre-installed globally** — not in this project's `node_modules`. Naively `import 'playwright'` or `npx playwright` fails, which is why earlier sessions concluded there was no browser. Import from the absolute global path instead and it Just Works.
+
+The loop is: start the dev server in the background, write a throwaway script that drives the page and screenshots to `/tmp/`, then `Read` the PNG — the Read tool surfaces images inline, so the model can actually see what rendered.
+
+```bash
+npm run dev > /tmp/vite.log 2>&1 &
+until grep -q "Local:" /tmp/vite.log; do sleep 1; done   # wait for ready
+node scripts/shot.mjs                                    # drive + screenshot
+```
+
+```js
+// scripts/shot.mjs — gitignored / deleted before commit
+import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1200, height: 1400 } });
+await page.goto('http://localhost:5173/', { waitUntil: 'networkidle' });
+await page.getByText('Optimize', { exact: false }).first().click();
+await page.screenshot({ path: '/tmp/foo.png', fullPage: true });
+await browser.close();
+```
+
+Then `Read /tmp/foo.png` to view the result.
+
+Gotchas:
+- **Background dev server occasionally dies between runs.** Health-check with `curl -fs localhost:5173 > /dev/null` before each Playwright invocation and relaunch if it's down.
+- **The `/opt/node22/...` path is environment-specific** — the scratch script is not portable. Delete it before staging, or keep it under a `scripts/` path that's `.gitignore`'d.
+- **Drive the page before screenshotting.** A static snapshot of the landing route rarely catches the bugs that matter; click into the flow being changed.
+- **Use `Read` (multimodal) to view PNGs**, not `Bash cat` or `file`.
+- **`SendUserFile` with `status: 'normal'`** is the right way to surface a screenshot to the user when reporting that a change works.
