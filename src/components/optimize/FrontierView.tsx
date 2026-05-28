@@ -22,10 +22,9 @@ import { NEAR_DEPLETION_FRACTION, type CandidateResult } from '../../engine/opti
 import { varyLabel } from '../../engine/study';
 import { StudyConfigPanel } from './StudyConfigPanel';
 import { StudyBasePicker } from './StudyBasePicker';
-import { StudyHeatmaps } from './StudyHeatmaps';
 import { StudyTrajectories } from './StudyTrajectories';
-import { useLibraryStore } from '../../store/libraryStore';
-import { useSweepStore } from '../../store/sweepStore';
+import { DEFAULT_WITHDRAWAL_SOURCE } from '../../engine/withdrawalSource';
+import { SaveScenarioModal } from '../SaveScenarioModal';
 import type { SerializedState } from '../../data/urlState';
 import { colorAt } from '../seriesColors';
 import {
@@ -140,14 +139,12 @@ export function FrontierView({ onApplied }: Props) {
   const scenario = useScenarioStore();
   const pool = useResultsStore((s) => s.pool);
   const data = useResultsStore((s) => s.data);
-  const saveToLibrary = useLibraryStore((s) => s.save);
-  const sweepAxes = useSweepStore((s) => s.axes);
+  const loadBase = useOptimizeStore((s) => s.loadBase);
   const {
     study,
     studyDirty,
     hasBase,
     results,
-    axes,
     frontier,
     selectedIds,
     minSuccessRate,
@@ -167,8 +164,6 @@ export function FrontierView({ onApplied }: Props) {
   const [yAxis, setYAxis] = useState<Axis>('avgAnnualWithdrawal');
   const [colorBy, setColorBy] = useState<ColorBy>('varyValue');
   const [viewMode, setViewMode] = useState<'scatter' | 'trajectories'>('scatter');
-
-  const is2D = axes.length === 2;
 
   const runSearch = () => {
     if (!pool || !data) return;
@@ -223,33 +218,45 @@ export function FrontierView({ onApplied }: Props) {
     onApplied?.();
   };
 
-  const saveVariant = (r: CandidateResult) => {
-    const name = window.prompt('Save this variant to your library as:', r.candidate.label);
-    if (!name) return;
-    const state: SerializedState = {
-      initialBalance: scenario.initialBalance,
-      horizonYears: scenario.horizonYears,
-      allocation: r.candidate.allocation,
-      withdrawal: r.candidate.withdrawal,
-      withdrawalSource: r.candidate.withdrawalSource,
-      tailMethod: scenario.tailMethod,
-      axes: sweepAxes,
-    };
-    void saveToLibrary(name, state).catch(() => {});
+  // "Open in Build →" on the base picker — drops the pinned baseline into
+  // the Build tab so the user can edit it, then come back and re-pick.
+  const editBaseline = () => {
+    scenario.setAllocation(study.lockedAllocation);
+    scenario.setWithdrawal(study.lockedWithdrawal);
+    scenario.setWithdrawalSource(study.lockedSource);
+    onApplied?.();
   };
+
+  // Save modal target — null when closed, the candidate being saved otherwise.
+  const [saveTarget, setSaveTarget] = useState<CandidateResult | null>(null);
+  const saveTargetState: SerializedState | null = saveTarget
+    ? {
+        initialBalance: scenario.initialBalance,
+        horizonYears: scenario.horizonYears,
+        allocation: saveTarget.candidate.allocation,
+        withdrawal: saveTarget.candidate.withdrawal,
+        withdrawalSource: saveTarget.candidate.withdrawalSource,
+        tailMethod: scenario.tailMethod,
+        // Optimize variants are concrete strategies, not Build-tab sweeps.
+        axes: {
+          withdrawalRate: { mode: 'pin' },
+          stockPct: { mode: 'pin' },
+          horizon: { mode: 'pin' },
+        },
+      }
+    : null;
 
   return (
     <div className="flex flex-col gap-3.5 text-base">
       <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
         <strong>Strategy study</strong> — start from a preset or saved
-        strategy, then pin some of {`{`}holdings mix, withdrawal strategy,
-        withdrawal source{`}`} and sweep the rest. Sweep one dimension for a
-        scatter / trajectory comparison; sweep two for a heatmap grid. Every
-        variant runs against all historical start years. Uses the current
-        horizon ({scenario.horizonYears}y), starting balance, and tail
+        strategy, then sweep one of {`{`}holdings mix, withdrawal strategy,
+        withdrawal source{`}`} to see how that dimension trades off against the
+        rest. Every variant runs against all historical start years. Uses the
+        current horizon ({scenario.horizonYears}y), starting balance, and tail
         method.
       </div>
-      <StudyBasePicker />
+      <StudyBasePicker onEditInBuild={editBaseline} />
       {hasBase && (
         <>
           <StudyConfigPanel />
@@ -278,7 +285,7 @@ export function FrontierView({ onApplied }: Props) {
         </div>
       )}
 
-      {results.length > 0 && is2D && (
+      {results.length > 0 && (
         <>
           <OverlaySection
             series={selectedSeries}
@@ -286,36 +293,7 @@ export function FrontierView({ onApplied }: Props) {
             selectedIds={selectedIds}
             onToggle={toggleSelected}
             onApply={applyStrategy}
-            onSave={saveVariant}
-            onSelectFrontier={selectAllFrontier}
-            onClear={clearSelection}
-            frontierCount={frontier.length}
-            pickSource="heatmap"
-          />
-
-          <div className="border-t border-border-light pt-3.5 mt-1 flex flex-col gap-3.5">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Explore the full {results.length}-variant grid
-            </div>
-            <StudyHeatmaps
-              results={results}
-              axes={axes}
-              selectedIds={selectedSet}
-              onToggle={toggleSelected}
-            />
-          </div>
-        </>
-      )}
-
-      {results.length > 0 && !is2D && (
-        <>
-          <OverlaySection
-            series={selectedSeries}
-            results={results}
-            selectedIds={selectedIds}
-            onToggle={toggleSelected}
-            onApply={applyStrategy}
-            onSave={saveVariant}
+            onSave={setSaveTarget}
             onAutoCurate={autoCurate}
             onSelectFrontier={selectAllFrontier}
             onClear={clearSelection}
@@ -427,6 +405,24 @@ export function FrontierView({ onApplied }: Props) {
           )}
           </div>
         </>
+      )}
+
+      {saveTarget && saveTargetState && (
+        <SaveScenarioModal
+          onClose={() => setSaveTarget(null)}
+          override={saveTargetState}
+          defaultName={saveTarget.candidate.label}
+          postSaveAction={{
+            label: 'Use as new study base after saving',
+            onAction: (saved, name) =>
+              loadBase({
+                allocation: saved.allocation,
+                withdrawal: saved.withdrawal,
+                source: saved.withdrawalSource ?? DEFAULT_WITHDRAWAL_SOURCE,
+                label: name,
+              }),
+          }}
+        />
       )}
     </div>
   );

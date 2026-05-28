@@ -18,7 +18,7 @@ import { FIELD_FULL } from '../ui/fieldCls';
  * dimensions plus the shared balance / horizon / tail method. The swept
  * dimensions then perturb that baseline.
  */
-export function StudyBasePicker() {
+export function StudyBasePicker({ onEditInBuild }: { onEditInBuild?: () => void }) {
   const saved = useLibraryStore((s) => s.saved);
   const setBalance = useScenarioStore((s) => s.setBalance);
   const setHorizon = useScenarioStore((s) => s.setHorizon);
@@ -88,6 +88,16 @@ export function StudyBasePicker() {
           <span className="text-xs text-text-muted">
             varying around <span className="font-medium text-text-secondary">{baseLabel}</span>
           </span>
+        )}
+        {baseLabel && onEditInBuild && (
+          <button
+            type="button"
+            onClick={onEditInBuild}
+            className="text-xs text-secondary hover:underline cursor-pointer bg-transparent border-none p-0 font-medium"
+            title="Load this baseline into the Build tab to edit it, then come back and pick the saved version"
+          >
+            Open in Build →
+          </button>
         )}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-text-faint">
