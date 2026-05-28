@@ -227,6 +227,65 @@ describe('generateStudyCandidates', () => {
       'bucket',
     ]);
   });
+
+  it('sweeps a bucket refill ceiling parameter', () => {
+    const study: StudyConfig = {
+      ...DEFAULT_STUDY,
+      varying: ['source'],
+      sourceRangeSubMode: 'bucketParam',
+      sourceBucketRange: {
+        ...DEFAULT_STUDY.sourceBucketRange,
+        sweep: 'ceiling',
+        from: 2,
+        to: 12,
+        step: 2,
+      },
+    };
+    const cands = generateStudyCandidates(study);
+    expect(cands.length).toBe(6);
+    const ceilings: number[] = [];
+    for (const c of cands) {
+      expect(c.withdrawalSource?.type).toBe('bucket');
+      if (c.withdrawalSource?.type === 'bucket') {
+        // First refill rule's ceiling is what varies.
+        ceilings.push(c.withdrawalSource.refill[0].ceiling);
+        // Rest of the chain stays constant.
+        expect(c.withdrawalSource.refill.length).toBe(
+          DEFAULT_STUDY.sourceBucketRange.base.refill.length,
+        );
+      }
+    }
+    expect(ceilings).toEqual([2, 4, 6, 8, 10, 12]);
+  });
+
+  it('sweeps a bucket sourceReturnGate (optional field present in variants)', () => {
+    const study: StudyConfig = {
+      ...DEFAULT_STUDY,
+      varying: ['source'],
+      sourceRangeSubMode: 'bucketParam',
+      sourceBucketRange: {
+        ...DEFAULT_STUDY.sourceBucketRange,
+        sweep: 'sourceReturnGate',
+        from: -0.05,
+        to: 0.05,
+        step: 0.025,
+      },
+    };
+    const cands = generateStudyCandidates(study);
+    expect(cands.length).toBe(5);
+    const gates: number[] = [];
+    for (const c of cands) {
+      if (c.withdrawalSource?.type === 'bucket') {
+        // Even rules without a baseline sourceReturnGate should get one now.
+        const g = c.withdrawalSource.refill[0].sourceReturnGate;
+        expect(g).not.toBeUndefined();
+        gates.push(g!);
+      }
+    }
+    expect(gates.map((v) => Math.round(v * 1000) / 1000)).toEqual([
+      -0.05, -0.025, 0, 0.025, 0.05,
+    ]);
+  });
 });
 
 function fakeSim(
