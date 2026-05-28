@@ -43,17 +43,16 @@ const DIMENSIONS: Array<{ key: StudyDimension; label: string }> = [
 
 const WD_FAMILY_LABELS: Record<WithdrawalFamily, string> = {
   fixedPercent: 'Fixed %',
-  percentOfBalance: '% of balance',
   floorAndUpside: 'Floor + upside',
   ratchet: 'Ratchet',
+  curve: 'Curve',
+  cape: 'CAPE',
 };
 
 function familyDefault(family: WithdrawalFamily): WithdrawalRangeSpec {
   switch (family) {
     case 'fixedPercent':
       return { family, from: 0.03, to: 0.06, step: 0.0025 };
-    case 'percentOfBalance':
-      return { family, floor: 0.0325, from: 0.03, to: 0.06, step: 0.005 };
     case 'floorAndUpside':
       return {
         family,
@@ -73,6 +72,30 @@ function familyDefault(family: WithdrawalFamily): WithdrawalRangeSpec {
         stepBoost: 0.05,
         from: 0.03,
         to: 0.05,
+        step: 0.0025,
+      };
+    case 'curve':
+      // shift defaults: ±1% around a 3.5%→4.5% baseline ramp over 30 years.
+      return {
+        family,
+        sweep: 'shift',
+        startRate: 0.035,
+        endRate: 0.045,
+        transitionYears: 30,
+        from: -0.01,
+        to: 0.01,
+        step: 0.0025,
+      };
+    case 'cape':
+      // Default sweep on `a` from 1% to 2.5%, b pinned at 0.5, fallback CAPE 20.
+      return {
+        family,
+        sweep: 'a',
+        a: 0.0175,
+        b: 0.5,
+        fallbackCape: 20,
+        from: 0.01,
+        to: 0.025,
         step: 0.0025,
       };
   }
@@ -419,16 +442,106 @@ function WithdrawalRangeEditor({
         </>
       )}
 
-      {spec.family === 'percentOfBalance' && (
+      {spec.family === 'curve' && (
         <>
-          <div className="text-xs text-text-faint py-0.5 pb-1">
-            Sweep the % of current balance withdrawn; the floor is pinned.
+          <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
+            Sweep
+            <select
+              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+              value={spec.sweep}
+              onChange={(e) => {
+                const sweep = e.target.value as 'shift' | 'scale';
+                // Reset range — shift uses ±deltas (rate units),
+                // scale uses multipliers (~1).
+                const range =
+                  sweep === 'shift'
+                    ? { from: -0.01, to: 0.01, step: 0.0025 }
+                    : { from: 0.8, to: 1.2, step: 0.05 };
+                setSpec({ ...spec, sweep, ...range });
+              }}
+            >
+              <option value="shift">shift (+delta to both rates)</option>
+              <option value="scale">scale (×k to both rates)</option>
+            </select>
+          </label>
+          <div className="text-xs text-text-faint py-0.5">
+            Baseline ramp: <strong>{(spec.startRate * 100).toFixed(2)}%</strong> at
+            year 0 → <strong>{(spec.endRate * 100).toFixed(2)}%</strong> at year
+            {' '}{spec.transitionYears}. Each variant perturbs both rates.
           </div>
-          <PctNum
-            label="Floor (% of initial)"
-            value={spec.floor}
-            onChange={(floor) => setSpec({ ...spec, floor })}
+          <div className="flex gap-3 flex-wrap">
+            <PctNum
+              label="Start rate"
+              value={spec.startRate}
+              onChange={(startRate) => setSpec({ ...spec, startRate })}
+            />
+            <PctNum
+              label="End rate"
+              value={spec.endRate}
+              onChange={(endRate) => setSpec({ ...spec, endRate })}
+            />
+            <label className="flex items-center gap-1 text-sm text-text-secondary">
+              over
+              <NumericInput
+                className={axisNumCls}
+                value={spec.transitionYears}
+                format={(v) => String(Math.round(v))}
+                parse={(s) => {
+                  const n = parseInt(s, 10);
+                  return isNaN(n) ? null : Math.max(1, n);
+                }}
+                min={1}
+                onChange={(transitionYears) => setSpec({ ...spec, transitionYears })}
+              />
+              yr
+            </label>
+          </div>
+          <PctRange
+            from={spec.from}
+            to={spec.to}
+            step={spec.step}
+            onChange={(from, to, step) => setSpec({ ...spec, from, to, step })}
           />
+        </>
+      )}
+
+      {spec.family === 'cape' && (
+        <>
+          <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
+            Sweep
+            <select
+              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+              value={spec.sweep}
+              onChange={(e) => {
+                const sweep = e.target.value as 'a' | 'b';
+                const range =
+                  sweep === 'a'
+                    ? { from: 0.01, to: 0.025, step: 0.0025 }
+                    : { from: 0.25, to: 1.0, step: 0.1 };
+                setSpec({ ...spec, sweep, ...range });
+              }}
+            >
+              <option value="a">a (constant baseline)</option>
+              <option value="b">b (sensitivity to 1/CAPE)</option>
+            </select>
+          </label>
+          <div className="text-xs text-text-faint py-0.5">
+            Rate = a + b / CAPE. Pre-1881 falls back to a + b /{' '}
+            {spec.fallbackCape}.
+          </div>
+          {spec.sweep === 'a' ? (
+            <PctNum
+              label="b (pinned)"
+              value={spec.b}
+              onChange={(b) => setSpec({ ...spec, b })}
+            />
+          ) : (
+            <PctNum
+              label="a (pinned)"
+              value={spec.a}
+              onChange={(a) => setSpec({ ...spec, a })}
+            />
+          )}
           <PctRange
             from={spec.from}
             to={spec.to}
