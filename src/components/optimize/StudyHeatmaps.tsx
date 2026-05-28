@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { CandidateResult } from '../../engine/optimize';
 import type { StudyAxis } from '../../engine/study';
 import {
@@ -47,12 +46,13 @@ type Props = {
   results: CandidateResult[];
   /** Exactly two axes: [0] = rows, [1] = columns. */
   axes: StudyAxis[];
-  onApply: (r: CandidateResult) => void;
-  onSave: (r: CandidateResult) => void;
+  /** Candidate ids currently in the overlay (highlighted in the grid). */
+  selectedIds: Set<string>;
+  /** Toggle a cell's variant in/out of the overlay. */
+  onToggle: (id: string) => void;
 };
 
-export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+export function StudyHeatmaps({ results, axes, selectedIds, onToggle }: Props) {
   if (axes.length !== 2) return null;
   const rows = axes[0].ticks.length;
   const cols = axes[1].ticks.length;
@@ -64,58 +64,13 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
     );
   }
 
-  const selected = selectedId
-    ? results.find((r) => r.candidate.id === selectedId) ?? null
-    : null;
-
   return (
     <div className="flex flex-col gap-3">
       <div className="text-sm text-text-secondary">
         Rows: <strong>{axes[0].label}</strong> · Columns:{' '}
-        <strong>{axes[1].label}</strong> · click a cell to apply or save that
-        variant.
+        <strong>{axes[1].label}</strong> · click a cell to add that variant to
+        the overlay above.
       </div>
-      {selected && (
-        <div className="flex justify-between items-center gap-4 border border-border-hover rounded-md px-3 py-2.5 bg-surface flex-wrap sticky top-2 z-[5] shadow-sticky">
-          <div className="flex flex-col gap-0.5 text-sm text-text-secondary">
-            <strong className="text-text text-base">{selected.candidate.label}</strong>
-            <span>
-              {selected.candidate.params.allocation} ·{' '}
-              {selected.candidate.params.withdrawal} ·{' '}
-              {selected.candidate.params.source ?? '—'}
-            </span>
-            <span>
-              success{' '}
-              {Number.isFinite(selected.metrics.successRate)
-                ? `${(selected.metrics.successRate * 100).toFixed(1)}%`
-                : '—'}{' '}
-              · median final {fmtMoney(selected.metrics.p50Final)} · min balance{' '}
-              {fmtMoney(selected.metrics.minBalance)}
-            </span>
-          </div>
-          <div className="flex gap-1.5 items-center">
-            <button
-              className="text-sm px-2.5 py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-surface-muted"
-              onClick={() => onApply(selected)}
-            >
-              Apply to build strategy
-            </button>
-            <button
-              className="text-sm px-2.5 py-[5px] border border-text-disabled bg-surface rounded cursor-pointer hover:bg-surface-muted"
-              onClick={() => onSave(selected)}
-            >
-              Save to library
-            </button>
-            <button
-              className="bg-transparent border-none text-stale cursor-pointer text-base leading-none px-1 hover:text-error"
-              onClick={() => setSelectedId(null)}
-              title="dismiss"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
       <div className="grid [grid-template-columns:repeat(auto-fit,minmax(360px,1fr))] gap-4">
         {METRICS.map((m) => (
           <MetricHeatmap
@@ -124,8 +79,8 @@ export function StudyHeatmaps({ results, axes, onApply, onSave }: Props) {
             results={results}
             axes={axes}
             cols={cols}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
+            selectedIds={selectedIds}
+            onToggle={onToggle}
           />
         ))}
       </div>
@@ -138,15 +93,15 @@ function MetricHeatmap({
   results,
   axes,
   cols,
-  selectedId,
-  onSelect,
+  selectedIds,
+  onToggle,
 }: {
   spec: MetricSpec;
   results: CandidateResult[];
   axes: StudyAxis[];
   cols: number;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
+  selectedIds: Set<string>;
+  onToggle: (id: string) => void;
 }) {
   // For money metrics, normalize across the finite values in this grid.
   const values = results
@@ -207,7 +162,7 @@ function MetricHeatmap({
                   if (!cr) return <td key={c} />;
                   const v = cr.metrics[spec.key];
                   const { background, color, ring } = cellStyle(v);
-                  const isSel = cr.candidate.id === selectedId;
+                  const isSel = selectedIds.has(cr.candidate.id);
                   return (
                     <td
                       key={c}
@@ -219,8 +174,8 @@ function MetricHeatmap({
                           ? `inset 0 0 0 2px ${PERFECT_RING}`
                           : undefined,
                       }}
-                      title={`${cr.candidate.label}\n${spec.label}: ${fmtMetric(spec, v)}`}
-                      onClick={() => onSelect(cr.candidate.id)}
+                      title={`${cr.candidate.label}\n${spec.label}: ${fmtMetric(spec, v)}\n(click to ${isSel ? 'remove from' : 'add to'} overlay)`}
+                      onClick={() => onToggle(cr.candidate.id)}
                     >
                       {fmtMetric(spec, v)}
                     </td>

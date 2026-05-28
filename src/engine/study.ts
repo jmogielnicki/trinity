@@ -150,7 +150,7 @@ export const SOURCE_PRESETS: SourcePreset[] = [
 ];
 
 export const DEFAULT_STUDY: StudyConfig = {
-  varying: ['allocation'],
+  varying: [],
   varyMode: { allocation: 'range', withdrawal: 'range', source: 'range' },
   lockedAllocation: {
     type: 'static',
@@ -181,6 +181,46 @@ export const DEFAULT_STUDY: StudyConfig = {
     { type: 'waterfall', order: DEFAULT_WATERFALL_ORDER },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Withdrawal archetypes — a palette for assembling a mixed-family list sweep
+// ---------------------------------------------------------------------------
+
+export type WithdrawalArchetype = {
+  id: string;
+  label: string;
+  make: () => WithdrawalStrategy;
+  /**
+   * Whether WithdrawalEditor renders a dedicated editor for this type. The
+   * others still run and compare correctly — they're just added with their
+   * canonical parameters rather than tuned inline.
+   */
+  editable: boolean;
+};
+
+/**
+ * One-click building blocks for a hand-picked withdrawal sweep. This is how
+ * you race different *families* (fixed vs ratchet vs CAPE …) against each
+ * other — categorical, so it lives in list mode, not the numeric range sweep.
+ */
+export const WITHDRAWAL_ARCHETYPES: WithdrawalArchetype[] = [
+  { id: 'fixed', label: 'Fixed %', editable: true, make: () => ({ type: 'fixedPercent', rate: 0.04 }) },
+  { id: 'pctBalance', label: '% of balance', editable: false, make: () => ({ type: 'percentOfBalance', rate: 0.04, floor: 0.0325 }) },
+  { id: 'floorUpside', label: 'Floor + upside', editable: true, make: () => ({ type: 'floorAndUpside', floor: 0.0325, upsideRate: 0.03 }) },
+  { id: 'ratchet', label: 'Ratchet', editable: true, make: () => ({ type: 'ratchet', baseRate: 0.0325, stepSize: 0.1, stepBoost: 0.05 }) },
+  { id: 'guardrails', label: 'Guardrails', editable: false, make: () => ({ type: 'guardrails', base: 0.05, trigger: 0.2, ceiling: 1.25, floor: 0.8 }) },
+  { id: 'cape', label: 'CAPE', editable: true, make: () => ({ type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20 }) },
+  { id: 'endowment', label: 'Endowment', editable: false, make: () => ({ type: 'endowment', rate: 0.05, lookbackYears: 10, floorFraction: 0.9 }) },
+  { id: 'vanguard', label: 'Vanguard dynamic', editable: false, make: () => ({ type: 'vanguardDynamic', rate: 0.05, ceiling: 0.05, floor: -0.025 }) },
+];
+
+/** Withdrawal types WithdrawalEditor cannot edit inline (added with defaults). */
+export const WITHDRAWAL_EDITOR_UNSUPPORTED = new Set<WithdrawalStrategy['type']>([
+  'percentOfBalance',
+  'guardrails',
+  'endowment',
+  'vanguardDynamic',
+]);
 
 // ---------------------------------------------------------------------------
 // Numeric range helper

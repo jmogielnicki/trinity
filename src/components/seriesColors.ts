@@ -1,6 +1,7 @@
-// Categorical palette for per-scenario series in the compare view. A scenario's
-// color is assigned by its position in the selection order and reused across the
-// cards, every chart, and the table so the eye can track one strategy everywhere.
+// Categorical palette for per-series colors in the multi-strategy overlay
+// charts (compare view and the optimize-study overlay). A series' color is
+// assigned by its position in the list and reused across the cards, every
+// chart, and the table so the eye can track one strategy everywhere.
 export const SERIES_COLORS = [
   '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
   '#8c564b', '#e377c2', '#17becf', '#bcbd22', '#7f7f7f',

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { fmtMoney } from '../../engine/strategyDescriptions';
 import type { CompareEntry } from '../../store/compareScenariosStore';
-import { colorAt } from './compareColors';
+import { colorAt } from '../seriesColors';
 import { StrategyDetails } from './StrategyDetails';
 
 const TABLE_BUCKETS: { label: string; test: (r: number) => boolean }[] = [

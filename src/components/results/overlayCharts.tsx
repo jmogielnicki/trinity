@@ -4,11 +4,24 @@ import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
 import { fmtMoney } from '../../engine/strategyDescriptions';
 import { quantile } from '../../engine/stats';
-import type { SimulationResult } from '../../engine/types';
-import type { CompareEntry } from '../../store/compareScenariosStore';
-import { colorAt, withAlpha } from './compareColors';
+import type { CandidateMetrics } from '../../engine/optimize';
+import type { ScenarioResult, SimulationResult } from '../../engine/types';
+import { withAlpha } from '../seriesColors';
 
 export type YearMode = 'worst' | 'median' | 'best';
+
+/**
+ * The minimal shape the overlay charts need from each strategy. Both the
+ * compare view (built from saved scenarios) and the optimize study (built from
+ * swept candidates) adapt their richer result types down to this.
+ */
+export type Series = {
+  id: string;
+  label: string;
+  color: string;
+  metrics: CandidateMetrics;
+  result: ScenarioResult;
+};
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -45,14 +58,13 @@ type BoxPoint = {
 };
 
 // ---------------------------------------------------------------------------
-// Distribution boxplots — p5 / p25 / median / p75 / p95 (shared)
+// Distribution boxplots — p5 / p25 / median / p75 / p95
 // ---------------------------------------------------------------------------
 
 function boxPoint(
-  i: number,
+  color: string,
   q: { p5: number; p25: number; p50: number; p75: number; p95: number },
 ): BoxPoint {
-  const color = colorAt(i);
   return {
     low: q.p5,
     q1: q.p25,
@@ -68,22 +80,22 @@ function boxPoint(
 function DistributionBoxplot({
   title,
   axisTitle,
-  entries,
+  series,
   data,
 }: {
   title: string;
   axisTitle: string;
-  entries: CompareEntry[];
+  series: Series[];
   data: BoxPoint[];
 }) {
-  const categories = entries.map((e) => truncate(e.saved.name, 24));
+  const categories = series.map((s) => truncate(s.label, 24));
   const options: Options = useMemo(
     () => ({
       chart: {
         type: 'boxplot',
         inverted: true,
         width: null as any,
-        height: Math.max(150, entries.length * 38 + 56),
+        height: Math.max(150, series.length * 38 + 56),
         margin: [10, 16, 36, 8],
       },
       xAxis: { categories, labels: { enabled: false }, lineWidth: 0, tickWidth: 0 },
@@ -114,7 +126,7 @@ function DistributionBoxplot({
       legend: { enabled: false },
       series: [{ type: 'boxplot', data } as any],
     }),
-    [categories, data, axisTitle, entries.length],
+    [categories, data, axisTitle, series.length],
   );
 
   return (
@@ -124,33 +136,33 @@ function DistributionBoxplot({
   );
 }
 
-export function FinalBalanceDistributionChart({ entries }: { entries: CompareEntry[] }) {
-  const data = entries.map((e, i) =>
-    boxPoint(i, {
-      p5: e.metrics.p5Final,
-      p25: e.metrics.p25Final,
-      p50: e.metrics.p50Final,
-      p75: e.metrics.p75Final,
-      p95: e.metrics.p95Final,
+export function FinalBalanceDistributionChart({ series }: { series: Series[] }) {
+  const data = series.map((s) =>
+    boxPoint(s.color, {
+      p5: s.metrics.p5Final,
+      p25: s.metrics.p25Final,
+      p50: s.metrics.p50Final,
+      p75: s.metrics.p75Final,
+      p95: s.metrics.p95Final,
     }),
   );
   return (
     <DistributionBoxplot
       title="Final-balance distribution (p5–p95, median bar)"
       axisTitle="final balance (real $)"
-      entries={entries}
+      series={series}
       data={data}
     />
   );
 }
 
 /** Distribution of per-sim average annual spend, over completed observed sims. */
-function spendQuantiles(e: CompareEntry) {
+function spendQuantiles(s: Series) {
   const means: number[] = [];
-  for (const s of e.result.sims) {
-    if (s.bootstrapped || s.inProgress || s.trajectory.length === 0) continue;
-    const sum = s.trajectory.reduce((acc, r) => acc + r.withdrawal, 0);
-    means.push(sum / s.trajectory.length);
+  for (const sim of s.result.sims) {
+    if (sim.bootstrapped || sim.inProgress || sim.trajectory.length === 0) continue;
+    const sum = sim.trajectory.reduce((acc, r) => acc + r.withdrawal, 0);
+    means.push(sum / sim.trajectory.length);
   }
   means.sort((a, b) => a - b);
   return {
@@ -162,23 +174,23 @@ function spendQuantiles(e: CompareEntry) {
   };
 }
 
-export function SpendDistributionChart({ entries }: { entries: CompareEntry[] }) {
-  const data = entries.map((e, i) => boxPoint(i, spendQuantiles(e)));
+export function SpendDistributionChart({ series }: { series: Series[] }) {
+  const data = series.map((s) => boxPoint(s.color, spendQuantiles(s)));
   return (
     <DistributionBoxplot
       title="Avg annual spend distribution (p5–p95, median bar)"
       axisTitle="avg annual spend (real $)"
-      entries={entries}
+      series={series}
       data={data}
     />
   );
 }
 
 // ---------------------------------------------------------------------------
-// Lines over years-into-retirement — median balance and median spend
+// Lines over years-into-retirement — representative balance and spend
 // ---------------------------------------------------------------------------
 
-function timeSeriesOptions(series: any[]): Options {
+function timeSeriesOptions(seriesData: any[]): Options {
   return {
     chart: { type: 'line', width: null as any, height: 320, margin: [16, 16, 48, 72] },
     xAxis: {
@@ -202,15 +214,15 @@ function timeSeriesOptions(series: any[]): Options {
       },
     },
     legend: { enabled: false },
-    series,
+    series: seriesData,
   };
 }
 
-function lineSeries(e: CompareEntry, i: number, data: [number, number][]) {
+function lineSeries(s: Series, data: [number, number][]) {
   return {
     type: 'line',
-    name: truncate(e.saved.name, 28),
-    color: colorAt(i),
+    name: truncate(s.label, 28),
+    color: s.color,
     lineWidth: 1.75,
     marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
     data,
@@ -234,30 +246,30 @@ function minBalance(s: SimulationResult): number {
  *  - worst: soonest depletion if any cohort depleted; otherwise the cohort that
  *    came closest to depletion (lowest balance touched at any point)
  */
-function representativeSim(e: CompareEntry, mode: YearMode): SimulationResult | undefined {
-  const sims = e.result.sims.filter((s) => !s.bootstrapped && !s.inProgress);
+function representativeSim(s: Series, mode: YearMode): SimulationResult | undefined {
+  const sims = s.result.sims.filter((x) => !x.bootstrapped && !x.inProgress);
   if (sims.length === 0) return undefined;
 
   if (mode === 'best') {
-    return sims.reduce((best, s) => (endBalance(s) > endBalance(best) ? s : best));
+    return sims.reduce((best, x) => (endBalance(x) > endBalance(best) ? x : best));
   }
   if (mode === 'median') {
     const sorted = [...sims].sort((a, b) => endBalance(a) - endBalance(b));
     return sorted[Math.floor((sorted.length - 1) / 2)];
   }
   // worst
-  const depleted = sims.filter((s) => !s.success);
+  const depleted = sims.filter((x) => !x.success);
   if (depleted.length > 0) {
-    return depleted.reduce((worst, s) =>
-      (s.depletedAt ?? Infinity) < (worst.depletedAt ?? Infinity) ? s : worst,
+    return depleted.reduce((worst, x) =>
+      (x.depletedAt ?? Infinity) < (worst.depletedAt ?? Infinity) ? x : worst,
     );
   }
-  return sims.reduce((worst, s) => (minBalance(s) < minBalance(worst) ? s : worst));
+  return sims.reduce((worst, x) => (minBalance(x) < minBalance(worst) ? x : worst));
 }
 
-function trajectoryOptions(series: any[]): Options {
+function trajectoryOptions(seriesData: any[]): Options {
   return {
-    ...timeSeriesOptions(series),
+    ...timeSeriesOptions(seriesData),
     tooltip: {
       formatter() {
         const yr = this.x ?? 0;
@@ -270,31 +282,31 @@ function trajectoryOptions(series: any[]): Options {
 }
 
 function trajectorySeries(
-  entries: CompareEntry[],
+  series: Series[],
   mode: YearMode,
   valueOf: (rec: SimulationResult['trajectory'][number]) => number,
 ) {
-  return entries.map((e, i) => {
-    const sim = representativeSim(e, mode);
+  return series.map((s) => {
+    const sim = representativeSim(s, mode);
     return {
-      ...lineSeries(e, i, sim ? sim.trajectory.map((rec) => [rec.t, valueOf(rec)]) : []),
+      ...lineSeries(s, sim ? sim.trajectory.map((rec) => [rec.t, valueOf(rec)]) : []),
       custom: { startYear: sim?.startYear },
     };
   });
 }
 
 export function BalanceOverTimeChart({
-  entries,
+  series,
   mode,
 }: {
-  entries: CompareEntry[];
+  series: Series[];
   mode: YearMode;
 }) {
-  const series = useMemo(
-    () => trajectorySeries(entries, mode, (rec) => rec.balance),
-    [entries, mode],
+  const seriesData = useMemo(
+    () => trajectorySeries(series, mode, (rec) => rec.balance),
+    [series, mode],
   );
-  const options = useMemo(() => trajectoryOptions(series), [series]);
+  const options = useMemo(() => trajectoryOptions(seriesData), [seriesData]);
   return (
     <ChartCard title="Balance over the retirement">
       <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />
@@ -303,17 +315,17 @@ export function BalanceOverTimeChart({
 }
 
 export function SpendOverTimeChart({
-  entries,
+  series,
   mode,
 }: {
-  entries: CompareEntry[];
+  series: Series[];
   mode: YearMode;
 }) {
-  const series = useMemo(
-    () => trajectorySeries(entries, mode, (rec) => rec.withdrawal),
-    [entries, mode],
+  const seriesData = useMemo(
+    () => trajectorySeries(series, mode, (rec) => rec.withdrawal),
+    [series, mode],
   );
-  const options = useMemo(() => trajectoryOptions(series), [series]);
+  const options = useMemo(() => trajectoryOptions(seriesData), [seriesData]);
   return (
     <ChartCard title="Spending over the retirement">
       <HighchartsReact highcharts={Highcharts} options={options} immutable={false} />

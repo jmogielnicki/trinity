@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useMemo, useRef, useState, useCallback } from 'react';
 import { interpolatePlasma } from 'd3-scale-chromatic';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
@@ -15,17 +15,29 @@ function colorScale(t: number): string {
   const clamped = Math.max(0, Math.min(1, t));
   return interpolatePlasma(0.1 + clamped * 0.7);
 }
-import { useOptimizeStore } from '../../store/optimizeStore';
+import { useOptimizeStore, OVERLAY_MAX } from '../../store/optimizeStore';
 import { useResultsStore } from '../../store/resultsStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { NEAR_DEPLETION_FRACTION, type CandidateResult } from '../../engine/optimize';
 import { varyLabel } from '../../engine/study';
 import { StudyConfigPanel } from './StudyConfigPanel';
+import { StudyBasePicker } from './StudyBasePicker';
 import { StudyHeatmaps } from './StudyHeatmaps';
 import { StudyTrajectories } from './StudyTrajectories';
 import { useLibraryStore } from '../../store/libraryStore';
 import { useSweepStore } from '../../store/sweepStore';
 import type { SerializedState } from '../../data/urlState';
+import { colorAt } from '../seriesColors';
+import {
+  FinalBalanceDistributionChart,
+  SpendDistributionChart,
+  BalanceOverTimeChart,
+  SpendOverTimeChart,
+  truncate,
+  type Series,
+  type YearMode,
+} from '../results/overlayCharts';
+import { FIELD_BASE } from '../ui/fieldCls';
 
 type Axis =
   | 'successRate'
@@ -120,11 +132,6 @@ function formatColorValue(c: ColorBy, v: number): string {
   }
 }
 
-const SERIES_COLORS = [
-  '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-  '#8c564b', '#e377c2', '#17becf', '#bcbd22', '#7f7f7f',
-];
-
 type Props = {
   onApplied?: () => void;
 };
@@ -138,6 +145,7 @@ export function FrontierView({ onApplied }: Props) {
   const {
     study,
     studyDirty,
+    hasBase,
     results,
     axes,
     frontier,
@@ -150,7 +158,7 @@ export function FrontierView({ onApplied }: Props) {
     toggleSelected,
     setSelected,
     selectAllFrontier,
-    selectAll,
+    autoCurate,
     clearSelection,
     setMinSuccessRate,
   } = useOptimizeStore();
@@ -174,12 +182,6 @@ export function FrontierView({ onApplied }: Props) {
     );
   };
 
-  useEffect(() => {
-    if (!pool || !data) return;
-    if (results.length === 0 && !running) runSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pool, data]);
-
   // Filtered results — drives both the scatter (hides non-passers) and the
   // frontier set (the store already recomputes the front on filter change).
   const filteredResults = useMemo(
@@ -196,6 +198,22 @@ export function FrontierView({ onApplied }: Props) {
     [frontier],
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // Selected candidates as overlay-chart series, in selection order with
+  // colors that match the comparison-table row swatches.
+  const selectedSeries = useMemo<Series[]>(() => {
+    const byId = new Map(results.map((r) => [r.candidate.id, r]));
+    return selectedIds
+      .map((id) => byId.get(id))
+      .filter((r): r is CandidateResult => !!r)
+      .map((r, i) => ({
+        id: r.candidate.id,
+        label: r.candidate.label,
+        color: colorAt(i),
+        metrics: r.metrics,
+        result: r.result,
+      }));
+  }, [results, selectedIds]);
 
   const applyStrategy = (r: CandidateResult) => {
     scenario.setAllocation(r.candidate.allocation);
@@ -222,34 +240,33 @@ export function FrontierView({ onApplied }: Props) {
 
   return (
     <div className="flex flex-col gap-3.5 text-base">
-      <div className="flex justify-between items-start gap-4">
-        <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
-          <strong>Strategy study</strong> — pin some of {`{`}holdings mix,
-          withdrawal strategy, withdrawal source{`}`} and sweep the rest. Sweep
-          one dimension for a scatter / trajectory comparison; sweep two for a
-          heatmap grid. Every variant runs against all historical start years.
-          Uses the current horizon ({scenario.horizonYears}y), starting
-          balance, and tail method.
-        </div>
-        <div className="flex gap-1.5 flex-shrink-0">
-          <Btn size="md" onClick={runSearch} disabled={running || !pool || !data}>
-            {running ? 'Running…' : results.length ? 'Re-run study' : 'Run study'}
-          </Btn>
-          {!!results.length && (
-            <>
-              <Btn size="md" onClick={selectAll}>Select all</Btn>
-              <Btn size="md" onClick={selectAllFrontier}>Select frontier</Btn>
-              <Btn size="md" onClick={clearSelection}>Clear</Btn>
-            </>
-          )}
-        </div>
+      <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
+        <strong>Strategy study</strong> — start from a preset or saved
+        strategy, then pin some of {`{`}holdings mix, withdrawal strategy,
+        withdrawal source{`}`} and sweep the rest. Sweep one dimension for a
+        scatter / trajectory comparison; sweep two for a heatmap grid. Every
+        variant runs against all historical start years. Uses the current
+        horizon ({scenario.horizonYears}y), starting balance, and tail
+        method.
       </div>
-      <StudyConfigPanel />
+      <StudyBasePicker />
+      {hasBase && (
+        <>
+          <StudyConfigPanel />
+          <RunStudyButton
+            running={running}
+            disabled={running || !pool || !data || study.varying.length === 0}
+            hasResults={results.length > 0}
+            sweptCount={study.varying.length}
+            onClick={runSearch}
+          />
+        </>
+      )}
       {!!results.length && (
         <div className="text-xs text-text-faint">
           {filteredResults.length}/{results.length} variants passing ·{' '}
           {frontier.length} on Pareto frontier · compute {computeMs.toFixed(0)} ms ·{' '}
-          {selectedIds.length} selected
+          {selectedIds.length}/{OVERLAY_MAX} overlaid
           {(studyDirty ||
             (lastConfig &&
               lastConfig.horizonYears !== scenario.horizonYears)) && (
@@ -262,16 +279,54 @@ export function FrontierView({ onApplied }: Props) {
       )}
 
       {results.length > 0 && is2D && (
-        <StudyHeatmaps
-          results={results}
-          axes={axes}
-          onApply={applyStrategy}
-          onSave={saveVariant}
-        />
+        <>
+          <OverlaySection
+            series={selectedSeries}
+            results={results}
+            selectedIds={selectedIds}
+            onToggle={toggleSelected}
+            onApply={applyStrategy}
+            onSave={saveVariant}
+            onSelectFrontier={selectAllFrontier}
+            onClear={clearSelection}
+            frontierCount={frontier.length}
+            pickSource="heatmap"
+          />
+
+          <div className="border-t border-border-light pt-3.5 mt-1 flex flex-col gap-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Explore the full {results.length}-variant grid
+            </div>
+            <StudyHeatmaps
+              results={results}
+              axes={axes}
+              selectedIds={selectedSet}
+              onToggle={toggleSelected}
+            />
+          </div>
+        </>
       )}
 
       {results.length > 0 && !is2D && (
         <>
+          <OverlaySection
+            series={selectedSeries}
+            results={results}
+            selectedIds={selectedIds}
+            onToggle={toggleSelected}
+            onApply={applyStrategy}
+            onSave={saveVariant}
+            onAutoCurate={autoCurate}
+            onSelectFrontier={selectAllFrontier}
+            onClear={clearSelection}
+            frontierCount={frontier.length}
+            pickSource="scatter"
+          />
+
+          <div className="border-t border-border-light pt-3.5 mt-1 flex flex-col gap-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Explore all {results.length} variants
+            </div>
           <div className="flex flex-wrap gap-[18px] text-sm text-text-secondary items-center py-1">
             <div className="mr-1">
               <TabBar>
@@ -361,13 +416,6 @@ export function FrontierView({ onApplied }: Props) {
                 yAxis={yAxis}
                 colorBy={colorBy}
               />
-              <ComparisonTable
-                results={results}
-                selectedIds={selectedIds}
-                onRemove={toggleSelected}
-                onApply={applyStrategy}
-              />
-              <ComparisonBars results={results} selectedIds={selectedIds} />
               <FrontierList
                 frontier={frontier}
                 selectedIds={selectedSet}
@@ -377,6 +425,176 @@ export function FrontierView({ onApplied }: Props) {
           ) : (
             <StudyTrajectories results={results} />
           )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Big bottom CTA that runs the study — the user's "go" button after they've
+// picked a base and chosen what to sweep.
+// ---------------------------------------------------------------------------
+
+function RunStudyButton({
+  running,
+  disabled,
+  hasResults,
+  sweptCount,
+  onClick,
+}: {
+  running: boolean;
+  disabled: boolean;
+  hasResults: boolean;
+  sweptCount: number;
+  onClick: () => void;
+}) {
+  const label = running
+    ? 'Running…'
+    : hasResults
+      ? 'Re-run study'
+      : 'Run study';
+  const hint =
+    sweptCount === 0
+      ? 'Pick at least one dimension to sweep before running.'
+      : `Runs every variant against all historical start years.`;
+  return (
+    <div className="flex flex-col items-center gap-1.5 py-1">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="px-6 py-3 rounded-md text-base font-semibold bg-primary text-white shadow-sm cursor-pointer hover:brightness-110 disabled:bg-text-disabled disabled:text-text-faint disabled:cursor-not-allowed disabled:shadow-none transition-all"
+      >
+        {label}
+      </button>
+      <div className="text-xs text-text-muted">{hint}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Curated overlay — the primary compare-style surface (≤ OVERLAY_MAX variants)
+// ---------------------------------------------------------------------------
+
+function OverlaySection({
+  series,
+  results,
+  selectedIds,
+  onToggle,
+  onApply,
+  onSave,
+  onAutoCurate,
+  onSelectFrontier,
+  onClear,
+  frontierCount,
+  pickSource,
+}: {
+  series: Series[];
+  results: CandidateResult[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  onApply: (r: CandidateResult) => void;
+  onSave?: (r: CandidateResult) => void;
+  /** When omitted (2D studies) the "Auto-pick" shortcut is hidden. */
+  onAutoCurate?: () => void;
+  onSelectFrontier: () => void;
+  onClear: () => void;
+  frontierCount: number;
+  pickSource: 'scatter' | 'heatmap';
+}) {
+  const [yearMode, setYearMode] = useState<YearMode>('median');
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex items-baseline gap-0.5 pr-3 border-r border-border-light flex-shrink-0">
+          <span className="text-lg font-semibold text-text tabular-nums">{series.length}</span>
+          <span className="text-sm text-text-muted tabular-nums">/{OVERLAY_MAX}</span>
+          <span className="text-[11px] uppercase tracking-[0.06em] text-text-muted ml-2 font-medium">
+            overlaid
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+          {series.length === 0 ? (
+            <span className="text-xs text-text-faint italic">
+              Nothing overlaid —{' '}
+              {onAutoCurate ? 'auto-pick a spread, take the frontier, or ' : 'take the frontier, or '}
+              click {pickSource === 'heatmap' ? 'cells in the grid' : 'points in the scatter'} below.
+            </span>
+          ) : (
+            series.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onToggle(s.id)}
+                className="inline-flex items-center gap-1.5 h-[26px] px-2 rounded-full border-[1.5px] text-xs font-medium cursor-pointer hover:-translate-y-px hover:shadow-sm transition-all"
+                style={{ borderColor: s.color, backgroundColor: `${s.color}1a` }}
+                title="Remove from overlay"
+              >
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                <span className="leading-none whitespace-nowrap text-text">
+                  {truncate(s.label, 28)}
+                </span>
+                <span className="tabular-nums text-text-muted">
+                  {Number.isFinite(s.metrics.successRate)
+                    ? `${(s.metrics.successRate * 100).toFixed(0)}%`
+                    : '—'}
+                </span>
+                <svg className="opacity-55 ml-0.5" width="10" height="10" viewBox="0 0 10 10">
+                  <path d="M2 2 L8 8 M8 2 L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            ))
+          )}
+        </div>
+        <div className="flex gap-1.5 flex-shrink-0">
+          {onAutoCurate && <Btn size="sm" onClick={onAutoCurate}>Auto-pick {OVERLAY_MAX}</Btn>}
+          {frontierCount > 0 && <Btn size="sm" onClick={onSelectFrontier}>Top frontier</Btn>}
+          {series.length > 0 && <Btn size="sm" onClick={onClear}>Clear</Btn>}
+        </div>
+      </div>
+
+      {series.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <FinalBalanceDistributionChart series={series} />
+            <SpendDistributionChart series={series} />
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-text-secondary mt-1">
+            <span>Play out each variant's</span>
+            <select
+              className={`${FIELD_BASE} px-2 py-[3px] text-text`}
+              value={yearMode}
+              onChange={(e) => setYearMode(e.target.value as YearMode)}
+            >
+              <option value="worst">worst</option>
+              <option value="median">median</option>
+              <option value="best">best</option>
+            </select>
+            <span>historical start year (by final balance).</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <BalanceOverTimeChart series={series} mode={yearMode} />
+            <SpendOverTimeChart series={series} mode={yearMode} />
+          </div>
+
+          <details className="border border-border-light rounded bg-surface-page">
+            <summary className="cursor-pointer px-3 py-2 text-sm text-text-secondary select-none hover:bg-surface-hover">
+              Show full metrics table
+            </summary>
+            <div className="px-2 pb-2">
+              <ComparisonTable
+                results={results}
+                selectedIds={selectedIds}
+                onRemove={onToggle}
+                onApply={onApply}
+                onSave={onSave}
+              />
+            </div>
+          </details>
         </>
       )}
     </div>
@@ -593,11 +811,13 @@ function ComparisonTable({
   selectedIds,
   onRemove,
   onApply,
+  onSave,
 }: {
   results: CandidateResult[];
   selectedIds: string[];
   onRemove: (id: string) => void;
   onApply: (r: CandidateResult) => void;
+  onSave?: (r: CandidateResult) => void;
 }) {
   if (selectedIds.length === 0) {
     return (
@@ -635,6 +855,7 @@ function ComparisonTable({
             </th>
             <th className={thCls}>Worst start</th>
             <th className={thCls}></th>
+            {onSave && <th className={thCls}></th>}
             <th className={thCls}></th>
           </tr>
         </thead>
@@ -644,7 +865,7 @@ function ComparisonTable({
               <td className={tdCls}>
                 <span
                   className="inline-block w-3 h-3 rounded-sm"
-                  style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }}
+                  style={{ background: colorAt(i) }}
                 />
               </td>
               <td className={tdCls}>{r.candidate.label}</td>
@@ -671,11 +892,22 @@ function ComparisonTable({
                   Apply
                 </button>
               </td>
+              {onSave && (
+                <td className={tdCls}>
+                  <button
+                    className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-code hover:border-border"
+                    onClick={() => onSave(r)}
+                    title="Save this variant to your library"
+                  >
+                    Save
+                  </button>
+                </td>
+              )}
               <td className={tdCls}>
                 <button
                   className="bg-transparent border-none text-stale cursor-pointer text-base leading-none px-1 hover:text-error"
                   onClick={() => onRemove(r.candidate.id)}
-                  title="Remove from comparison"
+                  title="Remove from overlay"
                 >
                   ×
                 </button>
@@ -684,151 +916,6 @@ function ComparisonTable({
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Comparison bars (final-balance P5/Median/P95 whiskers)
-// ---------------------------------------------------------------------------
-
-function ComparisonBars({
-  results,
-  selectedIds,
-}: {
-  results: CandidateResult[];
-  selectedIds: string[];
-}) {
-  if (selectedIds.length === 0) return null;
-  const byId = new Map(results.map((r) => [r.candidate.id, r]));
-  const selected = selectedIds
-    .map((id) => byId.get(id))
-    .filter((r): r is CandidateResult => !!r);
-
-  if (selected.length === 0) return null;
-
-  const chartHeight = selected.length * 28 + 40;
-
-  // Build three scatter series (p5, p50, p95) plus one line series per strategy
-  // that connects the p5 and p95 endpoints. We use inverted chart for horizontal bars.
-  const categories = selected.map((r) => truncate(r.candidate.label, 36));
-
-  // One line series per strategy connecting p5–p95
-  const connectorSeries = selected.map((r, i) => ({
-    type: 'line' as const,
-    name: truncate(r.candidate.label, 36),
-    color: SERIES_COLORS[i % SERIES_COLORS.length],
-    lineWidth: 2,
-    opacity: 0.5,
-    marker: { enabled: false },
-    enableMouseTracking: false,
-    showInLegend: false,
-    data: [
-      { x: i, y: r.metrics.p5Final },
-      { x: i, y: r.metrics.p95Final },
-    ] as any,
-  }));
-
-  // P5 dots
-  const p5Series = {
-    type: 'scatter' as const,
-    name: 'P5',
-    showInLegend: false,
-    enableMouseTracking: false,
-    data: selected.map((r, i) => ({
-      x: i,
-      y: r.metrics.p5Final,
-      color: SERIES_COLORS[i % SERIES_COLORS.length],
-      marker: { radius: 4, fillOpacity: 0.55 },
-    })),
-  };
-
-  // P95 dots
-  const p95Series = {
-    type: 'scatter' as const,
-    name: 'P95',
-    showInLegend: false,
-    enableMouseTracking: false,
-    data: selected.map((r, i) => ({
-      x: i,
-      y: r.metrics.p95Final,
-      color: SERIES_COLORS[i % SERIES_COLORS.length],
-      marker: { radius: 4, fillOpacity: 0.55 },
-    })),
-  };
-
-  // P50 as scatter with dataLabels showing the value
-  const p50Series = {
-    type: 'scatter' as const,
-    name: 'Median',
-    showInLegend: false,
-    enableMouseTracking: false,
-    data: selected.map((r, i) => ({
-      x: i,
-      y: r.metrics.p50Final,
-      color: SERIES_COLORS[i % SERIES_COLORS.length],
-      marker: { radius: 5, symbol: 'square' },
-      dataLabels: {
-        enabled: true,
-        format: `${fmtMoney(r.metrics.p50Final)}`,
-        style: { fontSize: '10px', color: '#666', fontWeight: 'normal' },
-        x: 8,
-      },
-    })),
-  };
-
-  const options: Options = {
-    chart: {
-      type: 'scatter',
-      inverted: true,
-      width: null as any,
-      height: chartHeight,
-      margin: [8, 80, 8, 200],
-    },
-    xAxis: {
-      categories,
-      title: { text: '' },
-      tickWidth: 0,
-      lineWidth: 0,
-    },
-    yAxis: {
-      min: 0,
-      title: { text: '' },
-      labels: {
-        formatter() {
-          const v = this.value as number;
-          return `$${(v / 1e6).toFixed(1)}M`;
-        },
-      },
-    },
-    tooltip: {
-      formatter() {
-        const ctx = this as any;
-        const r = selected[ctx.point?.x];
-        if (!r) return false;
-        const m = r.metrics;
-        return `<b>${r.candidate.label}</b><br/>P5: ${fmtMoney(m.p5Final)} · Median: ${fmtMoney(m.p50Final)} · P95: ${fmtMoney(m.p95Final)}`;
-      },
-    },
-    plotOptions: {
-      scatter: {
-        marker: { symbol: 'circle' },
-        dataLabels: { enabled: false },
-      },
-    },
-    series: [...connectorSeries, p5Series as any, p95Series as any, p50Series as any],
-  };
-
-  return (
-    <div className="border border-border-light rounded p-2.5 bg-surface-page">
-      <div className="text-xs text-text-secondary mb-1.5">
-        Final-balance distribution (P5 / Median / P95) per selected strategy
-      </div>
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        immutable={false}
-      />
     </div>
   );
 }
@@ -932,8 +1019,4 @@ function fmtMoney(n: number): string {
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}k`;
   return `$${Math.round(n)}`;
-}
-
-function truncate(s: string, n: number): string {
-  return s.length > n ? s.slice(0, n - 1) + '…' : s;
 }

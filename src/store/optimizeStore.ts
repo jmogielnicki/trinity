@@ -12,11 +12,35 @@ import {
   type StudyAxis,
   type StudyConfig,
 } from '../engine/study';
+import type {
+  AllocationStrategy,
+  WithdrawalStrategy,
+} from '../engine/strategies';
+import type { WithdrawalSource } from '../engine/withdrawalSource';
 import type { SimPool } from '../worker/pool';
+
+/** A base strategy loaded into the study as the pinned baseline. */
+export type StudyBase = {
+  allocation: AllocationStrategy;
+  withdrawal: WithdrawalStrategy;
+  source: WithdrawalSource;
+  label: string;
+};
 
 export type OptimizeState = {
   /** Study configuration that defines the candidate set. */
   study: StudyConfig;
+  /**
+   * Name of the preset / saved strategy the pinned baseline was loaded from,
+   * or null once the user edits the study away from it.
+   */
+  baseLabel: string | null;
+  /**
+   * True once a base has ever been loaded in this session. Stays true even
+   * after the user edits the locked baseline away from that base — used by
+   * the UI to keep the sweep editor and run button visible.
+   */
+  hasBase: boolean;
   /** True when the study has changed since the last search — results are stale. */
   studyDirty: boolean;
   /** All candidates with metrics (unfiltered), row-major for 2D studies. */
@@ -32,15 +56,45 @@ export type OptimizeState = {
   computeMs: number;
   lastConfig: OptimizeConfig | null;
   setStudy: (study: StudyConfig) => void;
+  /** Load a preset / saved strategy as the pinned baseline for all dimensions. */
+  loadBase: (base: StudyBase) => void;
   run: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
   toggleSelected: (id: string) => void;
   setSelected: (ids: string[]) => void;
   selectAllFrontier: () => void;
-  selectAll: () => void;
+  /** Re-pick an evenly-spaced set of up to OVERLAY_MAX variants to overlay. */
+  autoCurate: () => void;
   clearSelection: () => void;
   setMinSuccessRate: (v: number) => void;
   reset: () => void;
 };
+
+/** Max # of variants overlaid in the compare-style charts at once. */
+export const OVERLAY_MAX = 8;
+
+/** Pick up to `max` items evenly spaced across the list (always incl. ends). */
+function evenlySpaced<T>(arr: T[], max: number): T[] {
+  if (arr.length <= max) return arr.slice();
+  const picked: T[] = [];
+  const seen = new Set<number>();
+  for (let i = 0; i < max; i++) {
+    const idx = Math.round((i * (arr.length - 1)) / (max - 1));
+    if (!seen.has(idx)) {
+      seen.add(idx);
+      picked.push(arr[idx]);
+    }
+  }
+  return picked;
+}
+
+function curate(results: CandidateResult[], axes: { length: number }): string[] {
+  // Only 1D studies use the overlay; 2D studies read the heatmap instead.
+  if (axes.length !== 1) return [];
+  return evenlySpaced(
+    results.map((r) => r.candidate.id),
+    OVERLAY_MAX,
+  );
+}
 
 
 function filterAndFront(
@@ -57,6 +111,8 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
   let pendingId = 0;
   return {
     study: DEFAULT_STUDY,
+    baseLabel: null,
+    hasBase: false,
     studyDirty: false,
     results: [],
     axes: [],
@@ -68,7 +124,38 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     lastConfig: null,
 
     setStudy(study) {
-      set({ study, studyDirty: true });
+      // Detach the base label only when the locked baseline itself changed
+      // — toggling pin/sweep or tweaking sweep ranges still varies "around"
+      // the named base, so the label and editor visibility stay put.
+      set((s) => {
+        const prev = s.study;
+        const lockedChanged =
+          prev.lockedAllocation !== study.lockedAllocation ||
+          prev.lockedWithdrawal !== study.lockedWithdrawal ||
+          prev.lockedSource !== study.lockedSource;
+        return {
+          study,
+          studyDirty: true,
+          baseLabel: lockedChanged ? null : s.baseLabel,
+        };
+      });
+    },
+
+    loadBase(base) {
+      set((s) => ({
+        study: {
+          ...s.study,
+          // Picking (or re-picking) a base restarts the sweep flow: all
+          // three dimensions pinned, user chooses what to vary.
+          varying: [],
+          lockedAllocation: base.allocation,
+          lockedWithdrawal: base.withdrawal,
+          lockedSource: base.source,
+        },
+        baseLabel: base.label,
+        hasBase: true,
+        studyDirty: true,
+      }));
     },
 
     async run(cfg, pool) {
@@ -90,7 +177,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         results,
         axes,
         frontier,
-        selectedIds: [],
+        selectedIds: curate(results, axes),
         running: false,
         studyDirty: false,
         computeMs: performance.now() - t0,
@@ -103,21 +190,28 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       if (cur.includes(id)) {
         set({ selectedIds: cur.filter((x) => x !== id) });
       } else {
-        set({ selectedIds: [...cur, id] });
+        // Cap the overlay; adding past the cap drops the oldest selection.
+        set({ selectedIds: [...cur, id].slice(-OVERLAY_MAX) });
       }
     },
 
     setSelected(ids) {
-      set({ selectedIds: ids });
+      set({ selectedIds: evenlySpaced(ids, OVERLAY_MAX) });
     },
 
     selectAllFrontier() {
       const frontier = get().frontier;
-      set({ selectedIds: frontier.map((r) => r.candidate.id) });
+      set({
+        selectedIds: evenlySpaced(
+          frontier.map((r) => r.candidate.id),
+          OVERLAY_MAX,
+        ),
+      });
     },
 
-    selectAll() {
-      set({ selectedIds: get().results.map((r) => r.candidate.id) });
+    autoCurate() {
+      const { results, axes } = get();
+      set({ selectedIds: curate(results, axes) });
     },
 
     clearSelection() {
@@ -135,6 +229,8 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       pendingId++;
       set({
         study: DEFAULT_STUDY,
+        baseLabel: null,
+        hasBase: false,
         studyDirty: false,
         results: [],
         axes: [],

@@ -7,6 +7,8 @@ import { ToggleButton } from '../ui/ToggleButton';
 import { FIELD_AXIS } from '../ui/fieldCls';
 import {
   SOURCE_PRESETS,
+  WITHDRAWAL_ARCHETYPES,
+  WITHDRAWAL_EDITOR_UNSUPPORTED,
   allocationRangeVariants,
   describeAllocation,
   describeSource,
@@ -103,7 +105,6 @@ export function StudyConfigPanel() {
 
   const setPinned = (key: StudyDimension) => {
     if (!study.varying.includes(key)) return;
-    if (study.varying.length <= 1) return; // always keep one swept
     update({ varying: study.varying.filter((d) => d !== key) });
   };
   const setSwept = (key: StudyDimension) => {
@@ -116,12 +117,25 @@ export function StudyConfigPanel() {
 
   return (
     <div className="flex flex-col gap-2 border border-border rounded-md p-3 bg-surface-page">
-      <div className="text-sm text-text-muted leading-[1.4]">
-        Pin the dimensions you want held constant and sweep the rest. Sweep one
-        for a scatter / trajectory comparison, or two for a heatmap grid (max
-        two).
-      </div>
-      {DIMENSIONS.map(({ key, label }) => {
+      {sweptCount === 0 ? (
+        <div className="text-sm text-primary leading-[1.4] font-medium">
+          Click{' '}
+          <span className="inline-flex items-center gap-1 align-text-bottom">
+            <SweepIcon />
+            <strong>sweep</strong>
+          </span>{' '}
+          on one (or two) dimensions below to choose what to vary across the
+          study. The rest stay pinned at the baseline above.
+        </div>
+      ) : (
+        <div className="text-sm text-text-muted leading-[1.4]">
+          Pin the dimensions you want held constant and sweep the rest. Sweep
+          one for a scatter / trajectory comparison, or two for a heatmap grid
+          (max two).
+        </div>
+      )}
+      <div className="grid grid-cols-1 min-[950px]:grid-cols-3 gap-2 items-start">
+        {DIMENSIONS.map(({ key, label }) => {
         const sweepIdx = study.varying.indexOf(key);
         const swept = sweepIdx >= 0;
         const role =
@@ -175,7 +189,8 @@ export function StudyConfigPanel() {
             </div>
           </div>
         );
-      })}
+        })}
+      </div>
     </div>
   );
 }
@@ -565,19 +580,36 @@ function ListEditor({
   }
   if (dim === 'withdrawal') {
     return (
-      <EntryList
-        items={study.withdrawalList}
-        onChange={(withdrawalList) => update({ withdrawalList })}
-        describe={describeWithdrawal}
-        makeNew={() => ({ type: 'fixedPercent', rate: 0.04 })}
-        render={(item, onChange) => (
-          <WithdrawalEditor
-            horizonYears={horizonYears}
-            withdrawal={item}
-            onChange={onChange}
-          />
-        )}
-      />
+      <div className="flex flex-col gap-1.5">
+        <div className="text-xs text-text-faint">
+          Race different withdrawal families against each other — add any mix
+          of archetypes below, then tune the ones that support it.
+        </div>
+        <EntryList
+          items={study.withdrawalList}
+          onChange={(withdrawalList) => update({ withdrawalList })}
+          describe={describeWithdrawal}
+          makeNew={() => ({ type: 'fixedPercent', rate: 0.04 })}
+          addPalette={WITHDRAWAL_ARCHETYPES.map((a) => ({
+            id: a.id,
+            label: a.label,
+            make: a.make,
+          }))}
+          render={(item, onChange) =>
+            WITHDRAWAL_EDITOR_UNSUPPORTED.has(item.type) ? (
+              <div className="text-xs text-text-faint py-1">
+                Runs with its standard parameters (not tunable here).
+              </div>
+            ) : (
+              <WithdrawalEditor
+                horizonYears={horizonYears}
+                withdrawal={item}
+                onChange={onChange}
+              />
+            )
+          }
+        />
+      </div>
     );
   }
   return (
@@ -599,12 +631,15 @@ function EntryList<T extends AllocationStrategy | WithdrawalStrategy | Withdrawa
   describe,
   makeNew,
   render,
+  addPalette,
 }: {
   items: T[];
   onChange: (items: T[]) => void;
   describe: (item: T) => string;
   makeNew: () => T;
   render: (item: T, onChange: (next: T) => void) => ReactNode;
+  /** When set, the add control is a palette of typed building blocks. */
+  addPalette?: Array<{ id: string; label: string; make: () => T }>;
 }) {
   return (
     <div className="study-list">
@@ -628,13 +663,28 @@ function EntryList<T extends AllocationStrategy | WithdrawalStrategy | Withdrawa
           )}
         </div>
       ))}
-      <button
-        className="x-btn"
-        onClick={() => onChange([...items, makeNew()])}
-        style={{ marginTop: 4 }}
-      >
-        + add variant
-      </button>
+      {addPalette ? (
+        <div className="flex flex-wrap gap-1.5" style={{ marginTop: 4 }}>
+          {addPalette.map((p) => (
+            <button
+              key={p.id}
+              className="x-btn"
+              onClick={() => onChange([...items, p.make()])}
+              title={`Add ${p.label}`}
+            >
+              + {p.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          className="x-btn"
+          onClick={() => onChange([...items, makeNew()])}
+          style={{ marginTop: 4 }}
+        >
+          + add variant
+        </button>
+      )}
     </div>
   );
 }
