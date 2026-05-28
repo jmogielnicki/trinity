@@ -173,7 +173,7 @@ Add `.env*` to `.gitignore` (PR1) and commit a `.env.example` documenting these.
 
 ## 7. PR-by-PR plan
 
-> Conventions for **every** PR (from `AGENTS.md`): small focused branch off `main` named `claude/<topic>`; concise commit explaining *why*; open a PR via `mcp__github__create_pull_request` against `main` with a **Test plan** checklist; squash-merge. UI cannot be browser-tested in the web environment — write **"visual not run"** in the PR description for any UI change. Add a Vitest test when you add non-trivial logic.
+> Conventions for **every** PR (from `AGENTS.md`): small focused branch off `main` named `claude/<topic>`; concise commit explaining *why*; open a PR via `mcp__github__create_pull_request` against `main` with a **Test plan** checklist; squash-merge. UI changes **should be driven in headless Chromium and screenshotted** before the PR is opened (see `AGENTS.md` §11 for the Playwright pattern). Add a Vitest test when you add non-trivial logic.
 
 ### PR1 — Enable Neon Auth + Data API; client + auth state + email sign-in
 
