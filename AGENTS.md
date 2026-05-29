@@ -258,7 +258,7 @@ npm run dev > /tmp/vite.log 2>&1 &
 until curl -fs localhost:5173 > /dev/null; do sleep 1; done   # wait for ready
 
 node scripts/screenshot.mjs                                   # localhost:5173 → /tmp/shot-{desktop,mobile}.png
-node scripts/screenshot.mjs http://localhost:5173/optiona /tmp/opta --viewports=desktop
+node scripts/screenshot.mjs http://localhost:5173/ /tmp/build --viewports=desktop
 node scripts/screenshot.mjs http://localhost:5173/ /tmp/opt --selector="text=Optimize strategies" --wait=6000
 ```
 
