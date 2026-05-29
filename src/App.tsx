@@ -270,7 +270,7 @@ export function App() {
     <div>
       {/* ── Shrinking sticky header shell ── */}
       <div ref={headerRef} className="sticky top-0 z-30 bg-surface-page/85 backdrop-blur-md border-b border-border shadow-sticky">
-        <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
+        <div className="max-w-[1200px] mx-auto px-3 sm:px-6">
           {/* Title row — height + h1 font-size driven by .shrinking-title-box CSS */}
           <div className="shrinking-title-box">
             <div className="min-w-0 md:relative flex items-center gap-2.5">
@@ -296,8 +296,8 @@ export function App() {
             <div className="flex items-center gap-3 flex-shrink-0">
               {topMode === 'single' && (
                 <Button
-                  size="sm"
-                  className="hidden md:inline-flex text-xs font-semibold"
+                  size="md"
+                  className="hidden md:inline-flex"
                   onClick={() => setSaveOpen(true)}
                   title="Save strategy"
                 >
@@ -306,7 +306,7 @@ export function App() {
               )}
               <AuthControl />
               <button
-                className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
+                className={`w-9 h-9 flex-shrink-0 rounded-full border border-border-strong bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
                 onClick={() => setAboutOpen((v) => !v)}
                 title="About / methodology"
               >
@@ -322,7 +322,7 @@ export function App() {
       </div>
 
       {/* ── Main content ── */}
-      <div className="max-w-[1280px] mx-auto px-3 sm:px-6 pb-3 sm:pb-6">
+      <div className="max-w-[1200px] mx-auto px-3 sm:px-6 pb-3 sm:pb-6">
         <div
           ref={tabBarRef}
           className="flex gap-1 mt-10 mb-4 border-b border-border overflow-x-auto scrollbar-none overscroll-x-contain"

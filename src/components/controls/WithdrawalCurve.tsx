@@ -141,6 +141,12 @@ export function WithdrawalCurve({
     .map((h) => `${x(h.tFrac) + margin.left},${y(h.rate) + margin.top}`)
     .join(' ');
 
+  // Filled area under the curve (down to the baseline) — light brand wash.
+  const baselineY = margin.top + innerH;
+  const firstX = x(handles[0].tFrac) + margin.left;
+  const lastX = x(handles[handles.length - 1].tFrac) + margin.left;
+  const areaPoints = `${firstX},${baselineY} ${polyPoints} ${lastX},${baselineY}`;
+
   const yTicks = [0.02, 0.04, 0.06, 0.08, 0.1];
 
   return (
@@ -175,11 +181,12 @@ export function WithdrawalCurve({
             </text>
           </g>
         ))}
+        <polygon points={areaPoints} fill="var(--color-brand-soft)" opacity={0.7} stroke="none" />
         <polyline
           points={polyPoints}
           fill="none"
           stroke={CHART.accent}
-          strokeWidth={2}
+          strokeWidth={2.5}
         />
         {handles.map((h, i) => (
           <g key={`label-${i}`} pointerEvents="none">

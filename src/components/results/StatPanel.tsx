@@ -21,17 +21,23 @@ export function StatPanel({ result }: Props) {
   const hasProjection = result.projectedSuccessRate != null;
 
   return (
-    <div className="flex flex-col min-[450px]:flex-row gap-3 items-stretch min-[1100px]:items-start">
-      <HeroSuccessCard rate={result.successRate} />
-      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 auto-rows-fr min-[1100px]:auto-rows-min gap-3 flex-1">
-        {hasProjection && (
-          <Stat
-            label="Success rate (bootstrap-projected)"
-            value={`${(result.projectedSuccessRate! * 100).toFixed(1)}%`}
-            sub="sampled tails"
-            accent="var(--color-success)"
-          />
+    <div className="flex flex-col min-[560px]:flex-row gap-5 items-center min-[560px]:items-stretch">
+      <div className="flex flex-col items-center justify-center gap-2 flex-shrink-0 px-2 min-[560px]:px-4">
+        {Number.isFinite(result.successRate) ? (
+          <SuccessDonut rate={result.successRate} />
+        ) : (
+          <span className="text-xl font-semibold">—</span>
         )}
+        {hasProjection && (
+          <span className="text-xs text-text-muted text-center leading-tight">
+            <span className="num font-semibold text-text">
+              {(result.projectedSuccessRate! * 100).toFixed(1)}%
+            </span>{' '}
+            projected (bootstrap)
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3 flex-1 w-full auto-rows-fr">
         <Stat
           label="Median final balance"
           value={Number.isFinite(finalP50) ? fmt(finalP50) : '—'}
@@ -78,20 +84,8 @@ function Stat({
       style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
     >
       <div className="text-2xs text-text-muted uppercase tracking-[0.08em] leading-tight">{label}</div>
-      <div className="tnum text-xl font-bold mt-1.5 leading-none">{value}</div>
+      <div className="num text-xl font-bold mt-1.5 leading-none">{value}</div>
       {sub && <div className="text-xs text-text-faint mt-1.5 leading-tight">{sub}</div>}
-    </div>
-  );
-}
-
-function HeroSuccessCard({ rate }: { rate: number }) {
-  return (
-    <div className="flex items-center justify-center min-[450px]:w-[220px] md:w-[180px] min-[1100px]:w-[220px] flex-shrink-0">
-      {Number.isFinite(rate) ? (
-        <SuccessDonut rate={rate} />
-      ) : (
-        <span className="text-xl font-semibold">—</span>
-      )}
     </div>
   );
 }

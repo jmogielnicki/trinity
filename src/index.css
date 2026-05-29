@@ -2,13 +2,12 @@
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 @theme {
-  /* ─── Brand — "Evergreen": forest green + sparing gold accent ──────────────
+  /* ─── Brand — "Evergreen": forest green + gold accent ──────────────────────
      Canonical theme values. Alternate themes (e.g. a future dark mode) layer in
      as [data-theme="…"] override blocks after this @theme. `primary` is the
-     forest brand; `secondary` currently mirrors it (it backs the white-text CTAs
-     — gold would fail contrast there) and splits off into a Button primitive in
-     Phase 2. Gold lives in --color-accent and is used sparingly, never as a
-     white-text button background. */
+     forest brand; `secondary` mirrors it (backs the white-text CTAs/FAB/pills
+     where gold would fail contrast). The gold accent lives in --color-accent
+     (e.g. the header Sign-in button). */
   --color-primary:       #14513A;
   --color-secondary:     #14513A;
   --color-primary-hover: #1E6B4D;
@@ -104,9 +103,13 @@
   --text-2xl:  1.75rem;     /* 28px */
   --text-3xl:  2.25rem;     /* 36px */
 
-  /* Radius scale — only the keys we pin; other rounded-* keep Tailwind defaults.
-     --radius-xs backs small controls/chips/badges (was the hardcoded 3px). */
-  --radius-xs: 3px;
+  /* Radius scale — pinned to the Evergreen prototype's rounder geometry.
+     --radius-xs backs small controls/chips; the md/lg/xl steps make cards and
+     panels noticeably rounder than Tailwind's defaults (6/8/12px). */
+  --radius-xs: 4px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 
   /* Shadows — warm-tinted (green-black), elevation unchanged from prior */
   --shadow-card:       0 1px 3px rgba(27,42,35,0.10), 0 1px 2px rgba(27,42,35,0.06);
@@ -136,6 +139,14 @@
      numeric headings like the success % stay aligned). */
   .tnum { font-variant-numeric: tabular-nums; }
 
+  /* Monospace number treatment matching the prototype's "$1.66M" stat values.
+     Use .num on prominent money/stat figures. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
   /* Serif display face for titles/headings. A utility (not a blanket h1–h3
      rule) so the small uppercase "eyebrow" labels can stay sans. */
   .font-display {
@@ -164,7 +175,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  height: calc(86px - 32px * var(--scroll-p));
+  height: calc(92px - 28px * var(--scroll-p));
 }
 
 /* Mobile-first: smaller title so it fits the narrow column (logo + actions)
