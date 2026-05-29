@@ -269,11 +269,18 @@ export function App() {
   return (
     <div>
       {/* ── Shrinking sticky header shell ── */}
-      <div ref={headerRef} className="sticky top-0 z-30 bg-surface shadow-sticky">
+      <div ref={headerRef} className="sticky top-0 z-30 bg-surface-page/85 backdrop-blur-md border-b border-border shadow-sticky">
         <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
           {/* Title row — height + h1 font-size driven by .shrinking-title-box CSS */}
           <div className="shrinking-title-box">
-            <div className="min-w-0 md:relative flex flex-col justify-center gap-1">
+            <div className="min-w-0 md:relative flex items-center gap-2.5">
+              <span
+                aria-hidden="true"
+                className="flex-shrink-0 flex items-center justify-center rounded-xl bg-primary text-white font-display font-bold w-9 h-9 text-lg leading-none select-none"
+              >
+                ↟
+              </span>
+              <div className="min-w-0 flex flex-col justify-center gap-1">
               <h1 className="font-display font-bold text-primary m-0">
                 Retirement calculator
               </h1>
@@ -281,6 +288,7 @@ export function App() {
                 Stress-test all retirement start years from{' '}
                 {data?.start ?? '…'} to {data?.end ?? '…'}.
               </p>
+              </div>
             </div>
             <div className="hidden md:flex items-center title-portfolio flex-1 ml-4">
               <PortfolioInput />
@@ -357,7 +365,8 @@ export function App() {
               </div>
               <section className="control-zone flex flex-col gap-5">
                 <div className="hidden md:flex flex-col gap-0.5">
-                  <h2 className="m-0 text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</h2>
+                  <span className="text-2xs font-semibold text-text-faint uppercase tracking-[0.14em]">Strategy</span>
+                  <h2 className="font-display m-0 text-xl font-bold text-text">Build your plan</h2>
                 </div>
                 <PresetPicker />
                 <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Allocation</h3>
@@ -378,8 +387,8 @@ export function App() {
               <ScenarioLibrary />
               {/* Desktop save button — sticky footer */}
               <div className="hidden md:block border-t border-border pt-4 mt-1">
-                <Button size="lg" fullWidth elevated onClick={() => setSaveOpen(true)}>
-                  Save strategy
+                <Button variant="soft" size="lg" fullWidth onClick={() => setSaveOpen(true)}>
+                  Save to library
                 </Button>
               </div>
             </aside>
