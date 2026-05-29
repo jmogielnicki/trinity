@@ -1,6 +1,6 @@
 import { avgAnnualWithdrawal, minBalanceReached } from '../../engine/stats';
 import type { ScenarioResult } from '../../engine/types';
-import { OUTCOME } from '../colors';
+import { CHART } from '../colors';
 
 type Props = {
   result: ScenarioResult;
@@ -21,53 +21,71 @@ export function StatPanel({ result }: Props) {
   const hasProjection = result.projectedSuccessRate != null;
 
   return (
-    <div className="flex flex-col min-[450px]:flex-row gap-3 mb-4 items-stretch min-[1100px]:items-start">
-      <HeroSuccessCard rate={result.successRate} />
-      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 auto-rows-fr min-[1100px]:auto-rows-min gap-3 flex-1">
-        {hasProjection && (
-          <Stat
-            label="Success rate (bootstrap-projected)"
-            value={`${(result.projectedSuccessRate! * 100).toFixed(1)}%`}
-          />
+    <div className="flex flex-col min-[560px]:flex-row gap-5 items-center min-[560px]:items-stretch">
+      <div className="flex flex-col items-center justify-center gap-2 flex-shrink-0 px-2 min-[560px]:px-4">
+        {Number.isFinite(result.successRate) ? (
+          <SuccessDonut rate={result.successRate} />
+        ) : (
+          <span className="text-xl font-semibold">—</span>
         )}
+        {hasProjection && (
+          <span className="text-xs text-text-muted text-center leading-tight">
+            <span className="num font-semibold text-text">
+              {(result.projectedSuccessRate! * 100).toFixed(1)}%
+            </span>{' '}
+            projected (bootstrap)
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3 flex-1 w-full auto-rows-fr">
         <Stat
           label="Median final balance"
           value={Number.isFinite(finalP50) ? fmt(finalP50) : '—'}
+          sub="real, today's $"
+          accent="var(--color-primary)"
         />
         <Stat
           label="5th-pct final balance"
           value={Number.isFinite(finalP5) ? fmt(finalP5) : '—'}
+          sub="worst survivors"
+          accent="var(--color-accent)"
         />
         <Stat
           label="Avg annual withdrawal"
           value={Number.isFinite(avgWithdrawal) ? fmt(avgWithdrawal) : '—'}
+          sub="per year"
+          accent="var(--color-cash)"
         />
         <Stat
           label="Min balance reached"
           value={Number.isFinite(minBalance) ? fmt(minBalance) : '—'}
+          sub="across all years"
+          accent="var(--color-negative)"
         />
       </div>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: string;
+}) {
   return (
-    <div className="bg-surface-muted px-3 py-2 rounded-md flex flex-col justify-center">
-      <div className="text-2xs text-text-muted uppercase tracking-[0.04em] leading-tight">{label}</div>
-      <div className="text-lg font-medium mt-0.5">{value}</div>
-    </div>
-  );
-}
-
-function HeroSuccessCard({ rate }: { rate: number }) {
-  return (
-    <div className="flex items-center justify-center min-[450px]:w-[220px] md:w-[180px] min-[1100px]:w-[220px] flex-shrink-0">
-      {Number.isFinite(rate) ? (
-        <SuccessDonut rate={rate} />
-      ) : (
-        <span className="text-xl font-semibold">—</span>
-      )}
+    <div
+      className="bg-surface-muted px-4 py-3 rounded-md flex flex-col justify-center"
+      style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
+    >
+      <div className="text-2xs text-text-muted uppercase tracking-[0.08em] leading-tight">{label}</div>
+      <div className="num text-xl font-bold mt-1.5 leading-none">{value}</div>
+      {sub && <div className="text-xs text-text-faint mt-1.5 leading-tight">{sub}</div>}
     </div>
   );
 }
@@ -80,22 +98,25 @@ function SuccessDonut({ rate }: { rate: number }) {
   const r = 66;
   const sw = 18;
   const c = 2 * Math.PI * r;
+  const successLen = clamped * c;
   return (
     <svg
       viewBox={`0 0 ${D} ${D}`}
-      className="flex-shrink-0 w-40 h-40 min-[1100px]:w-32 min-[1100px]:h-32"
+      className="flex-shrink-0 w-44 h-44 min-[560px]:w-48 min-[560px]:h-48"
       role="img"
       aria-label={`${pct} percent success`}
     >
-      <g transform={`translate(${cx},${cx})`}>
-        <circle r={r} fill="none" stroke={OUTCOME.depleted} strokeWidth={sw} />
+      {/* Red failure track fills the ring; green success arc overlays the
+          leading portion. Butt caps → a crisp straight division between the
+          two, prioritising data legibility. */}
+      <g transform={`translate(${cx},${cx}) rotate(-90)`}>
+        <circle r={r} fill="none" stroke="var(--color-depleted)" strokeWidth={sw} />
         <circle
           r={r}
           fill="none"
-          stroke={OUTCOME.survived}
+          stroke="var(--color-survived)"
           strokeWidth={sw}
-          strokeDasharray={`${clamped * c} ${c}`}
-          transform="rotate(-90)"
+          strokeDasharray={`${successLen} ${c}`}
           strokeLinecap="butt"
         />
       </g>
@@ -106,7 +127,7 @@ function SuccessDonut({ rate }: { rate: number }) {
         dominantBaseline="central"
         fontSize={38}
         fontWeight={700}
-        fill={OUTCOME.survived}
+        fill="var(--color-primary)"
       >
         {`${pct}%`}
       </text>
@@ -117,7 +138,7 @@ function SuccessDonut({ rate }: { rate: number }) {
         dominantBaseline="central"
         fontSize={15}
         fontWeight={500}
-        fill="#666"
+        fill={CHART.muted}
       >
         success
       </text>

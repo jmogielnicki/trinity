@@ -81,7 +81,7 @@ export function SuccessBar({ result, height = 460 }: Props) {
           </div>
         )}
       </div>
-      <div className="flex-1 w-[18px] flex flex-col border border-text-disabled rounded-[3px] overflow-hidden bg-surface-hover">
+      <div className="flex-1 w-[18px] flex flex-col border border-text-disabled rounded-xs overflow-hidden bg-surface-hover">
         {survived > 0 && (
           <div
             style={{ height: `${survPct}%`, background: OUTCOME.survived }}
@@ -109,7 +109,7 @@ export function SuccessBar({ result, height = 460 }: Props) {
       </div>
       {hover && (
         <div
-          className="fixed bg-surface border border-text-disabled rounded-[3px] px-2 py-1 text-xs pointer-events-none z-10 shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
+          className="fixed bg-surface border border-text-disabled rounded-xs px-2 py-1 text-xs pointer-events-none z-10 shadow-card"
           style={{
             left: hover.px + 12,
             top: hover.py + 12,

@@ -10,6 +10,7 @@ npm run build-data        # regenerates public/data/historical.json from CSVs
 npm test                  # 100 tests across 16 files, ~1s
 npm run dev               # vite dev server
 npm run build             # tsc -b + api typecheck + vite build
+npm run screenshot        # capture the running app to /tmp/shot-*.png (see §11)
 npm run sim -- --scenario=bengen-4pct   # CLI smoke test
 npm run db:migrate        # apply scripts/migrations/*.sql (needs DATABASE_URL)
 ```
@@ -241,35 +242,45 @@ CLAUDE.md describes the original product vision; here's what's actually been bui
 
 If you're picking up cold: load the **Cash bucket with refill — 50/35/15** preset, click a spaghetti line, and switch to the sleeve-composition chart tab to see the most novel piece working end-to-end.
 
-## 11. Browser-based verification (Claude Code on the web)
+## 11. Browser-based verification / screenshots (Claude Code on the web)
 
-The remote execution container has **Playwright 1.56+ and headless Chromium pre-installed globally** — not in this project's `node_modules`. Naively `import 'playwright'` or `npx playwright` fails, which is why earlier sessions concluded there was no browser. Import from the absolute global path instead and it Just Works.
+**Use the committed tool — don't reinvent this, and do NOT run `npx playwright
+install`.** That hits the Playwright browser CDN, which is **blocked** in this
+sandbox (`403 Host not in allowlist`) and wastes a lot of time. A Chromium build
+is already **pre-baked into the image**; `scripts/screenshot.mjs` finds and uses
+it for you (see `scripts/README.md` for the full why/how).
 
-The loop is: start the dev server in the background, write a throwaway script that drives the page and screenshots to `/tmp/`, then `Read` the PNG — the Read tool surfaces images inline, so the model can actually see what rendered.
+The loop: start the dev server, run the tool, then `Read` the PNG — the Read
+tool surfaces images inline, so the model can actually see what rendered.
 
 ```bash
 npm run dev > /tmp/vite.log 2>&1 &
-until grep -q "Local:" /tmp/vite.log; do sleep 1; done   # wait for ready
-node scripts/shot.mjs                                    # drive + screenshot
+until curl -fs localhost:5173 > /dev/null; do sleep 1; done   # wait for ready
+
+node scripts/screenshot.mjs                                   # localhost:5173 → /tmp/shot-{desktop,mobile}.png
+node scripts/screenshot.mjs http://localhost:5173/ /tmp/build --viewports=desktop
+node scripts/screenshot.mjs http://localhost:5173/ /tmp/opt --selector="text=Optimize strategies" --wait=6000
 ```
 
-```js
-// scripts/shot.mjs — gitignored / deleted before commit
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+Then `Read /tmp/shot-desktop.png` to view the result.
 
-const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1200, height: 1400 } });
-await page.goto('http://localhost:5173/', { waitUntil: 'networkidle' });
-await page.getByText('Optimize', { exact: false }).first().click();
-await page.screenshot({ path: '/tmp/foo.png', fullPage: true });
-await browser.close();
-```
-
-Then `Read /tmp/foo.png` to view the result.
+**Why a bare `import 'playwright'` fails (the trap that bit earlier sessions):**
+the repo's *local* devDependency `playwright` is often a newer version than the
+pre-baked browser revision (e.g. local 1.60 wants browser rev 1223, image ships
+rev 1194), so `chromium.launch()` throws "Executable doesn't exist…". The tool
+sidesteps this by preferring the **system** Playwright at
+`/opt/node22/lib/node_modules` (which matches the on-disk browser) and, failing
+that, launching with an explicit `executablePath` to whatever `chrome` binary is
+actually present. Reuse that logic via `import { launchBrowser } from
+'./scripts/screenshot.mjs'` instead of copy-pasting absolute paths.
 
 Gotchas:
-- **Background dev server occasionally dies between runs.** Health-check with `curl -fs localhost:5173 > /dev/null` before each Playwright invocation and relaunch if it's down.
-- **The `/opt/node22/...` path is environment-specific** — the scratch script is not portable. Delete it before staging, or keep it under a `scripts/` path that's `.gitignore`'d.
-- **Drive the page before screenshotting.** A static snapshot of the landing route rarely catches the bugs that matter; click into the flow being changed.
-- **Use `Read` (multimodal) to view PNGs**, not `Bash cat` or `file`.
-- **`SendUserFile` with `status: 'normal'`** is the right way to surface a screenshot to the user when reporting that a change works.
+- **Health-check the dev server before each run** (`curl -fs localhost:5173`) —
+  the background server occasionally dies between runs; relaunch if down.
+- **Drive the page before screenshotting.** A static snapshot of the landing
+  route rarely catches the bugs that matter; use `--selector` to click into the
+  flow, and bump `--wait` (this app has a scroll-linked header animation, so tab
+  switches need ~6s to settle).
+- **Use `Read` (multimodal) to view PNGs**, not `Bash cat`/`file`.
+- **`SendUserFile` with `status: 'normal'`** surfaces a screenshot to the user
+  when reporting that a change works.

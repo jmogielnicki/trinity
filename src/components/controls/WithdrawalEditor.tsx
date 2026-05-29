@@ -167,13 +167,13 @@ function ModeToggle({
   onChange: (m: Mode) => void;
 }) {
   const modes: Array<{ k: Mode; label: string }> = [
-    { k: 'fixed', label: 'fixed' },
-    { k: 'curve', label: 'curve' },
-    { k: 'ratchet', label: 'ratchet' },
-    { k: 'floor-upside', label: 'floor + upside' },
+    { k: 'fixed', label: 'Fixed' },
+    { k: 'curve', label: 'Curve' },
+    { k: 'ratchet', label: 'Ratchet' },
+    { k: 'floor-upside', label: 'Floor + upside' },
     { k: 'cape', label: 'CAPE' },
-    { k: 'rules', label: 'rules' },
-    { k: 'script', label: 'script' },
+    { k: 'rules', label: 'Rules' },
+    { k: 'script', label: 'Script' },
   ];
   return (
     <TabBar>

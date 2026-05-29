@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useScenarioStore } from '../store/scenarioStore';
 import { useSweepStore } from '../store/sweepStore';
+import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import {
   fmtMoney,
@@ -108,7 +109,7 @@ export function SaveScenarioModal({
       <div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[420px] flex flex-col gap-4 p-5 max-h-[90vh] overflow-y-auto">
 
         <div className="flex items-center justify-between">
-          <h2 className="m-0 text-lg font-bold text-text">Save strategy</h2>
+          <h2 className="font-display m-0 text-lg font-bold text-text">Save strategy</h2>
           <IconButton onClick={onClose} aria-label="Close">✕</IconButton>
         </div>
 
@@ -216,19 +217,12 @@ export function SaveScenarioModal({
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-1">
-          <button
-            className="px-4 py-2 rounded-lg text-md font-medium text-text-secondary border border-border cursor-pointer hover:bg-surface-hover transition-colors"
-            onClick={onClose}
-          >
+          <Button variant="ghost" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            className="px-4 py-2 rounded-lg text-md font-medium text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={onSave}
-            disabled={busy}
-          >
+          </Button>
+          <Button onClick={onSave} disabled={busy}>
             {busy ? 'Saving…' : authed ? 'Save to account' : 'Save'}
-          </button>
+          </Button>
         </div>
 
       </div>

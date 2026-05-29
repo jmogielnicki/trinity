@@ -16,7 +16,7 @@ export function ToggleButton({ active, onClick, children, className, disabled, t
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`text-xs px-2.5 py-1 border-none rounded-md cursor-pointer font-medium font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0 ${active ? 'bg-surface shadow-card text-text' : 'bg-transparent text-text-muted'}${className ? ' ' + className : ''}`}
+      className={`text-sm px-3.5 py-2 border-none rounded-md cursor-pointer font-semibold font-[inherit] transition-[background,color,box-shadow] duration-[120ms] whitespace-nowrap flex-shrink-0 ${active ? 'bg-surface shadow-card text-primary' : 'bg-transparent text-text-muted hover:text-text'}${className ? ' ' + className : ''}`}
     >
       {children}
     </button>

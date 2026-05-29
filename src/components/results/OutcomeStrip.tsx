@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ScenarioResult } from '../../engine/types';
-import { OUTCOME } from '../colors';
+import { CHART, OUTCOME } from '../colors';
 
 type Props = {
   result: ScenarioResult;
@@ -111,7 +111,7 @@ export function OutcomeStrip({
         style={drag ? { cursor: 'crosshair', userSelect: 'none' } : undefined}
       >
         <g transform={`translate(${margin.left},${margin.top})`}>
-          <text x={-8} y={stripH / 2} dy="0.32em" textAnchor="end" fontSize={11} fill="#444">
+          <text x={-8} y={stripH / 2} dy="0.32em" textAnchor="end" fontSize={11} fill={CHART.label}>
             start year
           </text>
           {sims.map((s) => {
@@ -138,7 +138,7 @@ export function OutcomeStrip({
                     width={Math.max(2, colW + 0.5)}
                     height={stripH + 2}
                     fill="none"
-                    stroke="#111"
+                    stroke={CHART.ink}
                     strokeWidth={1.5}
                     pointerEvents="none"
                   />
@@ -156,8 +156,8 @@ export function OutcomeStrip({
           })}
           {ticks.map((y) => (
             <g key={y} transform={`translate(${((y - firstYear) / (span + 1)) * innerW},${stripH})`}>
-              <line y1={0} y2={4} stroke="#888" />
-              <text y={16} textAnchor="middle" fontSize={10} fill="#666">
+              <line y1={0} y2={4} stroke={CHART.faint} />
+              <text y={16} textAnchor="middle" fontSize={10} fill={CHART.muted}>
                 {y}
               </text>
             </g>
@@ -168,9 +168,9 @@ export function OutcomeStrip({
               y={-1}
               width={Math.abs(drag.x1 - drag.x0)}
               height={stripH + 2}
-              fill="#357"
+              fill={CHART.accent}
               fillOpacity={0.12}
-              stroke="#357"
+              stroke={CHART.accent}
               strokeWidth={1}
               strokeDasharray="3,3"
               pointerEvents="none"

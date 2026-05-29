@@ -1,5 +1,6 @@
 import type { CandidateResult } from '../../engine/optimize';
 import type { StudyAxis } from '../../engine/study';
+import { CHART } from '../colors';
 import {
   PERFECT_FILL,
   PERFECT_RING,
@@ -115,7 +116,7 @@ function MetricHeatmap({
     v: number,
   ): { background: string; color: string; ring: boolean } => {
     if (!Number.isFinite(v)) {
-      return { background: '#eee', color: '#999', ring: false };
+      return { background: CHART.hairline, color: CHART.faint, ring: false };
     }
     if (spec.kind === 'success') {
       const t = successT(v);

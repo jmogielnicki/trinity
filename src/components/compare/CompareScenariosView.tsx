@@ -448,7 +448,7 @@ const renderCard = (item: PickerItem) => {
 						onClick={() => setPendingDelete(null)}
 					/>
 					<div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[360px] flex flex-col gap-4 p-5 animate-in fade-in zoom-in-95 duration-150">
-						<h2 className="m-0 text-lg font-bold text-text">
+						<h2 className="font-display m-0 text-lg font-bold text-text">
 							Delete strategy?
 						</h2>
 						<p className="text-sm text-text-secondary leading-[1.5]">

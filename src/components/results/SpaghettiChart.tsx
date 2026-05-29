@@ -4,6 +4,7 @@ import type { Options, SeriesLineOptions } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
 import type { ScenarioResult, SimulationResult } from '../../engine/types';
 import { CURRENT_COLOR, SNAPSHOT_COLOR } from '../../store/compareStore';
+import { OUTCOME } from '../colors';
 
 type Props = {
   result: ScenarioResult;
@@ -22,8 +23,8 @@ type Props = {
 };
 
 function simColor(sim: SimulationResult, baseColor: string): string {
-  if (!sim.success && !sim.inProgress) return '#d33';
-  if (sim.inProgress) return '#888';
+  if (!sim.success && !sim.inProgress) return OUTCOME.depleted;
+  if (sim.inProgress) return OUTCOME.inProgress;
   return baseColor;
 }
 

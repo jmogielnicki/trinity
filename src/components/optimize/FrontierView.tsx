@@ -4,6 +4,7 @@ import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
 import { Btn } from '../ui/Btn';
+import { Button } from '../ui/Button';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
 
@@ -26,7 +27,8 @@ import { StudyTrajectories } from './StudyTrajectories';
 import { DEFAULT_WITHDRAWAL_SOURCE } from '../../engine/withdrawalSource';
 import { SaveScenarioModal } from '../SaveScenarioModal';
 import type { SerializedState } from '../../data/urlState';
-import { colorAt } from '../seriesColors';
+import { colorAt, FRONTIER_HIGHLIGHT } from '../seriesColors';
+import { CHART } from '../colors';
 import {
   FinalBalanceDistributionChart,
   SpendDistributionChart,
@@ -309,10 +311,10 @@ export function FrontierView({ onApplied }: Props) {
             <div className="mr-1">
               <TabBar>
                 <ToggleButton active={viewMode === 'scatter'} onClick={() => setViewMode('scatter')}>
-                  scatter
+                  Scatter
                 </ToggleButton>
                 <ToggleButton active={viewMode === 'trajectories'} onClick={() => setViewMode('trajectories')}>
-                  trajectories
+                  Trajectories
                 </ToggleButton>
               </TabBar>
             </div>
@@ -321,7 +323,7 @@ export function FrontierView({ onApplied }: Props) {
                 <label className="flex gap-1.5 items-center">
                   x:
                   <select
-                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
                     value={xAxis}
                     onChange={(e) => setXAxis(e.target.value as Axis)}
                   >
@@ -335,7 +337,7 @@ export function FrontierView({ onApplied }: Props) {
                 <label className="flex gap-1.5 items-center">
                   y:
                   <select
-                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
                     value={yAxis}
                     onChange={(e) => setYAxis(e.target.value as Axis)}
                   >
@@ -349,7 +351,7 @@ export function FrontierView({ onApplied }: Props) {
                 <label className="flex gap-1.5 items-center">
                   color:
                   <select
-                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
                     value={colorBy}
                     onChange={(e) => setColorBy(e.target.value as ColorBy)}
                   >
@@ -457,14 +459,9 @@ function RunStudyButton({
       : `Runs every variant against all historical start years.`;
   return (
     <div className="flex flex-col items-center gap-1.5 py-1">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className="px-6 py-3 rounded-md text-base font-semibold bg-primary text-white shadow-sm cursor-pointer hover:brightness-110 disabled:bg-text-disabled disabled:text-text-faint disabled:cursor-not-allowed disabled:shadow-none transition-all"
-      >
+      <Button onClick={onClick} disabled={disabled} className="px-6 py-3">
         {label}
-      </button>
+      </Button>
       <div className="text-xs text-text-muted">{hint}</div>
     </div>
   );
@@ -665,10 +662,10 @@ function ScatterPlot({
 
     const colorFor = (r: CandidateResult): string => {
       if (colorBy === 'frontier') {
-        return frontierIds.has(r.candidate.id) ? '#d62728' : '#888';
+        return frontierIds.has(r.candidate.id) ? FRONTIER_HIGHLIGHT : CHART.faint;
       }
       const v = colorValue(r, colorBy);
-      if (typeof v !== 'number' || !Number.isFinite(v)) return '#ccc';
+      if (typeof v !== 'number' || !Number.isFinite(v)) return CHART.grid;
       return colorScale((v - cMin) / cRange);
     };
 
@@ -784,8 +781,8 @@ function ScatterPlot({
       <div className="flex gap-4 text-xs text-text-secondary mt-1.5 px-1.5">
         {colorBy === 'frontier' ? (
           <>
-            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1" style={{ background: '#d62728' }} /> Pareto-optimal</span>
-            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1 opacity-50" style={{ background: '#aaa' }} /> dominated</span>
+            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1" style={{ background: FRONTIER_HIGHLIGHT }} /> Pareto-optimal</span>
+            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1 opacity-50" style={{ background: CHART.faint }} /> dominated</span>
           </>
         ) : (
           <ColorBar colorBy={colorBy} cMin={cMin} cMax={cMax} />
@@ -881,7 +878,7 @@ function ComparisonTable({
               <td className={tdCls}>{r.metrics.worstStartYear ?? '—'}</td>
               <td className={tdCls}>
                 <button
-                  className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-chart-blue hover:bg-surface-code hover:border-chart-blue"
+                  className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-xs cursor-pointer text-chart-blue hover:bg-surface-code hover:border-chart-blue"
                   onClick={() => onApply(r)}
                   title="Load this strategy into the build-strategy view"
                 >
@@ -891,7 +888,7 @@ function ComparisonTable({
               {onSave && (
                 <td className={tdCls}>
                   <button
-                    className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-code hover:border-border"
+                    className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-xs cursor-pointer text-text-secondary hover:bg-surface-code hover:border-border"
                     onClick={() => onSave(r)}
                     title="Save this variant to your library"
                   >

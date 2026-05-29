@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { FIELD_FULL } from '../ui/fieldCls';
 
@@ -33,7 +34,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[380px] flex flex-col gap-4 p-5">
         <div className="flex items-center justify-between">
-          <h2 className="m-0 text-lg font-bold text-text">
+          <h2 className="font-display m-0 text-lg font-bold text-text">
             {mode === 'signin' ? 'Sign in' : 'Create account'}
           </h2>
           <IconButton onClick={onClose} aria-label="Close">✕</IconButton>
@@ -82,13 +83,9 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
 
         {error && <div className="text-sm text-error">{error}</div>}
 
-        <button
-          className="w-full px-4 py-2.5 rounded-lg text-md font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={submit}
-          disabled={busy || !email || !password}
-        >
+        <Button fullWidth onClick={submit} disabled={busy || !email || !password}>
           {busy ? 'Working…' : mode === 'signin' ? 'Sign in' : 'Create account'}
-        </button>
+        </Button>
 
         <div className="text-sm text-text-muted text-center">
           {mode === 'signin' ? (

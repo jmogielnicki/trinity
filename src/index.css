@@ -2,20 +2,33 @@
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 @theme {
-  /* Brand / primary */
-  --color-primary:       #101332;
-  --color-secondary:     #A14F7E;
-  --color-primary-hover: #2a4562;
-  --color-primary-ring:  rgba(51, 85, 119, 0.12);
+  /* ─── Brand — "Evergreen": forest green + gold accent ──────────────────────
+     Canonical theme values. Alternate themes (e.g. a future dark mode) layer in
+     as [data-theme="…"] override blocks after this @theme. `primary` is the
+     forest brand; `secondary` mirrors it (backs the white-text CTAs/FAB/pills
+     where gold would fail contrast). The gold accent lives in --color-accent
+     (e.g. the header Sign-in button). */
+  --color-primary:       #14513A;
+  --color-secondary:     #14513A;
+  --color-primary-hover: #1E6B4D;
+  --color-primary-ring:  rgba(20, 81, 58, 0.22);
+  --color-brand-soft:    #E1ECE5;   /* tinted brand wash — chips, soft buttons */
+  --color-accent:        #C2872B;   /* gold — highlights/accents only */
+  --color-accent-soft:   #F3E7CF;
 
-  /* Asset class colors — consumed by components/colors.ts via getComputedStyle */
-  --color-stock: #372554;
-  --color-bond:  #E99C20;
-  --color-cash:  #3F612D;
-  --color-cash-wash:  #B0D29D;
+  /* Asset class colors — consumed by components/colors.ts via getComputedStyle.
+     Wine stock / gold bond / slate-blue cash. Stock moved off forest so the
+     result charts' "survived" line can own forest green (see outcome colors);
+     the three stay mutually distinct and distinct from the outcome colors. */
+  --color-stock: #5D2A42;
+  --color-bond:  #C2872B;
+  --color-cash:  #40476D;
+  --color-cash-wash:  #C3C7D8;
 
-  /* Simulation outcome colors — consumed by components/colors.ts via getComputedStyle */
-  --color-survived:    #2c5282;
+  /* Simulation outcome colors — consumed by components/colors.ts.
+     survived = forest brand green so the spaghetti / start-year charts read
+     on-theme; no longer collides with stock (now wine). */
+  --color-survived:    #14513A;
   --color-depleted:    #dd3333;
   --color-in-progress: #888888;
   --color-snapshot:    #cc4444;
@@ -23,37 +36,65 @@
   /* Chart / UI accent (D3 default blue) */
   --color-chart-blue: #1f77b4;
 
-  /* Semantic status */
-  --color-success:    #1a7f37;
-  --color-success-bg: #e6f4ea;
-  --color-error:      #c0392b;
-  --color-error-bg:   #fde8e8;
-  --color-stale:      #cc4444;
+  /* Chart chrome — axis/grid/label/handle colors for the D3 + Highcharts views,
+     consumed by components/colors.ts (CHART). Warm green-tinted greys so charts
+     sit on the Evergreen paper instead of looking cold/neutral. Ink→faint
+     mirrors the text ramp; grid/hairline mirror the border ramp.
+     --color-chart-accent (forest) replaces the old ad-hoc blues (#357/#4a90d9)
+     used for "this strategy"/"start" highlight markers. */
+  --color-chart-ink:      #1B2A23;   /* strongest: selected handles, emphasis */
+  --color-chart-label:    #51635A;   /* axis titles */
+  --color-chart-muted:    #6B7C72;   /* axis tick labels */
+  --color-chart-faint:    #8B968C;   /* minor ticks, secondary marks */
+  --color-chart-grid:     #E4DECF;   /* gridlines, axis lines */
+  --color-chart-hairline: #EDE7D8;   /* faint gridlines */
+  --color-chart-accent:        #14513A;  /* forest — highlight strokes/fills */
+  --color-chart-accent-light:  #4F8F6F;  /* lighter forest — "start" markers */
+  --color-chart-shade:         rgba(27,42,35,0.05);  /* subtle plot-band shade */
 
-  /* Surface backgrounds */
-  --color-surface:       #ffffff;
-  --color-surface-page:  #fafafa;
-  --color-surface-muted: #f5f5f5;
-  --color-surface-panel: #f4f6fa;
-  --color-surface-code:  #f0f4ff;
-  --color-surface-hover: #f6f6f6;
+  /* Semantic status — re-pointed to Evergreen positive/negative tones.
+     positive/negative are the canonical role names; success/error remain as
+     aliases for existing utility classes. */
+  --color-positive:   #1F7A52;
+  --color-negative:   #BE4A30;
+  --color-success:    #1F7A52;
+  --color-success-bg: #E3EFE7;
+  --color-error:      #BE4A30;
+  --color-error-bg:   #F7E6DF;
+  --color-stale:      #C2872B;
 
-  /* Borders */
-  --color-border:       #e5e5e5;
-  --color-border-light: #eeeeee;
-  --color-border-input: #d1d5db;
-  --color-border-hover: #aab4bf;
+  /* Surface backgrounds — warm paper, three elevations */
+  --color-surface:       #FFFFFF;
+  --color-surface-page:  #F4F1E9;
+  --color-surface-2:     #F1EDE3;
+  --color-surface-3:     #E8E2D4;
+  --color-surface-muted: #F1EDE3;
+  --color-surface-panel: #F1EDE3;
+  --color-surface-code:  #EFE9DB;
+  --color-surface-hover: #F1EDE3;
 
-  /* Text scale */
-  --color-text:             #222222;
-  --color-text-body:        #333333;
-  --color-text-secondary:   #555555;
-  --color-text-muted:       #666666;
-  --color-text-faint:       #888888;
-  --color-text-placeholder: #aaaaaa;
-  --color-text-disabled:    #cccccc;
+  /* Borders — warm */
+  --color-border:        #E4DECF;
+  --color-border-strong: #D4CBB6;
+  --color-border-light:  #EDE7D8;
+  --color-border-input:  #D4CBB6;
+  --color-border-hover:  #BCB196;
 
-  /* Font sizes */
+  /* Text scale — green-tinted warm grey ramp */
+  --color-text:             #1B2A23;
+  --color-text-body:        #2C3A32;
+  --color-text-secondary:   #51635A;
+  --color-text-muted:       #6B7C72;
+  --color-text-faint:       #8B968C;
+  --color-text-placeholder: #A7AE9F;
+  --color-text-disabled:    #C9CCBE;
+
+  /* Font families — serif display is wired onto headings in Phase 4 */
+  --font-sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --font-mono:  ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Font sizes (2xl/3xl added for display headings in Phase 4) */
   --text-2xs:  0.625rem;    /* 10px */
   --text-xs:   0.6875rem;   /* 11px */
   --text-sm:   0.75rem;     /* 12px */
@@ -61,18 +102,34 @@
   --text-md:   0.875rem;    /* 14px */
   --text-lg:   1.125rem;    /* 18px */
   --text-xl:   1.375rem;    /* 22px */
+  --text-2xl:  1.75rem;     /* 28px */
+  --text-3xl:  2.25rem;     /* 36px */
 
-  /* Shadows */
-  --shadow-card:       0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.07);
-  --shadow-popover:    0 4px 16px rgba(0,0,0,0.14);
-  --shadow-sticky:     0 2px 8px rgba(0,0,0,0.12);
+  /* Layout breakpoint: the single-column ⇄ sidebar+results switch (the
+     "Build your plan" panel, FAB, header Save) happens at md = 850px. The raw
+     header-collapse @media query below is kept in sync at 850px too. */
+  --breakpoint-md: 850px;
+
+  /* Radius scale — pinned to the Evergreen prototype's rounder geometry.
+     --radius-xs backs small controls/chips; the md/lg/xl steps make cards and
+     panels noticeably rounder than Tailwind's defaults (6/8/12px). */
+  --radius-xs: 4px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Shadows — warm-tinted (green-black), elevation unchanged from prior */
+  --shadow-card:       0 1px 3px rgba(27,42,35,0.10), 0 1px 2px rgba(27,42,35,0.06);
+  --shadow-popover:    0 4px 16px rgba(27,42,35,0.16);
+  --shadow-sticky:     0 2px 8px rgba(27,42,35,0.11);
+  --shadow-fab:        0 8px 28px rgba(27,42,35,0.24), 0 3px 8px rgba(27,42,35,0.16);
   --shadow-focus-ring: 0 0 0 3px var(--color-primary-ring);
 }
 
 /* ─── Base resets ────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    font-family: system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+    font-family: var(--font-sans);
     color: var(--color-text);
     background: var(--color-surface-page);
     --scroll-p: 0;
@@ -82,6 +139,27 @@
   body {
     margin: 0;
     overflow-anchor: none;
+  }
+
+  /* Tabular figures everywhere numbers matter — money, percentages, years.
+     Applied via the .tnum utility (and baked into .font-display headings so
+     numeric headings like the success % stay aligned). */
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* Monospace number treatment matching the prototype's "$1.66M" stat values.
+     Use .num on prominent money/stat figures. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* Serif display face for titles/headings. A utility (not a blanket h1–h3
+     rule) so the small uppercase "eyebrow" labels can stay sans. */
+  .font-display {
+    font-family: var(--font-serif);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 
   /* Strip browser spinners — can't be done with a utility class */
@@ -104,15 +182,20 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  height: calc(86px - 32px * var(--scroll-p));
+  height: calc(92px - 28px * var(--scroll-p));
 }
 
+/* Mobile-first: smaller title so it fits the narrow column (logo + actions)
+   without blowing past the fixed-height box. Desktop bumps it up below. */
 .shrinking-title-box h1 {
-  font-size: calc(1.75rem - 0.25rem * var(--scroll-p));
-  line-height: 1;
+  font-size: calc(1.375rem - 0.125rem * var(--scroll-p));
+  line-height: 1.1;
 }
 
 .shrinking-subtitle {
+  /* Hidden on mobile — the long sentence wraps and clips inside the fixed-height
+     title box. Shown (absolute + nowrap) on desktop, where there's room. */
+  display: none;
   margin: 0;
   pointer-events: none;
   overflow: hidden;
@@ -131,9 +214,15 @@
 }
 /* ─── Desktop: context bar collapses to nothing; pills migrate to title row ── */
 /* Must be unlayered to override the unlayered display:flex / height rules above. */
-@media (min-width: 768px) {
-  /* Subtitle out of flow so it doesn't widen the title column past the h1 */
+@media (min-width: 850px) {
+  /* Full-size title on desktop. */
+  .shrinking-title-box h1 {
+    font-size: calc(1.75rem - 0.25rem * var(--scroll-p));
+    line-height: 1;
+  }
+  /* Subtitle out of flow (and visible) so it doesn't widen the title column past the h1 */
   .shrinking-subtitle {
+    display: block;
     position: absolute;
     top: 100%;
     left: 0;

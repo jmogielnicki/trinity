@@ -1,5 +1,6 @@
 import { interpolateRdYlGn } from 'd3-scale-chromatic';
 import type { ScenarioResult } from '../../engine/types';
+import { CHART } from '../colors';
 
 type Props = {
   result: ScenarioResult;
@@ -24,7 +25,7 @@ export function CalendarHeatmap({ result, initialBalance, width = 800 }: Props) 
   const height = padT + sims.length * cellH + 16;
 
   const colorOf = (balance: number, depleted: boolean): string => {
-    if (depleted) return '#222';
+    if (depleted) return CHART.ink;
     const ratio = balance / initialBalance;
     // Map 0..2x → red..yellow..green; clamp.
     const t = Math.max(0, Math.min(1, ratio / 2));
@@ -50,7 +51,7 @@ export function CalendarHeatmap({ result, initialBalance, width = 800 }: Props) 
             y={padT + i * cellH + cellH - 1}
             textAnchor="end"
             fontSize={10}
-            fill="#666"
+            fill={CHART.muted}
           >
             {year}
           </text>

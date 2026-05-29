@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
+import { Button } from './Button';
 
+/**
+ * Thin compatibility wrapper over the Button primitive for inline list actions
+ * ("+ add rule", "apply", "Clear", …). Kept so existing call sites don't churn;
+ * it just maps the old size names onto Button's `outline` variant. Prefer
+ * <Button variant="outline"> directly in new code.
+ */
 interface Props {
   size?: 'sm' | 'md';
   disabled?: boolean;
@@ -9,21 +16,17 @@ interface Props {
   type?: 'button' | 'submit';
 }
 
-const SM =
-  'text-sm px-2 py-1 border border-text-disabled bg-surface rounded-[3px] cursor-pointer self-start hover:bg-surface-hover';
-const MD =
-  'px-3 py-1.5 border border-text-disabled bg-surface rounded cursor-pointer text-sm hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed';
-
 export function Btn({ size = 'sm', disabled, onClick, children, className, type = 'button' }: Props) {
-  const base = size === 'md' ? MD : SM;
   return (
-    <button
-      type={type}
+    <Button
+      variant="outline"
+      size={size === 'md' ? 'md' : 'sm'}
       disabled={disabled}
       onClick={onClick}
-      className={`${base}${className ? ' ' + className : ''}`}
+      type={type}
+      className={size === 'sm' ? `self-start${className ? ' ' + className : ''}` : className}
     >
       {children}
-    </button>
+    </Button>
   );
 }

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
-import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInput';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
@@ -16,6 +15,8 @@ import { AboutPanel } from './components/AboutPanel';
 import { AuthControl } from './components/auth/AuthControl';
 import { ProGate } from './components/auth/ProGate';
 import { SaveScenarioModal } from './components/SaveScenarioModal';
+import { Button } from './components/ui/Button';
+import { Card } from './components/ui/Card';
 import { IconButton } from './components/ui/IconButton';
 import { NavTab } from './components/ui/NavTab';
 import { authConfigured } from './auth';
@@ -267,35 +268,41 @@ export function App() {
   return (
     <div>
       {/* ── Shrinking sticky header shell ── */}
-      <div ref={headerRef} className="sticky top-0 z-30 bg-surface shadow-sticky">
-        <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
+      <div ref={headerRef} className="sticky top-0 z-30 bg-surface-page/85 backdrop-blur-md border-b border-border shadow-sticky">
+        <div className="max-w-[1200px] mx-auto px-3 sm:px-6">
           {/* Title row — height + h1 font-size driven by .shrinking-title-box CSS */}
           <div className="shrinking-title-box">
-            <div className="min-w-0 md:relative flex flex-col justify-center gap-1">
-              <h1 className="font-bold text-primary m-0">
+            <div className="min-w-0 md:relative flex items-center gap-2.5">
+              <span
+                aria-hidden="true"
+                className="flex-shrink-0 flex items-center justify-center rounded-xl bg-primary text-white font-display font-bold w-9 h-9 text-lg leading-none select-none"
+              >
+                ↟
+              </span>
+              <div className="min-w-0 flex flex-col justify-center gap-1">
+              <h1 className="font-display font-bold text-primary m-0">
                 Retirement calculator
               </h1>
               <p className="shrinking-subtitle text-text-muted text-base">
                 Stress-test all retirement start years from{' '}
                 {data?.start ?? '…'} to {data?.end ?? '…'}.
               </p>
+              </div>
             </div>
             <div className="hidden md:flex items-center title-portfolio flex-1 ml-4">
               <PortfolioInput />
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               {topMode === 'single' && (
-                <button
-                  className="hidden md:flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setSaveOpen(true)}
-                  title="Save strategy"
-                >
-                  Save strategy
-                </button>
+                <div className="hidden md:block">
+                  <Button size="md" onClick={() => setSaveOpen(true)} title="Save strategy">
+                    Save strategy
+                  </Button>
+                </div>
               )}
               <AuthControl />
               <button
-                className={`w-7 h-7 flex-shrink-0 rounded-full border border-text-disabled bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
+                className={`w-9 h-9 flex-shrink-0 rounded-full border border-border-strong bg-surface cursor-pointer text-md font-semibold text-text-muted leading-none flex items-center justify-center hover:bg-surface-hover${aboutOpen ? ' bg-primary text-surface border-primary' : ''}`}
                 onClick={() => setAboutOpen((v) => !v)}
                 title="About / methodology"
               >
@@ -311,7 +318,7 @@ export function App() {
       </div>
 
       {/* ── Main content ── */}
-      <div className="max-w-[1280px] mx-auto px-3 sm:px-6 pb-3 sm:pb-6">
+      <div className="max-w-[1200px] mx-auto px-3 sm:px-6 pb-3 sm:pb-6">
         <div
           ref={tabBarRef}
           className="flex gap-1 mt-10 mb-4 border-b border-border overflow-x-auto scrollbar-none overscroll-x-contain"
@@ -346,7 +353,7 @@ export function App() {
 
         <div className={`grid gap-4 sm:gap-6${topMode === 'single' ? ' md:grid-cols-[280px_minmax(0,1fr)]' : ''}`}>
           {topMode === 'single' && (
-            <aside className={`fixed top-0 left-0 h-full w-[300px] z-50 overflow-y-auto transition-transform duration-200 ease-in-out md:static md:h-fit md:w-auto md:z-auto md:overflow-visible md:translate-x-0 flex flex-col gap-5 bg-surface border-r border-border-hover md:border md:rounded-lg p-4${sidebarOpen ? ' translate-x-0 shadow-popover' : ' -translate-x-full'}`}>
+            <aside className={`fixed top-0 left-0 h-full w-[300px] z-50 overflow-y-auto transition-transform duration-200 ease-in-out md:static md:h-fit md:w-auto md:z-auto md:overflow-visible md:translate-x-0 flex flex-col gap-5 bg-surface border-r border-border md:border md:rounded-lg md:shadow-card p-4${sidebarOpen ? ' translate-x-0 shadow-popover' : ' -translate-x-full'}`}>
               {/* Close button — mobile only */}
               <div className="flex items-center justify-between pb-3 border-b border-border md:hidden">
                 <span className="text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</span>
@@ -354,45 +361,38 @@ export function App() {
               </div>
               <section className="control-zone flex flex-col gap-5">
                 <div className="hidden md:flex flex-col gap-0.5">
-                  <h2 className="m-0 text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</h2>
+                  <span className="text-2xs font-semibold text-text-faint uppercase tracking-[0.14em]">Strategy</span>
+                  <h2 className="font-display m-0 text-xl font-bold text-text">Build your plan</h2>
                 </div>
                 <PresetPicker />
-                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Allocation</h3>
+                <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Allocation</h3>
                 <AllocationEditor
                   horizonYears={scenario.horizonYears}
                   allocation={scenario.allocation}
                   onChange={scenario.setAllocation}
                 />
-                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal strategy</h3>
+                <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Withdrawal strategy</h3>
                 <WithdrawalEditor
                   horizonYears={scenario.horizonYears}
                   withdrawal={scenario.withdrawal}
                   onChange={scenario.setWithdrawal}
                 />
-                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
+                <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Withdrawal source</h3>
                 <WithdrawalSourceInput hideLabel/>
               </section>
-              <ScenarioLibrary />
               {/* Desktop save button — sticky footer */}
               <div className="hidden md:block border-t border-border pt-4 mt-1">
-                <button
-                  className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-md font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
-                  style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.18)' }}
-                  onClick={() => setSaveOpen(true)}
-                >
+                <Button variant="soft" size="lg" fullWidth onClick={() => setSaveOpen(true)}>
                   Save strategy
-                </button>
+                </Button>
               </div>
             </aside>
           )}
-          <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
+          <section className="min-w-0 flex flex-col gap-4 sm:gap-5">
             {/* Split FAB — mobile only. Left: edit strategy. Right: save strategy.
                 Text labels collapse when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
-              <div
-                className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex rounded-2xl overflow-hidden"
-                style={{ boxShadow: '0 8px 28px rgba(0,0,0,0.24), 0 3px 8px rgba(0,0,0,0.16)' }}
-              >
+              <div className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex rounded-2xl overflow-hidden shadow-fab">
                 {/* Edit half */}
                 <button
                   className="flex items-center px-4 bg-secondary cursor-pointer hover:opacity-90 active:opacity-80 text-white h-full"
@@ -440,54 +440,72 @@ export function App() {
               </div>
             )}
             {topMode === 'optimize' && (
-              proGated ? (
-                <ProGate
-                  title="Optimize strategies"
-                  blurb="Sweep allocation and withdrawal strategies across every historical start year and compare them on a Pareto frontier. Available with Pro."
-                />
-              ) : (
-                <FrontierView onApplied={() => setTopMode('single')} />
-              )
+              <Card variant="elevated">
+                {proGated ? (
+                  <ProGate
+                    title="Optimize strategies"
+                    blurb="Sweep allocation and withdrawal strategies across every historical start year and compare them on a Pareto frontier. Available with Pro."
+                  />
+                ) : (
+                  <FrontierView onApplied={() => setTopMode('single')} />
+                )}
+              </Card>
             )}
-            {topMode === 'compare' && <CompareScenariosView />}
+            {topMode === 'compare' && (
+              <Card variant="elevated">
+                <CompareScenariosView />
+              </Card>
+            )}
             {topMode === 'single' && <>
-            {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
+            {!data && (
+              <Card variant="elevated">
+                <div className="text-text-faint text-base">Loading historical data…</div>
+              </Card>
+            )}
             {data && result && (
               <>
-                <StatPanel result={result} />
-                <div className="grid grid-cols-1 min-[1000px]:grid-cols-2 gap-3 items-start">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-text mb-1.5">Portfolio balance over time</h3>
-                    <SpaghettiChart
-                      result={result}
-                      overlay={null}
-                      selectedYears={selectedYears}
-                      onToggle={toggleYear}
-                      onMarquee={marqueeYears}
-                      onClear={clearSelection}
-                      height={320}
-                    />
+                {/* Hero — headline success + key stats */}
+                <Card variant="elevated">
+                  <StatPanel result={result} />
+                </Card>
+                {/* Charts */}
+                <Card variant="elevated" className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 min-[1000px]:grid-cols-2 gap-4 items-start">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg font-bold text-text mb-2">Portfolio balance over time</h3>
+                      <SpaghettiChart
+                        result={result}
+                        overlay={null}
+                        selectedYears={selectedYears}
+                        onToggle={toggleYear}
+                        onMarquee={marqueeYears}
+                        onClear={clearSelection}
+                        height={320}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg font-bold text-text mb-2">Spending and final balance by retirement start year (real $)</h3>
+                      <StartYearChart
+                        result={result}
+                        initialBalance={scenario.initialBalance}
+                        height={320}
+                        selectedYears={selectedYears}
+                        onToggle={toggleYear}
+                        onMarquee={marqueeYears}
+                      />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-text mb-1.5">Spending and final balance by retirement start year (real $)</h3>
-                    <StartYearChart
+                  <div className="border-t border-border pt-3 flex flex-col gap-3">
+                    <QuickSelectYears
                       result={result}
-                      initialBalance={scenario.initialBalance}
-                      height={320}
                       selectedYears={selectedYears}
-                      onToggle={toggleYear}
-                      onMarquee={marqueeYears}
+                      onSelect={(year, alreadySelected) =>
+                        alreadySelected ? clearSelection() : marqueeYears([year])
+                      }
                     />
+                    <Legend />
                   </div>
-                </div>
-                <QuickSelectYears
-                  result={result}
-                  selectedYears={selectedYears}
-                  onSelect={(year, alreadySelected) =>
-                    alreadySelected ? clearSelection() : marqueeYears([year])
-                  }
-                />
-                <Legend />
+                </Card>
                 {selectedYears.size > 0 && (
                   [...selectedYears].sort((a, b) => a - b).map((year) => {
                     const sim = result.sims.find(s => s.startYear === year);
@@ -504,7 +522,7 @@ export function App() {
               </>
             )}
             </>}
-          </main>
+          </section>
         </div>
       </div>
 
