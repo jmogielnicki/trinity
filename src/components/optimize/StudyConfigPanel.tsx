@@ -332,6 +332,20 @@ function VariantCount({
 // Range editors
 // ---------------------------------------------------------------------------
 
+const STATIC_DEFAULT: Extract<AllocationRangeSpec, { subMode: 'static' }> = {
+  subMode: 'static',
+  fromStock: 0.4, toStock: 1.0, stepStock: 0.1,
+  fromBond: 0.0, toBond: 0.6, stepBond: 0.1,
+  fromCash: 0.0, toCash: 0.2, stepCash: 0.05,
+};
+
+const GLIDE_DEFAULT: Extract<AllocationRangeSpec, { subMode: 'glide' }> = {
+  subMode: 'glide',
+  sweep: 'startStock',
+  startStock: 0.8, endStock: 0.3, transitionYears: 25,
+  from: 0.5, to: 1.0, step: 0.1,
+};
+
 function RangeEditor({
   dim,
   study,
@@ -342,35 +356,7 @@ function RangeEditor({
   update: (p: Partial<StudyConfig>) => void;
 }) {
   if (dim === 'allocation') {
-    const r = study.allocationRange;
-    const set = (patch: Partial<AllocationRangeSpec>) =>
-      update({ allocationRange: { ...r, ...patch } });
-    return (
-      <div className="flex flex-col gap-2">
-        <div className="text-xs text-text-faint py-0.5 pb-1">
-          Sweeps every stock × bond combination; cash fills the remainder.
-          Combinations over 100% are skipped.
-        </div>
-        <PctRange
-          label="Stocks"
-          from={r.fromStock}
-          to={r.toStock}
-          step={r.stepStock}
-          onChange={(fromStock, toStock, stepStock) =>
-            set({ fromStock, toStock, stepStock })
-          }
-        />
-        <PctRange
-          label="Bonds"
-          from={r.fromBond}
-          to={r.toBond}
-          step={r.stepBond}
-          onChange={(fromBond, toBond, stepBond) =>
-            set({ fromBond, toBond, stepBond })
-          }
-        />
-      </div>
-    );
+    return <AllocationRangeEditor spec={study.allocationRange} update={update} />;
   }
   if (dim === 'withdrawal') {
     return <WithdrawalRangeEditor spec={study.withdrawalRange} update={update} />;
@@ -398,6 +384,177 @@ function RangeEditor({
         </label>
       ))}
     </div>
+  );
+}
+
+function AllocationRangeEditor({
+  spec,
+  update,
+}: {
+  spec: AllocationRangeSpec;
+  update: (p: Partial<StudyConfig>) => void;
+}) {
+  const setSpec = (s: AllocationRangeSpec) => update({ allocationRange: s });
+  return (
+    <div className="flex flex-col gap-2">
+      <TabBar>
+        <ToggleButton
+          active={spec.subMode === 'static'}
+          onClick={() => {
+            if (spec.subMode !== 'static') setSpec(STATIC_DEFAULT);
+          }}
+        >
+          static
+        </ToggleButton>
+        <ToggleButton
+          active={spec.subMode === 'glide'}
+          onClick={() => {
+            if (spec.subMode !== 'glide') setSpec(GLIDE_DEFAULT);
+          }}
+        >
+          glide path
+        </ToggleButton>
+      </TabBar>
+      {spec.subMode === 'static' ? (
+        <StaticAllocRange spec={spec} setSpec={setSpec} />
+      ) : (
+        <GlideAllocRange spec={spec} setSpec={setSpec} />
+      )}
+    </div>
+  );
+}
+
+function StaticAllocRange({
+  spec,
+  setSpec,
+}: {
+  spec: Extract<AllocationRangeSpec, { subMode: 'static' }>;
+  setSpec: (s: AllocationRangeSpec) => void;
+}) {
+  const set = (patch: Partial<typeof spec>) => setSpec({ ...spec, ...patch });
+  return (
+    <>
+      <div className="text-xs text-text-faint py-0.5 pb-1">
+        Cartesian product of stock × bond × cash. Only combinations that sum
+        to exactly 100% are kept — narrow a range to drop a sleeve from the
+        sweep.
+      </div>
+      <PctRange
+        label="Stocks"
+        from={spec.fromStock}
+        to={spec.toStock}
+        step={spec.stepStock}
+        onChange={(fromStock, toStock, stepStock) =>
+          set({ fromStock, toStock, stepStock })
+        }
+      />
+      <PctRange
+        label="Bonds"
+        from={spec.fromBond}
+        to={spec.toBond}
+        step={spec.stepBond}
+        onChange={(fromBond, toBond, stepBond) =>
+          set({ fromBond, toBond, stepBond })
+        }
+      />
+      <PctRange
+        label="Cash"
+        from={spec.fromCash}
+        to={spec.toCash}
+        step={spec.stepCash}
+        onChange={(fromCash, toCash, stepCash) =>
+          set({ fromCash, toCash, stepCash })
+        }
+      />
+    </>
+  );
+}
+
+function GlideAllocRange({
+  spec,
+  setSpec,
+}: {
+  spec: Extract<AllocationRangeSpec, { subMode: 'glide' }>;
+  setSpec: (s: AllocationRangeSpec) => void;
+}) {
+  const set = (patch: Partial<typeof spec>) => setSpec({ ...spec, ...patch });
+  return (
+    <>
+      <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
+        Sweep
+        <select
+          className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+          value={spec.sweep}
+          onChange={(e) => {
+            const sweep = e.target.value as typeof spec.sweep;
+            // Each axis lives in different units, so reset the range.
+            const range =
+              sweep === 'transitionYears'
+                ? { from: 5, to: 30, step: 5 }
+                : sweep === 'startStock'
+                  ? { from: 0.5, to: 1.0, step: 0.1 }
+                  : { from: 0.0, to: 0.5, step: 0.1 };
+            setSpec({ ...spec, sweep, ...range });
+          }}
+        >
+          <option value="startStock">start stock %</option>
+          <option value="endStock">end stock %</option>
+          <option value="transitionYears">transition years</option>
+        </select>
+      </label>
+      <div className="text-xs text-text-faint py-0.5">
+        Bonds fill the non-stock weight at each endpoint; cash is held at 0.
+        Variant emits a 2-point glidepath the engine flat-extrapolates past.
+      </div>
+      <div className="flex gap-3 flex-wrap">
+        {spec.sweep !== 'startStock' && (
+          <PctNum
+            label="Start stock"
+            value={spec.startStock}
+            onChange={(startStock) => set({ startStock })}
+          />
+        )}
+        {spec.sweep !== 'endStock' && (
+          <PctNum
+            label="End stock"
+            value={spec.endStock}
+            onChange={(endStock) => set({ endStock })}
+          />
+        )}
+        {spec.sweep !== 'transitionYears' && (
+          <label className="flex items-center gap-1 text-sm text-text-secondary">
+            Transition
+            <NumericInput
+              className={axisNumCls}
+              value={spec.transitionYears}
+              format={(v) => String(Math.round(v))}
+              parse={(s) => {
+                const n = parseInt(s, 10);
+                return isNaN(n) ? null : Math.max(1, n);
+              }}
+              min={1}
+              onChange={(transitionYears) => set({ transitionYears })}
+            />
+            yr
+          </label>
+        )}
+      </div>
+      {spec.sweep === 'transitionYears' ? (
+        <YearRange
+          from={spec.from}
+          to={spec.to}
+          step={spec.step}
+          onChange={(from, to, step) => set({ from, to, step })}
+        />
+      ) : (
+        <PctRange
+          from={spec.from}
+          to={spec.to}
+          step={spec.step}
+          onChange={(from, to, step) => set({ from, to, step })}
+        />
+      )}
+    </>
   );
 }
 
@@ -858,6 +1015,62 @@ function PctRange({
   );
 }
 
+function YearRange({
+  from,
+  to,
+  step,
+  onChange,
+}: {
+  from: number;
+  to: number;
+  step: number;
+  onChange: (from: number, to: number, step: number) => void;
+}) {
+  const parseYear = (s: string) => {
+    const n = parseInt(s, 10);
+    return isNaN(n) ? null : Math.max(1, n);
+  };
+  return (
+    <div className="flex gap-3 flex-wrap items-center">
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
+        from
+        <NumericInput
+          className={axisNumCls}
+          value={from}
+          format={(v) => String(Math.round(v))}
+          parse={parseYear}
+          min={1}
+          onChange={(v) => onChange(v, to, step)}
+        />
+        yr
+      </label>
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
+        to
+        <NumericInput
+          className={axisNumCls}
+          value={to}
+          format={(v) => String(Math.round(v))}
+          parse={parseYear}
+          min={1}
+          onChange={(v) => onChange(from, v, step)}
+        />
+        yr
+      </label>
+      <label className="flex items-center gap-1 text-sm text-text-secondary">
+        step
+        <NumericInput
+          className={axisNumCls}
+          value={step}
+          format={(v) => String(Math.round(v))}
+          parse={parseYear}
+          min={1}
+          onChange={(v) => onChange(from, to, v)}
+        />
+        yr
+      </label>
+    </div>
+  );
+}
 
 function PctNum({
   label,

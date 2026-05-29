@@ -77,36 +77,96 @@ describe('paretoFront', () => {
 });
 
 describe('generateStudyCandidates', () => {
-  it('sweeps the 2D allocation range with the other dimensions pinned', () => {
+  it('sweeps the 3D allocation range with the other dimensions pinned', () => {
     const cands = generateStudyCandidates(DEFAULT_STUDY);
-    // stock 40-100% × bond 0-40%, step 10%, dropping combos over 100%.
-    expect(cands.length).toBe(25);
+    // stock 40-100 step 10 × bond 0-60 step 10 × cash 0-20 step 5, strict
+    // sum-to-100% filter. Hand-counted: 3+3+3+3+3+2+1 = 18 valid combos.
+    expect(cands.length).toBe(18);
     const ids = new Set(cands.map((c) => c.id));
     expect(ids.size).toBe(cands.length);
-    // Locked dimensions are identical across every variant.
     for (const c of cands) {
       expect(c.withdrawal).toEqual(DEFAULT_STUDY.lockedWithdrawal);
       expect(c.withdrawalSource).toEqual(DEFAULT_STUDY.lockedSource);
-      // cash fills whatever stock + bond leaves; weights always sum to 1.
+      // Strict sum-to-1: cash is no longer the residual.
       if (c.allocation.type === 'static') {
         const w = c.allocation.weights;
-        expect(w.stock + w.bond + w.cash).toBeCloseTo(1, 6);
+        expect(w.stock + w.bond + w.cash).toBeCloseTo(1, 4);
         expect(w.cash).toBeGreaterThanOrEqual(0);
       }
     }
-    // Both axes actually vary.
     const stockLevels = new Set(
       cands.map((c) => Math.round((c.numericParams.stockPct ?? 0) * 100)),
     );
+    // All 7 stock steps appear (each one survives the sum-to-1 filter).
     expect(stockLevels.size).toBe(7);
-    const bondLevels = new Set(
+    // Cash actually varies — at least the 0%, 10%, 20% levels show up.
+    const cashLevels = new Set(
       cands.map((c) =>
         c.allocation.type === 'static'
-          ? Math.round(c.allocation.weights.bond * 100)
+          ? Math.round(c.allocation.weights.cash * 100)
           : -1,
       ),
     );
-    expect(bondLevels.size).toBe(5);
+    expect(cashLevels.has(0)).toBe(true);
+    expect(cashLevels.has(10)).toBe(true);
+    expect(cashLevels.has(20)).toBe(true);
+  });
+
+  it('sweeps a glidepath start stock %', () => {
+    const cands = generateStudyCandidates({
+      ...DEFAULT_STUDY,
+      varying: ['allocation'],
+      allocationRange: {
+        subMode: 'glide',
+        sweep: 'startStock',
+        startStock: 0.8,
+        endStock: 0.3,
+        transitionYears: 25,
+        from: 0.5,
+        to: 1.0,
+        step: 0.1,
+      },
+    });
+    expect(cands.length).toBe(6);
+    for (const c of cands) {
+      expect(c.allocation.type).toBe('glidepath');
+      if (c.allocation.type === 'glidepath') {
+        // End stock is pinned across all variants.
+        expect(c.allocation.end.stock).toBeCloseTo(0.3, 6);
+        expect(c.allocation.transitionYears).toBe(25);
+        // Cash held at 0; bond fills the rest of the start weight.
+        expect(c.allocation.start.cash).toBe(0);
+        expect(c.allocation.start.stock + c.allocation.start.bond).toBeCloseTo(1, 6);
+      }
+    }
+    const startStocks = cands.map((c) =>
+      c.allocation.type === 'glidepath'
+        ? Math.round(c.allocation.start.stock * 100)
+        : -1,
+    );
+    expect(startStocks).toEqual([50, 60, 70, 80, 90, 100]);
+  });
+
+  it('sweeps glide transitionYears (years units, not percent)', () => {
+    const cands = generateStudyCandidates({
+      ...DEFAULT_STUDY,
+      varying: ['allocation'],
+      allocationRange: {
+        subMode: 'glide',
+        sweep: 'transitionYears',
+        startStock: 0.8,
+        endStock: 0.3,
+        transitionYears: 25,
+        from: 5,
+        to: 30,
+        step: 5,
+      },
+    });
+    expect(cands.length).toBe(6);
+    const years = cands.map((c) =>
+      c.allocation.type === 'glidepath' ? c.allocation.transitionYears : -1,
+    );
+    expect(years).toEqual([5, 10, 15, 20, 25, 30]);
   });
 
   it('sweeps a withdrawal family while pinning a floor', () => {
