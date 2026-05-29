@@ -384,7 +384,7 @@ export function App() {
               </div>
             </aside>
           )}
-          <Card as="section" className="min-w-0">
+          <section className="min-w-0 flex flex-col gap-4 sm:gap-5">
             {/* Split FAB — mobile only. Left: edit strategy. Right: save strategy.
                 Text labels collapse when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
@@ -436,54 +436,72 @@ export function App() {
               </div>
             )}
             {topMode === 'optimize' && (
-              proGated ? (
-                <ProGate
-                  title="Optimize strategies"
-                  blurb="Sweep allocation and withdrawal strategies across every historical start year and compare them on a Pareto frontier. Available with Pro."
-                />
-              ) : (
-                <FrontierView onApplied={() => setTopMode('single')} />
-              )
+              <Card variant="elevated">
+                {proGated ? (
+                  <ProGate
+                    title="Optimize strategies"
+                    blurb="Sweep allocation and withdrawal strategies across every historical start year and compare them on a Pareto frontier. Available with Pro."
+                  />
+                ) : (
+                  <FrontierView onApplied={() => setTopMode('single')} />
+                )}
+              </Card>
             )}
-            {topMode === 'compare' && <CompareScenariosView />}
+            {topMode === 'compare' && (
+              <Card variant="elevated">
+                <CompareScenariosView />
+              </Card>
+            )}
             {topMode === 'single' && <>
-            {!data && <div className="text-text-faint text-base">Loading historical data…</div>}
+            {!data && (
+              <Card variant="elevated">
+                <div className="text-text-faint text-base">Loading historical data…</div>
+              </Card>
+            )}
             {data && result && (
               <>
-                <StatPanel result={result} />
-                <div className="grid grid-cols-1 min-[1000px]:grid-cols-2 gap-3 items-start">
-                  <div className="min-w-0">
-                    <h3 className="font-display text-base font-semibold text-text mb-1.5">Portfolio balance over time</h3>
-                    <SpaghettiChart
-                      result={result}
-                      overlay={null}
-                      selectedYears={selectedYears}
-                      onToggle={toggleYear}
-                      onMarquee={marqueeYears}
-                      onClear={clearSelection}
-                      height={320}
-                    />
+                {/* Hero — headline success + key stats */}
+                <Card variant="elevated">
+                  <StatPanel result={result} />
+                </Card>
+                {/* Charts */}
+                <Card variant="elevated" className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 min-[1000px]:grid-cols-2 gap-4 items-start">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-base font-semibold text-text mb-1.5">Portfolio balance over time</h3>
+                      <SpaghettiChart
+                        result={result}
+                        overlay={null}
+                        selectedYears={selectedYears}
+                        onToggle={toggleYear}
+                        onMarquee={marqueeYears}
+                        onClear={clearSelection}
+                        height={320}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-display text-base font-semibold text-text mb-1.5">Spending and final balance by retirement start year (real $)</h3>
+                      <StartYearChart
+                        result={result}
+                        initialBalance={scenario.initialBalance}
+                        height={320}
+                        selectedYears={selectedYears}
+                        onToggle={toggleYear}
+                        onMarquee={marqueeYears}
+                      />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-display text-base font-semibold text-text mb-1.5">Spending and final balance by retirement start year (real $)</h3>
-                    <StartYearChart
+                  <div className="border-t border-border pt-3 flex flex-col gap-3">
+                    <QuickSelectYears
                       result={result}
-                      initialBalance={scenario.initialBalance}
-                      height={320}
                       selectedYears={selectedYears}
-                      onToggle={toggleYear}
-                      onMarquee={marqueeYears}
+                      onSelect={(year, alreadySelected) =>
+                        alreadySelected ? clearSelection() : marqueeYears([year])
+                      }
                     />
+                    <Legend />
                   </div>
-                </div>
-                <QuickSelectYears
-                  result={result}
-                  selectedYears={selectedYears}
-                  onSelect={(year, alreadySelected) =>
-                    alreadySelected ? clearSelection() : marqueeYears([year])
-                  }
-                />
-                <Legend />
+                </Card>
                 {selectedYears.size > 0 && (
                   [...selectedYears].sort((a, b) => a - b).map((year) => {
                     const sim = result.sims.find(s => s.startYear === year);
@@ -500,7 +518,7 @@ export function App() {
               </>
             )}
             </>}
-          </Card>
+          </section>
         </div>
       </div>
 

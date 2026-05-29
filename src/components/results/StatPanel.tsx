@@ -1,6 +1,6 @@
 import { avgAnnualWithdrawal, minBalanceReached } from '../../engine/stats';
 import type { ScenarioResult } from '../../engine/types';
-import { CHART, OUTCOME } from '../colors';
+import { CHART } from '../colors';
 
 type Props = {
   result: ScenarioResult;
@@ -21,7 +21,7 @@ export function StatPanel({ result }: Props) {
   const hasProjection = result.projectedSuccessRate != null;
 
   return (
-    <div className="flex flex-col min-[450px]:flex-row gap-3 mb-4 items-stretch min-[1100px]:items-start">
+    <div className="flex flex-col min-[450px]:flex-row gap-3 items-stretch min-[1100px]:items-start">
       <HeroSuccessCard rate={result.successRate} />
       <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 auto-rows-fr min-[1100px]:auto-rows-min gap-3 flex-1">
         {hasProjection && (
@@ -88,15 +88,15 @@ function SuccessDonut({ rate }: { rate: number }) {
       aria-label={`${pct} percent success`}
     >
       <g transform={`translate(${cx},${cx})`}>
-        <circle r={r} fill="none" stroke={OUTCOME.depleted} strokeWidth={sw} />
+        <circle r={r} fill="none" stroke="var(--color-surface-3)" strokeWidth={sw} />
         <circle
           r={r}
           fill="none"
-          stroke={OUTCOME.survived}
+          stroke="var(--color-success)"
           strokeWidth={sw}
           strokeDasharray={`${clamped * c} ${c}`}
           transform="rotate(-90)"
-          strokeLinecap="butt"
+          strokeLinecap="round"
         />
       </g>
       <text
@@ -106,7 +106,7 @@ function SuccessDonut({ rate }: { rate: number }) {
         dominantBaseline="central"
         fontSize={38}
         fontWeight={700}
-        fill={OUTCOME.survived}
+        fill="var(--color-primary)"
       >
         {`${pct}%`}
       </text>

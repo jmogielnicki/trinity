@@ -311,7 +311,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       : 'bg-success-bg text-success';
 
   return (
-    <div className="mt-4 border border-border-light rounded-md bg-surface-page px-3.5 py-3">
+    <div className="border border-border rounded-lg bg-surface shadow-card px-4 py-4">
       <div className="flex items-start justify-between gap-3 mb-2.5">
         <div className="flex flex-wrap items-center gap-2.5 text-base">
           <span className="font-semibold text-text">Start {startYear}</span>
