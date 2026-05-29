@@ -5,7 +5,7 @@
  */
 export function AboutPanel() {
   return (
-		<div className="max-w-[720px] text-base leading-[1.6] text-text-body [&_h2]:text-lg [&_h2]:mt-1 [&_h2]:mb-3 [&_h2]:text-text [&_h3]:text-md [&_h3]:mt-[22px] [&_h3]:mb-1.5 [&_h3]:text-primary [&_p]:my-2 [&_ul]:my-2 [&_ul]:pl-5 [&_li]:my-[5px] [&_code]:bg-surface-code [&_code]:px-1 [&_code]:py-px [&_code]:rounded-[3px] [&_code]:text-sm">
+		<div className="max-w-[720px] text-base leading-[1.6] text-text-body [&_h2]:text-lg [&_h2]:mt-1 [&_h2]:mb-3 [&_h2]:text-text [&_h3]:text-md [&_h3]:mt-[22px] [&_h3]:mb-1.5 [&_h3]:text-primary [&_p]:my-2 [&_ul]:my-2 [&_ul]:pl-5 [&_li]:my-[5px] [&_code]:bg-surface-code [&_code]:px-1 [&_code]:py-px [&_code]:rounded-xs [&_code]:text-sm">
 			<h2>About this simulator</h2>
 			<p>
 				This tool stress-tests retirement withdrawal strategies against{" "}

@@ -322,7 +322,7 @@ export function FrontierView({ onApplied }: Props) {
                 <label className="flex gap-1.5 items-center">
                   x:
                   <select
-                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
                     value={xAxis}
                     onChange={(e) => setXAxis(e.target.value as Axis)}
                   >
@@ -336,7 +336,7 @@ export function FrontierView({ onApplied }: Props) {
                 <label className="flex gap-1.5 items-center">
                   y:
                   <select
-                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
                     value={yAxis}
                     onChange={(e) => setYAxis(e.target.value as Axis)}
                   >
@@ -350,7 +350,7 @@ export function FrontierView({ onApplied }: Props) {
                 <label className="flex gap-1.5 items-center">
                   color:
                   <select
-                    className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+                    className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
                     value={colorBy}
                     onChange={(e) => setColorBy(e.target.value as ColorBy)}
                   >
@@ -877,7 +877,7 @@ function ComparisonTable({
               <td className={tdCls}>{r.metrics.worstStartYear ?? '—'}</td>
               <td className={tdCls}>
                 <button
-                  className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-chart-blue hover:bg-surface-code hover:border-chart-blue"
+                  className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-xs cursor-pointer text-chart-blue hover:bg-surface-code hover:border-chart-blue"
                   onClick={() => onApply(r)}
                   title="Load this strategy into the build-strategy view"
                 >
@@ -887,7 +887,7 @@ function ComparisonTable({
               {onSave && (
                 <td className={tdCls}>
                   <button
-                    className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-code hover:border-border"
+                    className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-xs cursor-pointer text-text-secondary hover:bg-surface-code hover:border-border"
                     onClick={() => onSave(r)}
                     title="Save this variant to your library"
                   >

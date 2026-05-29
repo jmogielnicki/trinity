@@ -86,10 +86,15 @@
   --text-2xl:  1.75rem;     /* 28px */
   --text-3xl:  2.25rem;     /* 36px */
 
+  /* Radius scale — only the keys we pin; other rounded-* keep Tailwind defaults.
+     --radius-xs backs small controls/chips/badges (was the hardcoded 3px). */
+  --radius-xs: 3px;
+
   /* Shadows — warm-tinted (green-black), elevation unchanged from prior */
   --shadow-card:       0 1px 3px rgba(27,42,35,0.10), 0 1px 2px rgba(27,42,35,0.06);
   --shadow-popover:    0 4px 16px rgba(27,42,35,0.16);
   --shadow-sticky:     0 2px 8px rgba(27,42,35,0.11);
+  --shadow-fab:        0 8px 28px rgba(27,42,35,0.24), 0 3px 8px rgba(27,42,35,0.16);
   --shadow-focus-ring: 0 0 0 3px var(--color-primary-ring);
 }
 

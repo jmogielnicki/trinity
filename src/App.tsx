@@ -388,10 +388,7 @@ export function App() {
             {/* Split FAB — mobile only. Left: edit strategy. Right: save strategy.
                 Text labels collapse when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
-              <div
-                className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex rounded-2xl overflow-hidden"
-                style={{ boxShadow: '0 8px 28px rgba(0,0,0,0.24), 0 3px 8px rgba(0,0,0,0.16)' }}
-              >
+              <div className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex rounded-2xl overflow-hidden shadow-fab">
                 {/* Edit half */}
                 <button
                   className="flex items-center px-4 bg-secondary cursor-pointer hover:opacity-90 active:opacity-80 text-white h-full"

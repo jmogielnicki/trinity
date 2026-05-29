@@ -483,7 +483,7 @@ function GlideAllocRange({
       <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
         Sweep
         <select
-          className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+          className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
           value={spec.sweep}
           onChange={(e) => {
             const sweep = e.target.value as typeof spec.sweep;
@@ -571,7 +571,7 @@ function WithdrawalRangeEditor({
       <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
         Family
         <select
-          className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+          className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
           value={spec.family}
           onChange={(e) =>
             setSpec(familyDefault(e.target.value as WithdrawalFamily))
@@ -604,7 +604,7 @@ function WithdrawalRangeEditor({
           <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
             Sweep
             <select
-              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+              className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
               value={spec.sweep}
               onChange={(e) => {
                 const sweep = e.target.value as 'shift' | 'scale';
@@ -667,7 +667,7 @@ function WithdrawalRangeEditor({
           <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
             Sweep
             <select
-              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+              className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
               value={spec.sweep}
               onChange={(e) => {
                 const sweep = e.target.value as 'a' | 'b';
@@ -713,7 +713,7 @@ function WithdrawalRangeEditor({
           <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
             Sweep
             <select
-              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+              className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
               value={spec.sweep}
               onChange={(e) =>
                 setSpec({
@@ -763,7 +763,7 @@ function WithdrawalRangeEditor({
           <label className="flex flex-col gap-[3px] items-start text-sm text-text-secondary">
             Sweep
             <select
-              className="px-1.5 py-[3px] border border-text-disabled rounded-[3px] text-sm"
+              className="px-1.5 py-[3px] border border-text-disabled rounded-xs text-sm"
               value={spec.sweep}
               onChange={(e) =>
                 setSpec({

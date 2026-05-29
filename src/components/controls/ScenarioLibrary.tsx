@@ -67,7 +67,7 @@ export function ScenarioLibrary() {
         <ul className="list-none p-0 m-0 flex flex-col gap-1">
           {saved.map((s) => (
             <li key={s.id} className="flex items-center">
-              <button className="flex-1 text-left bg-surface-hover border border-border-light rounded-[3px] px-2 py-1 cursor-pointer text-sm hover:bg-surface-code" onClick={() => onLoad(s)}>
+              <button className="flex-1 text-left bg-surface-hover border border-border-light rounded-xs px-2 py-1 cursor-pointer text-sm hover:bg-surface-code" onClick={() => onLoad(s)}>
                 {s.name}
               </button>
               <GhostDeleteBtn onClick={() => void remove(s.id).catch(() => {})} />

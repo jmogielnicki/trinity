@@ -321,7 +321,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         </div>
         {onClose && (
           <button
-            className="flex-shrink-0 border border-text-disabled bg-surface rounded-[3px] px-[9px] py-0.5 text-[15px] leading-none cursor-pointer text-text-muted hover:bg-surface-hover hover:text-text"
+            className="flex-shrink-0 border border-text-disabled bg-surface rounded-xs px-[9px] py-0.5 text-[15px] leading-none cursor-pointer text-text-muted hover:bg-surface-hover hover:text-text"
             onClick={onClose}
             title="Close detail"
           >×</button>
@@ -357,7 +357,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       <div className="flex items-center gap-2.5 mt-2.5 mb-1">
         <span className="text-xs text-text-muted uppercase tracking-[0.04em]">Year-by-year detail</span>
         <button
-          className={`text-xs px-[9px] py-0.5 border border-text-disabled bg-surface rounded-[3px] cursor-pointer text-text-secondary hover:bg-surface-hover${detailMode ? ' bg-surface-code border-border-hover text-primary' : ''}`}
+          className={`text-xs px-[9px] py-0.5 border border-text-disabled bg-surface rounded-xs cursor-pointer text-text-secondary hover:bg-surface-hover${detailMode ? ' bg-surface-code border-border-hover text-primary' : ''}`}
           onClick={() => setDetailMode((v) => !v)}
         >
           {detailMode ? 'Hide flows' : 'Show flows'}
