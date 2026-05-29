@@ -2,19 +2,29 @@
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 @theme {
-  /* Brand / primary */
-  --color-primary:       #101332;
-  --color-secondary:     #A14F7E;
-  --color-primary-hover: #2a4562;
-  --color-primary-ring:  rgba(51, 85, 119, 0.12);
+  /* ─── Brand — "Evergreen": forest green + sparing gold accent ──────────────
+     Canonical theme values. Alternate themes (e.g. a future dark mode) layer in
+     as [data-theme="…"] override blocks after this @theme. `primary` is the
+     forest brand; `secondary` currently mirrors it (it backs the white-text CTAs
+     — gold would fail contrast there) and splits off into a Button primitive in
+     Phase 2. Gold lives in --color-accent and is used sparingly, never as a
+     white-text button background. */
+  --color-primary:       #14513A;
+  --color-secondary:     #14513A;
+  --color-primary-hover: #1E6B4D;
+  --color-primary-ring:  rgba(20, 81, 58, 0.22);
+  --color-brand-soft:    #E1ECE5;   /* tinted brand wash — chips, soft buttons */
+  --color-accent:        #C2872B;   /* gold — highlights/accents only */
+  --color-accent-soft:   #F3E7CF;
 
-  /* Asset class colors — consumed by components/colors.ts via getComputedStyle */
+  /* Asset class colors — consumed by components/colors.ts via getComputedStyle.
+     Chart palette intentionally UNCHANGED in Phase 1 (see STYLING_PLAN Phase 4/5). */
   --color-stock: #372554;
   --color-bond:  #E99C20;
   --color-cash:  #3F612D;
   --color-cash-wash:  #B0D29D;
 
-  /* Simulation outcome colors — consumed by components/colors.ts via getComputedStyle */
+  /* Simulation outcome colors — consumed by components/colors.ts. Unchanged in Phase 1. */
   --color-survived:    #2c5282;
   --color-depleted:    #dd3333;
   --color-in-progress: #888888;
@@ -23,37 +33,49 @@
   /* Chart / UI accent (D3 default blue) */
   --color-chart-blue: #1f77b4;
 
-  /* Semantic status */
-  --color-success:    #1a7f37;
-  --color-success-bg: #e6f4ea;
-  --color-error:      #c0392b;
-  --color-error-bg:   #fde8e8;
-  --color-stale:      #cc4444;
+  /* Semantic status — re-pointed to Evergreen positive/negative tones.
+     positive/negative are the canonical role names; success/error remain as
+     aliases for existing utility classes. */
+  --color-positive:   #1F7A52;
+  --color-negative:   #BE4A30;
+  --color-success:    #1F7A52;
+  --color-success-bg: #E3EFE7;
+  --color-error:      #BE4A30;
+  --color-error-bg:   #F7E6DF;
+  --color-stale:      #C2872B;
 
-  /* Surface backgrounds */
-  --color-surface:       #ffffff;
-  --color-surface-page:  #fafafa;
-  --color-surface-muted: #f5f5f5;
-  --color-surface-panel: #f4f6fa;
-  --color-surface-code:  #f0f4ff;
-  --color-surface-hover: #f6f6f6;
+  /* Surface backgrounds — warm paper, three elevations */
+  --color-surface:       #FFFFFF;
+  --color-surface-page:  #F4F1E9;
+  --color-surface-2:     #F1EDE3;
+  --color-surface-3:     #E8E2D4;
+  --color-surface-muted: #F1EDE3;
+  --color-surface-panel: #F1EDE3;
+  --color-surface-code:  #EFE9DB;
+  --color-surface-hover: #F1EDE3;
 
-  /* Borders */
-  --color-border:       #e5e5e5;
-  --color-border-light: #eeeeee;
-  --color-border-input: #d1d5db;
-  --color-border-hover: #aab4bf;
+  /* Borders — warm */
+  --color-border:        #E4DECF;
+  --color-border-strong: #D4CBB6;
+  --color-border-light:  #EDE7D8;
+  --color-border-input:  #D4CBB6;
+  --color-border-hover:  #BCB196;
 
-  /* Text scale */
-  --color-text:             #222222;
-  --color-text-body:        #333333;
-  --color-text-secondary:   #555555;
-  --color-text-muted:       #666666;
-  --color-text-faint:       #888888;
-  --color-text-placeholder: #aaaaaa;
-  --color-text-disabled:    #cccccc;
+  /* Text scale — green-tinted warm grey ramp */
+  --color-text:             #1B2A23;
+  --color-text-body:        #2C3A32;
+  --color-text-secondary:   #51635A;
+  --color-text-muted:       #6B7C72;
+  --color-text-faint:       #8B968C;
+  --color-text-placeholder: #A7AE9F;
+  --color-text-disabled:    #C9CCBE;
 
-  /* Font sizes */
+  /* Font families — serif display is wired onto headings in Phase 4 */
+  --font-sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --font-mono:  ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Font sizes (2xl/3xl added for display headings in Phase 4) */
   --text-2xs:  0.625rem;    /* 10px */
   --text-xs:   0.6875rem;   /* 11px */
   --text-sm:   0.75rem;     /* 12px */
@@ -61,18 +83,20 @@
   --text-md:   0.875rem;    /* 14px */
   --text-lg:   1.125rem;    /* 18px */
   --text-xl:   1.375rem;    /* 22px */
+  --text-2xl:  1.75rem;     /* 28px */
+  --text-3xl:  2.25rem;     /* 36px */
 
-  /* Shadows */
-  --shadow-card:       0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.07);
-  --shadow-popover:    0 4px 16px rgba(0,0,0,0.14);
-  --shadow-sticky:     0 2px 8px rgba(0,0,0,0.12);
+  /* Shadows — warm-tinted (green-black), elevation unchanged from prior */
+  --shadow-card:       0 1px 3px rgba(27,42,35,0.10), 0 1px 2px rgba(27,42,35,0.06);
+  --shadow-popover:    0 4px 16px rgba(27,42,35,0.16);
+  --shadow-sticky:     0 2px 8px rgba(27,42,35,0.11);
   --shadow-focus-ring: 0 0 0 3px var(--color-primary-ring);
 }
 
 /* ─── Base resets ────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    font-family: system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+    font-family: var(--font-sans);
     color: var(--color-text);
     background: var(--color-surface-page);
     --scroll-p: 0;
