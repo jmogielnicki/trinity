@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import type { Weights } from '../../engine/types';
-import { ASSET } from '../colors';
+import { ASSET, CHART } from '../colors';
 
 type Props = {
   /** One entry = single fixed bar. Two entries = glide-path (left + right columns). */
@@ -157,7 +157,7 @@ export function StackedBar({
       return (
         <text key={key} x={cx} y={margin.top + (yTop + yBot) / 2} dy="0.32em"
           textAnchor="middle" fontSize={n === 1 ? 12 : 11} fontWeight={n === 1 ? 600 : 500}
-          fill="#fff" pointerEvents="none" style={labelStyle}
+          fill={CHART.surface} pointerEvents="none" style={labelStyle}
         >
           {text}
         </text>
@@ -186,10 +186,10 @@ export function StackedBar({
     const hx = handleX(i);
     return [
       <g key={`col${i}_bondTop`} {...handleProps(i, 'bondTop')}>
-        <circle cx={hx} cy={margin.top + bondTop} r={8} fill="#fff" stroke="#222" strokeWidth={2} />
+        <circle cx={hx} cy={margin.top + bondTop} r={8} fill={CHART.surface} stroke={CHART.ink} strokeWidth={2} />
       </g>,
       <g key={`col${i}_cashTop`} {...handleProps(i, 'cashTop')}>
-        <circle cx={hx} cy={margin.top + cashTop} r={8} fill="#fff" stroke="#222" strokeWidth={2} />
+        <circle cx={hx} cy={margin.top + cashTop} r={8} fill={CHART.surface} stroke={CHART.ink} strokeWidth={2} />
       </g>,
     ];
   });
@@ -198,7 +198,7 @@ export function StackedBar({
 
   const renderColumnLabels = () => columnLabels?.map((label, i) => (
     <text key={`col-label-${i}`} x={n === 1 ? colX[0] : colX[i]} y={height - 6}
-      textAnchor={i === 0 ? 'start' : 'end'} fontSize={10} fill="#888"
+      textAnchor={i === 0 ? 'start' : 'end'} fontSize={10} fill={CHART.faint}
     >
       {label}
     </text>

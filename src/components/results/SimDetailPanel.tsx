@@ -3,7 +3,7 @@ import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
 import type { SimulationResult, Sleeves, YearStateRecord } from '../../engine/types';
-import { ASSET } from '../colors';
+import { ASSET, CHART, OUTCOME } from '../colors';
 
 type Props = {
   sim: SimulationResult;
@@ -118,9 +118,14 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       : -1;
     const hasAssumedCash = lastAssumedCashT >= 0;
 
+    // Chart-chrome colors resolved once for interpolation into Highcharts'
+    // HTML label/tooltip strings (which can't take a class).
+    const cFaint = CHART.faint;
+    const cMuted = CHART.muted;
+
     // Depletion plotLine
     const plotLines: Highcharts.XAxisPlotLinesOptions[] = depletedAt != null
-      ? [{ value: depletedAt, color: '#d33', width: 1, dashStyle: 'Dash', zIndex: 5 }]
+      ? [{ value: depletedAt, color: OUTCOME.depleted, width: 1, dashStyle: 'Dash', zIndex: 5 }]
       : [];
 
     // Shade the pre-1934 range where cash returns are assumed, not measured.
@@ -128,7 +133,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       ? [{
           from: -0.5,
           to: lastAssumedCashT + 0.5,
-          color: 'rgba(0,0,0,0.035)',
+          color: CHART.shade,
         }]
       : [];
 
@@ -152,8 +157,8 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
             const cal = xCategories[Math.round(t)];
             // Show "y{t}\n{cal}" — use two lines via HTML
             return cal
-              ? `<span style="font-size:9px;color:#888">y${Math.round(t)}<br/><span style="color:#666">${cal}</span></span>`
-              : `<span style="font-size:9px;color:#888">y${Math.round(t)}</span>`;
+              ? `<span style="font-size:9px;color:${cFaint}">y${Math.round(t)}<br/><span style="color:${cMuted}">${cal}</span></span>`
+              : `<span style="font-size:9px;color:${cFaint}">y${Math.round(t)}</span>`;
           },
           useHTML: true,
         },
@@ -161,7 +166,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
       yAxis: [
         {
           // Axis 0: sleeve balances (top 75%)
-          title: { text: 'holdings (real $)', style: { fontSize: '10px', color: '#555' } },
+          title: { text: 'holdings (real $)', style: { fontSize: '10px', color: CHART.label } },
           height: '72%',
           top: '0%',
           offset: 0,
@@ -176,7 +181,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         },
         {
           // Axis 1: withdrawals (bottom 25%)
-          title: { text: 'w/d', style: { fontSize: '9px', color: '#888' } },
+          title: { text: 'w/d', style: { fontSize: '9px', color: CHART.faint } },
           height: '22%',
           top: '78%',
           offset: 0,
@@ -188,7 +193,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
           },
           tickAmount: 3,
           min: 0,
-          gridLineColor: '#f5f5f5',
+          gridLineColor: CHART.hairline,
         },
       ],
       tooltip: {
@@ -206,7 +211,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
             `  drawn: ${fmt$(wb.stock)} stk · ${fmt$(wb.bond)} bnd · ${fmt$(wb.cash)} csh`,
             r.return != null ? `Return: ${fmtPct(r.return)} ${r.return >= 0 ? '▲' : '▼'}` : null,
             r.calendarYear < CASH_DATA_START_YEAR
-              ? `<span style="color:#999">cash return assumed 0% real (pre-${CASH_DATA_START_YEAR})</span>`
+              ? `<span style="color:${cFaint}">cash return assumed 0% real (pre-${CASH_DATA_START_YEAR})</span>`
               : null,
           ].filter(Boolean) as string[];
           return lines.join('<br/>');

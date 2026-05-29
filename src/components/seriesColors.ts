@@ -11,6 +11,10 @@ export function colorAt(i: number): string {
   return SERIES_COLORS[i % SERIES_COLORS.length];
 }
 
+/** Highlight color for Pareto-optimal points in the optimize scatter — the
+ *  categorical red from the series palette, named so it isn't a loose literal. */
+export const FRONTIER_HIGHLIGHT = SERIES_COLORS[3]; // '#d62728'
+
 /** Same color with an alpha suffix (8-digit hex), for translucent fills. */
 export function withAlpha(hex: string, alpha: number): string {
   const a = Math.round(Math.max(0, Math.min(1, alpha)) * 255)

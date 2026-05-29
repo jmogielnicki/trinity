@@ -27,7 +27,8 @@ import { StudyTrajectories } from './StudyTrajectories';
 import { DEFAULT_WITHDRAWAL_SOURCE } from '../../engine/withdrawalSource';
 import { SaveScenarioModal } from '../SaveScenarioModal';
 import type { SerializedState } from '../../data/urlState';
-import { colorAt } from '../seriesColors';
+import { colorAt, FRONTIER_HIGHLIGHT } from '../seriesColors';
+import { CHART } from '../colors';
 import {
   FinalBalanceDistributionChart,
   SpendDistributionChart,
@@ -661,10 +662,10 @@ function ScatterPlot({
 
     const colorFor = (r: CandidateResult): string => {
       if (colorBy === 'frontier') {
-        return frontierIds.has(r.candidate.id) ? '#d62728' : '#888';
+        return frontierIds.has(r.candidate.id) ? FRONTIER_HIGHLIGHT : CHART.faint;
       }
       const v = colorValue(r, colorBy);
-      if (typeof v !== 'number' || !Number.isFinite(v)) return '#ccc';
+      if (typeof v !== 'number' || !Number.isFinite(v)) return CHART.grid;
       return colorScale((v - cMin) / cRange);
     };
 
@@ -780,8 +781,8 @@ function ScatterPlot({
       <div className="flex gap-4 text-xs text-text-secondary mt-1.5 px-1.5">
         {colorBy === 'frontier' ? (
           <>
-            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1" style={{ background: '#d62728' }} /> Pareto-optimal</span>
-            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1 opacity-50" style={{ background: '#aaa' }} /> dominated</span>
+            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1" style={{ background: FRONTIER_HIGHLIGHT }} /> Pareto-optimal</span>
+            <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1 opacity-50" style={{ background: CHART.faint }} /> dominated</span>
           </>
         ) : (
           <ColorBar colorBy={colorBy} cMin={cMin} cMax={cMax} />

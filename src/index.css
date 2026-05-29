@@ -33,6 +33,22 @@
   /* Chart / UI accent (D3 default blue) */
   --color-chart-blue: #1f77b4;
 
+  /* Chart chrome — axis/grid/label/handle colors for the D3 + Highcharts views,
+     consumed by components/colors.ts (CHART). Warm green-tinted greys so charts
+     sit on the Evergreen paper instead of looking cold/neutral. Ink→faint
+     mirrors the text ramp; grid/hairline mirror the border ramp.
+     --color-chart-accent (forest) replaces the old ad-hoc blues (#357/#4a90d9)
+     used for "this strategy"/"start" highlight markers. */
+  --color-chart-ink:      #1B2A23;   /* strongest: selected handles, emphasis */
+  --color-chart-label:    #51635A;   /* axis titles */
+  --color-chart-muted:    #6B7C72;   /* axis tick labels */
+  --color-chart-faint:    #8B968C;   /* minor ticks, secondary marks */
+  --color-chart-grid:     #E4DECF;   /* gridlines, axis lines */
+  --color-chart-hairline: #EDE7D8;   /* faint gridlines */
+  --color-chart-accent:        #14513A;  /* forest — highlight strokes/fills */
+  --color-chart-accent-light:  #4F8F6F;  /* lighter forest — "start" markers */
+  --color-chart-shade:         rgba(27,42,35,0.05);  /* subtle plot-band shade */
+
   /* Semantic status — re-pointed to Evergreen positive/negative tones.
      positive/negative are the canonical role names; success/error remain as
      aliases for existing utility classes. */

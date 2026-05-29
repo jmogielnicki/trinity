@@ -1,6 +1,6 @@
 import { useLayoutEffect, useEffect, useRef, useState, useCallback } from 'react';
 import type { ScenarioResult, SimulationResult } from '../../engine/types';
-import { OUTCOME } from '../colors';
+import { CHART, OUTCOME } from '../colors';
 
 type Props = {
   result: ScenarioResult;
@@ -196,8 +196,8 @@ export function StartYearChart({
         {spendGrid.map(({ val, y }) => (
           <g key={`sg-${val}`}>
             <line x1={ml} x2={W - mr} y1={y} y2={y}
-              stroke={val === 0 ? '#bbb' : '#ebebeb'} strokeWidth={val === 0 ? 1.5 : 1} />
-            <text x={ml - 6} y={y} dy="0.32em" textAnchor="end" fontSize={11} fill="#666">
+              stroke={val === 0 ? CHART.faint : CHART.hairline} strokeWidth={val === 0 ? 1.5 : 1} />
+            <text x={ml - 6} y={y} dy="0.32em" textAnchor="end" fontSize={11} fill={CHART.muted}>
               {fmt(val)}
             </text>
           </g>
@@ -205,23 +205,23 @@ export function StartYearChart({
         {/* Y-axis label */}
         <text
           transform={`translate(${ml - 60},${spendY0 + spendH / 2}) rotate(-90)`}
-          textAnchor="middle" fontSize={11} fill="#555"
+          textAnchor="middle" fontSize={11} fill={CHART.muted}
         >
           avg annual spend
         </text>
         {/* Lines */}
         {completedSims.length > 1 && (
           <polyline points={pts(completedSims, (s) => spendYOf(avgSpendOf(s)))}
-            fill="none" stroke="#2c5282" strokeWidth={1.5} opacity={0.75} />
+            fill="none" stroke={OUTCOME.survived} strokeWidth={1.5} opacity={0.75} />
         )}
         {lastCompleted && firstInProgress && (
           <polyline
             points={`${xOf(lastCompleted.startYear).toFixed(1)},${spendYOf(avgSpendOf(lastCompleted)).toFixed(1)} ${xOf(firstInProgress.startYear).toFixed(1)},${spendYOf(avgSpendOf(firstInProgress)).toFixed(1)}`}
-            fill="none" stroke="#888" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5} />
+            fill="none" stroke={CHART.faint} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5} />
         )}
         {inProgressSims.length > 1 && (
           <polyline points={pts(inProgressSims, (s) => spendYOf(avgSpendOf(s)))}
-            fill="none" stroke="#888" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5} />
+            fill="none" stroke={CHART.faint} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5} />
         )}
         {/* Dots */}
         {sims.map((s) => {
@@ -231,21 +231,21 @@ export function StartYearChart({
               r={isSelected ? dotR + 1.5 : dotR}
               fill={colorOf(s)}
               fillOpacity={hasSelection && !isSelected ? 0.25 : s.inProgress ? 0.5 : 0.85}
-              stroke={isSelected ? '#111' : 'none'} strokeWidth={isSelected ? 1.5 : 0}
+              stroke={isSelected ? CHART.ink : 'none'} strokeWidth={isSelected ? 1.5 : 0}
               pointerEvents="none" />
           );
         })}
 
         {/* ══ Panel divider ═════════════════════════════════════════════════ */}
         <line x1={ml} x2={W - mr} y1={balY0 - gap / 2} y2={balY0 - gap / 2}
-          stroke="#ddd" strokeWidth={1} />
+          stroke={CHART.grid} strokeWidth={1} />
 
         {/* ══ Terminal balance ══════════════════════════════════════════════ */}
         {balGrid.map(({ val, y }) => (
           <g key={`bg-${val}`}>
             <line x1={ml} x2={W - mr} y1={y} y2={y}
-              stroke={val === 0 ? '#bbb' : '#ebebeb'} strokeWidth={val === 0 ? 1.5 : 1} />
-            <text x={ml - 6} y={y} dy="0.32em" textAnchor="end" fontSize={11} fill="#666">
+              stroke={val === 0 ? CHART.faint : CHART.hairline} strokeWidth={val === 0 ? 1.5 : 1} />
+            <text x={ml - 6} y={y} dy="0.32em" textAnchor="end" fontSize={11} fill={CHART.muted}>
               {fmt(val)}
             </text>
           </g>
@@ -253,13 +253,13 @@ export function StartYearChart({
         {/* Starting balance reference */}
         <line x1={ml} x2={W - mr}
           y1={balYOf(initialBalance)} y2={balYOf(initialBalance)}
-          stroke="#4a90d9" strokeWidth={1} strokeDasharray="4,3" opacity={0.55} />
+          stroke={CHART.accentLight} strokeWidth={1} strokeDasharray="4,3" opacity={0.55} />
         <text x={W - mr + 5} y={balYOf(initialBalance)} dy="0.32em"
-          fontSize={10} fill="#4a90d9" opacity={0.8}>start</text>
+          fontSize={10} fill={CHART.accentLight} opacity={0.8}>start</text>
         {/* Y-axis label */}
         <text
           transform={`translate(${ml - 60},${balY0 + balH / 2}) rotate(-90)`}
-          textAnchor="middle" fontSize={11} fill="#555"
+          textAnchor="middle" fontSize={11} fill={CHART.muted}
         >
           terminal balance
         </text>
@@ -267,16 +267,16 @@ export function StartYearChart({
         {completedSims.length > 1 && (
           <polyline
             points={pts(completedSims, (s) => balYOf(s.success ? (s.finalBalance ?? 0) : 0))}
-            fill="none" stroke="#2c5282" strokeWidth={1.5} opacity={0.75} />
+            fill="none" stroke={OUTCOME.survived} strokeWidth={1.5} opacity={0.75} />
         )}
         {lastCompleted && firstInProgress && (
           <polyline
             points={`${xOf(lastCompleted.startYear).toFixed(1)},${balYOf(lastCompleted.success ? (lastCompleted.finalBalance ?? 0) : 0).toFixed(1)} ${xOf(firstInProgress.startYear).toFixed(1)},${balYOf(firstInProgress.finalBalance ?? 0).toFixed(1)}`}
-            fill="none" stroke="#888" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5} />
+            fill="none" stroke={CHART.faint} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5} />
         )}
         {inProgressSims.length > 1 && (
           <polyline points={pts(inProgressSims, (s) => balYOf(s.finalBalance ?? 0))}
-            fill="none" stroke="#888" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5} />
+            fill="none" stroke={CHART.faint} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.5} />
         )}
         {/* Dots */}
         {sims.map((s) => {
@@ -287,18 +287,18 @@ export function StartYearChart({
               r={isSelected ? dotR + 1.5 : dotR}
               fill={colorOf(s)}
               fillOpacity={hasSelection && !isSelected ? 0.25 : s.inProgress ? 0.5 : 0.85}
-              stroke={isSelected ? '#111' : 'none'} strokeWidth={isSelected ? 1.5 : 0}
+              stroke={isSelected ? CHART.ink : 'none'} strokeWidth={isSelected ? 1.5 : 0}
               pointerEvents="none" />
           );
         })}
 
         {/* ══ Panel divider ═════════════════════════════════════════════════ */}
         <line x1={ml} x2={W - mr} y1={stripY0 - gap / 2} y2={stripY0 - gap / 2}
-          stroke="#ddd" strokeWidth={1} />
+          stroke={CHART.grid} strokeWidth={1} />
 
         {/* ══ Outcome barcode ═══════════════════════════════════════════════ */}
         <text x={ml - 6} y={stripY0 + stripH / 2} dy="0.32em"
-          textAnchor="end" fontSize={11} fill="#444">start yr</text>
+          textAnchor="end" fontSize={11} fill={CHART.label}>start yr</text>
         {sims.map((s) => {
           const x = ml + ((s.startYear - firstYear) / (span + 1)) * innerW;
           const isSelected = selectedYears?.has(s.startYear) ?? false;
@@ -309,7 +309,7 @@ export function StartYearChart({
               {isSelected && (
                 <rect x={x - 0.5} y={stripY0 - 1}
                   width={Math.max(2, colW + 0.5)} height={stripH + 2}
-                  fill="none" stroke="#111" strokeWidth={1.5} pointerEvents="none" />
+                  fill="none" stroke={CHART.ink} strokeWidth={1.5} pointerEvents="none" />
               )}
             </g>
           );
@@ -318,8 +318,8 @@ export function StartYearChart({
         {/* ══ X-axis ticks ══════════════════════════════════════════════════ */}
         {ticks.map((y) => (
           <g key={`tick-${y}`} transform={`translate(${xOf(y)},${stripY0 + stripH})`}>
-            <line y1={0} y2={4} stroke="#888" />
-            <text y={16} textAnchor="middle" fontSize={11} fill="#666">{y}</text>
+            <line y1={0} y2={4} stroke={CHART.faint} />
+            <text y={16} textAnchor="middle" fontSize={11} fill={CHART.muted}>{y}</text>
           </g>
         ))}
 
@@ -330,7 +330,7 @@ export function StartYearChart({
           return (
             <line key={`rule-${year}`}
               x1={cx} x2={cx} y1={spendY0} y2={stripY0 + stripH}
-              stroke="#111" strokeWidth={1} strokeDasharray="2,2" opacity={0.3}
+              stroke={CHART.ink} strokeWidth={1} strokeDasharray="2,2" opacity={0.3}
               pointerEvents="none" />
           );
         })}
@@ -354,7 +354,7 @@ export function StartYearChart({
           <rect
             x={Math.min(drag.x0, drag.x1)} y={spendY0}
             width={Math.abs(drag.x1 - drag.x0)} height={stripY0 + stripH - spendY0}
-            fill="#357" fillOpacity={0.1} stroke="#357" strokeWidth={1} strokeDasharray="3,3"
+            fill={CHART.accent} fillOpacity={0.1} stroke={CHART.accent} strokeWidth={1} strokeDasharray="3,3"
             pointerEvents="none" />
         )}
 
@@ -384,11 +384,11 @@ export function StartYearChart({
           return (
             <g pointerEvents="none">
               <rect x={ttX} y={ttY} width={ttW} height={ttH}
-                fill="white" stroke="#ccc" strokeWidth={1} rx={4}
+                fill={CHART.surface} stroke={CHART.grid} strokeWidth={1} rx={4}
                 filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))" />
               {lines.map((l, i) => (
                 <text key={i} x={ttX + 9} y={ttY + 13 + i * 15}
-                  fontSize={11} fill={l.bold ? '#111' : '#555'}
+                  fontSize={11} fill={l.bold ? CHART.ink : CHART.muted}
                   fontWeight={l.bold ? '600' : 'normal'}>
                   {l.text}
                 </text>

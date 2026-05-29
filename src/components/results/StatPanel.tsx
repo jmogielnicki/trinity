@@ -1,6 +1,6 @@
 import { avgAnnualWithdrawal, minBalanceReached } from '../../engine/stats';
 import type { ScenarioResult } from '../../engine/types';
-import { OUTCOME } from '../colors';
+import { CHART, OUTCOME } from '../colors';
 
 type Props = {
   result: ScenarioResult;
@@ -117,7 +117,7 @@ function SuccessDonut({ rate }: { rate: number }) {
         dominantBaseline="central"
         fontSize={15}
         fontWeight={500}
-        fill="#666"
+        fill={CHART.muted}
       >
         success
       </text>

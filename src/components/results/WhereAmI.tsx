@@ -7,6 +7,7 @@ import type {
   ScenarioResult,
   SimulationResult,
 } from '../../engine/types';
+import { CHART, OUTCOME } from '../colors';
 
 type Props = {
   result: ScenarioResult;
@@ -167,7 +168,7 @@ function Card({
       xAxis: {
         min: 0,
         max: horizonYears - 1,
-        title: { text: `year (data through ${dataEnd})`, style: { color: '#666', fontSize: '10px' } },
+        title: { text: `year (data through ${dataEnd})`, style: { color: CHART.muted, fontSize: '10px' } },
         tickInterval: Math.ceil((horizonYears - 1) / 5) || 1,
         labels: { style: { fontSize: '10px' } },
       },
@@ -188,7 +189,7 @@ function Card({
         {
           type: 'arearange',
           data: outerBandData,
-          color: '#357',
+          color: CHART.accent,
           fillOpacity: 0.08,
           lineWidth: 0,
           enableMouseTracking: false,
@@ -198,7 +199,7 @@ function Card({
         {
           type: 'arearange',
           data: innerBandData,
-          color: '#357',
+          color: CHART.accent,
           fillOpacity: 0.16,
           lineWidth: 0,
           enableMouseTracking: false,
@@ -208,7 +209,7 @@ function Card({
         {
           type: 'line',
           data: medianData,
-          color: '#357',
+          color: CHART.accent,
           lineWidth: 1.2,
           dashStyle: 'ShortDash',
           enableMouseTracking: false,
@@ -218,7 +219,7 @@ function Card({
         {
           type: 'line',
           data: prefixData,
-          color: '#c44',
+          color: OUTCOME.snapshot,
           lineWidth: 2,
           enableMouseTracking: false,
           marker: { enabled: false },
@@ -227,7 +228,7 @@ function Card({
         {
           type: 'scatter',
           data: dotData,
-          color: '#c44',
+          color: OUTCOME.snapshot,
           marker: {
             enabled: true,
             radius: 3.5,
