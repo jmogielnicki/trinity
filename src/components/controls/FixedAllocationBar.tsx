@@ -99,8 +99,10 @@ export function FixedAllocationBar({ weights, onChange, height = 44 }: Props) {
           <div style={{ width: `${weights.bond * 100}%`, background: ASSET.bond }} />
           <div style={{ width: `${weights.cash * 100}%`, background: ASSET.cash }} />
         </div>
-        {b1 > 0.001 && b1 < 0.999 && <Handle left={b1} which="stockBond" />}
-        {b2 > 0.001 && b2 < 0.999 && <Handle left={b2} which="bondCash" />}
+        {/* Both handles always render — even at 0% cash the bond|cash handle
+            stays at the right edge so the user can grab it to pull cash in. */}
+        <Handle left={b1} which="stockBond" />
+        <Handle left={b2} which="bondCash" />
       </div>
       <div className="flex justify-between">
         {SLEEVES.map((s) => (

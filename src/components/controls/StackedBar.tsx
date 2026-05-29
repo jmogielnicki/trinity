@@ -87,7 +87,9 @@ export function StackedBar({
     if (!activeDrag.current || !svgRef.current) return;
     const { innerH: h, marginTop: mt } = layoutRef.current;
     const rect = svgRef.current.getBoundingClientRect();
-    const yPx = Math.max(0, Math.min(h, e.clientY - rect.top - mt));
+    const rawY = Math.max(0, Math.min(h, e.clientY - rect.top - mt));
+    // Snap to 5% increments of the bar height (matches the fixed controller).
+    const yPx = Math.round(rawY / (h * 0.05)) * (h * 0.05);
     const { ci, boundary } = activeDrag.current;
 
     setLocal(prev => {

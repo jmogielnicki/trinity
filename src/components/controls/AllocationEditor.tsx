@@ -110,10 +110,10 @@ function FixedAllocationEditor({ weights, onChange }: { weights: Weights; onChan
 
 function ModeToggle({ current, onChange }: { current: Mode; onChange: (m: Mode) => void }) {
   const modes: Array<{ k: Mode; label: string }> = [
-    { k: 'fixed', label: 'fixed' },
-    { k: 'glide', label: 'glide' },
-    { k: 'rules', label: 'rules' },
-    { k: 'script', label: 'script' },
+    { k: 'fixed', label: 'Fixed' },
+    { k: 'glide', label: 'Glide' },
+    { k: 'rules', label: 'Rules' },
+    { k: 'script', label: 'Script' },
   ];
   return (
     <TabBar>

@@ -58,19 +58,19 @@ export function WithdrawalSourceInput({ value, onChange, hideLabel }: Props = {}
           active={mode === 'proportional'}
           onClick={() => setWithdrawalSource({ type: 'proportional', rebalance: true })}
         >
-          proportional
+          Proportional
         </ToggleButton>
         <ToggleButton
           active={mode === 'waterfall'}
           onClick={() => setWithdrawalSource({ type: 'waterfall', order: DEFAULT_WATERFALL_ORDER })}
         >
-          waterfall
+          Waterfall
         </ToggleButton>
         <ToggleButton
           active={mode === 'bucket'}
           onClick={() => setWithdrawalSource({ type: 'bucket', order: DEFAULT_WATERFALL_ORDER, refill: DEFAULT_REFILL_CHAIN })}
         >
-          bucket
+          Bucket
         </ToggleButton>
       </TabBar>
 

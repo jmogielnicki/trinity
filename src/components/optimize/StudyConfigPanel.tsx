@@ -276,10 +276,10 @@ function VaryEditor({
       <div className="mb-2">
         <TabBar>
           <ToggleButton active={mode === 'range'} onClick={() => setMode('range')}>
-            range
+            Range
           </ToggleButton>
           <ToggleButton active={mode === 'list'} onClick={() => setMode('list')}>
-            hand-picked list
+            Hand-picked list
           </ToggleButton>
         </TabBar>
       </div>
@@ -404,7 +404,7 @@ function AllocationRangeEditor({
             if (spec.subMode !== 'static') setSpec(STATIC_DEFAULT);
           }}
         >
-          static
+          Static
         </ToggleButton>
         <ToggleButton
           active={spec.subMode === 'glide'}
@@ -412,7 +412,7 @@ function AllocationRangeEditor({
             if (spec.subMode !== 'glide') setSpec(GLIDE_DEFAULT);
           }}
         >
-          glide path
+          Glide path
         </ToggleButton>
       </TabBar>
       {spec.subMode === 'static' ? (

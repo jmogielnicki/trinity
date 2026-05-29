@@ -105,6 +105,11 @@
   --text-2xl:  1.75rem;     /* 28px */
   --text-3xl:  2.25rem;     /* 36px */
 
+  /* Layout breakpoint: the single-column ⇄ sidebar+results switch (the
+     "Build your plan" panel, FAB, header Save) happens at md = 850px. The raw
+     header-collapse @media query below is kept in sync at 850px too. */
+  --breakpoint-md: 850px;
+
   /* Radius scale — pinned to the Evergreen prototype's rounder geometry.
      --radius-xs backs small controls/chips; the md/lg/xl steps make cards and
      panels noticeably rounder than Tailwind's defaults (6/8/12px). */
@@ -209,7 +214,7 @@
 }
 /* ─── Desktop: context bar collapses to nothing; pills migrate to title row ── */
 /* Must be unlayered to override the unlayered display:flex / height rules above. */
-@media (min-width: 768px) {
+@media (min-width: 850px) {
   /* Full-size title on desktop. */
   .shrinking-title-box h1 {
     font-size: calc(1.75rem - 0.25rem * var(--scroll-p));

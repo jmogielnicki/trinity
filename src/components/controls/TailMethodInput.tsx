@@ -28,13 +28,13 @@ export function TailMethodInput() {
           active={!isBootstrap}
           onClick={() => setTailMethod({ type: 'truncate' })}
         >
-          truncate
+          Truncate
         </ToggleButton>
         <ToggleButton
           active={isBootstrap}
           onClick={() => setTailMethod(DEFAULT_BOOTSTRAP)}
         >
-          bootstrap
+          Bootstrap
         </ToggleButton>
       </TabBar>
       {isBootstrap && (

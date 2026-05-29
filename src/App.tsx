@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
-import { ScenarioLibrary } from './components/controls/ScenarioLibrary';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
 import { WithdrawalSourceInput } from './components/controls/WithdrawalSourceInput';
 import { SimDetailPanel } from './components/results/SimDetailPanel';
@@ -295,14 +294,11 @@ export function App() {
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               {topMode === 'single' && (
-                <Button
-                  size="md"
-                  className="hidden md:inline-flex"
-                  onClick={() => setSaveOpen(true)}
-                  title="Save strategy"
-                >
-                  Save strategy
-                </Button>
+                <div className="hidden md:block">
+                  <Button size="md" onClick={() => setSaveOpen(true)} title="Save strategy">
+                    Save strategy
+                  </Button>
+                </div>
               )}
               <AuthControl />
               <button
@@ -384,11 +380,10 @@ export function App() {
                 <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Withdrawal source</h3>
                 <WithdrawalSourceInput hideLabel/>
               </section>
-              <ScenarioLibrary />
               {/* Desktop save button — sticky footer */}
               <div className="hidden md:block border-t border-border pt-4 mt-1">
                 <Button variant="soft" size="lg" fullWidth onClick={() => setSaveOpen(true)}>
-                  Save to library
+                  Save strategy
                 </Button>
               </div>
             </aside>

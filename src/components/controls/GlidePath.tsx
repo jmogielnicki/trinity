@@ -21,11 +21,9 @@ function allocToEndpoints(a: AllocationStrategy): Endpoints {
 }
 
 function endpointsToAllocation(ep: Endpoints, horizonYears: number): AllocationStrategy {
-  const same =
-    ep.start.stock === ep.end.stock &&
-    ep.start.bond  === ep.end.bond  &&
-    ep.start.cash  === ep.end.cash;
-  if (same) return { type: 'static', weights: ep.start };
+  // Always stay a glidepath while the glide editor is mounted — even when the
+  // two endpoints momentarily match. Collapsing to 'static' would flip the
+  // AllocationEditor tab back to "Fixed" mid-drag, which is jarring.
   return { type: 'glidepath', start: ep.start, end: ep.end, transitionYears: horizonYears };
 }
 

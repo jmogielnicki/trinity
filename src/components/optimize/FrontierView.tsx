@@ -311,10 +311,10 @@ export function FrontierView({ onApplied }: Props) {
             <div className="mr-1">
               <TabBar>
                 <ToggleButton active={viewMode === 'scatter'} onClick={() => setViewMode('scatter')}>
-                  scatter
+                  Scatter
                 </ToggleButton>
                 <ToggleButton active={viewMode === 'trajectories'} onClick={() => setViewMode('trajectories')}>
-                  trajectories
+                  Trajectories
                 </ToggleButton>
               </TabBar>
             </div>
