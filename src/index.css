@@ -167,12 +167,17 @@
   height: calc(86px - 32px * var(--scroll-p));
 }
 
+/* Mobile-first: smaller title so it fits the narrow column (logo + actions)
+   without blowing past the fixed-height box. Desktop bumps it up below. */
 .shrinking-title-box h1 {
-  font-size: calc(1.75rem - 0.25rem * var(--scroll-p));
-  line-height: 1;
+  font-size: calc(1.375rem - 0.125rem * var(--scroll-p));
+  line-height: 1.1;
 }
 
 .shrinking-subtitle {
+  /* Hidden on mobile — the long sentence wraps and clips inside the fixed-height
+     title box. Shown (absolute + nowrap) on desktop, where there's room. */
+  display: none;
   margin: 0;
   pointer-events: none;
   overflow: hidden;
@@ -192,8 +197,14 @@
 /* ─── Desktop: context bar collapses to nothing; pills migrate to title row ── */
 /* Must be unlayered to override the unlayered display:flex / height rules above. */
 @media (min-width: 768px) {
-  /* Subtitle out of flow so it doesn't widen the title column past the h1 */
+  /* Full-size title on desktop. */
+  .shrinking-title-box h1 {
+    font-size: calc(1.75rem - 0.25rem * var(--scroll-p));
+    line-height: 1;
+  }
+  /* Subtitle out of flow (and visible) so it doesn't widen the title column past the h1 */
   .shrinking-subtitle {
+    display: block;
     position: absolute;
     top: 100%;
     left: 0;
