@@ -42,9 +42,9 @@ const VARIANTS: Record<Variant, string> = {
 };
 
 const SIZES: Record<Size, string> = {
-  sm: 'text-sm px-2.5 py-1 rounded-md',
-  md: 'text-md font-semibold px-4 py-2 rounded-lg',
-  lg: 'text-md font-semibold px-5 py-3 rounded-xl',
+  sm: 'text-sm font-semibold px-3 py-1.5 rounded-full',
+  md: 'text-md font-semibold px-5 py-2.5 rounded-full',
+  lg: 'text-md font-semibold px-6 py-3 rounded-full',
 };
 
 export function Button({

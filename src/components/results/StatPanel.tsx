@@ -74,12 +74,12 @@ function Stat({
 }) {
   return (
     <div
-      className="bg-surface-muted px-3.5 py-2.5 rounded-md flex flex-col justify-center"
+      className="bg-surface-muted px-4 py-3 rounded-md flex flex-col justify-center"
       style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
     >
-      <div className="text-2xs text-text-muted uppercase tracking-[0.04em] leading-tight">{label}</div>
-      <div className="tnum text-lg font-semibold mt-1 leading-none">{value}</div>
-      {sub && <div className="text-2xs text-text-faint mt-1 leading-tight">{sub}</div>}
+      <div className="text-2xs text-text-muted uppercase tracking-[0.08em] leading-tight">{label}</div>
+      <div className="tnum text-xl font-bold mt-1.5 leading-none">{value}</div>
+      {sub && <div className="text-xs text-text-faint mt-1.5 leading-tight">{sub}</div>}
     </div>
   );
 }

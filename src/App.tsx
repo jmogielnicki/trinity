@@ -369,19 +369,19 @@ export function App() {
                   <h2 className="font-display m-0 text-xl font-bold text-text">Build your plan</h2>
                 </div>
                 <PresetPicker />
-                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Allocation</h3>
+                <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Allocation</h3>
                 <AllocationEditor
                   horizonYears={scenario.horizonYears}
                   allocation={scenario.allocation}
                   onChange={scenario.setAllocation}
                 />
-                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal strategy</h3>
+                <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Withdrawal strategy</h3>
                 <WithdrawalEditor
                   horizonYears={scenario.horizonYears}
                   withdrawal={scenario.withdrawal}
                   onChange={scenario.setWithdrawal}
                 />
-                <h3 className="mt-1 text-base font-bold text-text tracking-[0.01em] border-b border-border pb-1">Withdrawal source</h3>
+                <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Withdrawal source</h3>
                 <WithdrawalSourceInput hideLabel/>
               </section>
               <ScenarioLibrary />
@@ -477,7 +477,7 @@ export function App() {
                 <Card variant="elevated" className="flex flex-col gap-4">
                   <div className="grid grid-cols-1 min-[1000px]:grid-cols-2 gap-4 items-start">
                     <div className="min-w-0">
-                      <h3 className="font-display text-base font-semibold text-text mb-1.5">Portfolio balance over time</h3>
+                      <h3 className="font-display text-lg font-bold text-text mb-2">Portfolio balance over time</h3>
                       <SpaghettiChart
                         result={result}
                         overlay={null}
@@ -489,7 +489,7 @@ export function App() {
                       />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-display text-base font-semibold text-text mb-1.5">Spending and final balance by retirement start year (real $)</h3>
+                      <h3 className="font-display text-lg font-bold text-text mb-2">Spending and final balance by retirement start year (real $)</h3>
                       <StartYearChart
                         result={result}
                         initialBalance={scenario.initialBalance}
