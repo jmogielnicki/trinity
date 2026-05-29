@@ -34,7 +34,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[380px] flex flex-col gap-4 p-5">
         <div className="flex items-center justify-between">
-          <h2 className="m-0 text-lg font-bold text-text">
+          <h2 className="font-display m-0 text-lg font-bold text-text">
             {mode === 'signin' ? 'Sign in' : 'Create account'}
           </h2>
           <IconButton onClick={onClose} aria-label="Close">✕</IconButton>

@@ -129,6 +129,19 @@
     overflow-anchor: none;
   }
 
+  /* Tabular figures everywhere numbers matter — money, percentages, years.
+     Applied via the .tnum utility (and baked into .font-display headings so
+     numeric headings like the success % stay aligned). */
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* Serif display face for titles/headings. A utility (not a blanket h1–h3
+     rule) so the small uppercase "eyebrow" labels can stay sans. */
+  .font-display {
+    font-family: var(--font-serif);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
   /* Strip browser spinners — can't be done with a utility class */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {

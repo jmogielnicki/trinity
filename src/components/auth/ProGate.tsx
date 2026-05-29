@@ -23,7 +23,7 @@ export function ProGate({ title, blurb }: { title: string; blurb: string }) {
       <span className="text-2xs font-semibold uppercase tracking-widest text-secondary">
         Pro feature
       </span>
-      <h2 className="m-0 text-xl font-bold text-text">{title}</h2>
+      <h2 className="font-display m-0 text-xl font-bold text-text">{title}</h2>
       <p className="m-0 max-w-[440px] text-base text-text-muted leading-relaxed">{blurb}</p>
       <Button className="mt-1" onClick={onClick}>
         {authed ? 'Upgrade to Pro' : 'Sign in to upgrade'}

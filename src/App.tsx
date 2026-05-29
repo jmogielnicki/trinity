@@ -274,7 +274,7 @@ export function App() {
           {/* Title row — height + h1 font-size driven by .shrinking-title-box CSS */}
           <div className="shrinking-title-box">
             <div className="min-w-0 md:relative flex flex-col justify-center gap-1">
-              <h1 className="font-bold text-primary m-0">
+              <h1 className="font-display font-bold text-primary m-0">
                 Retirement calculator
               </h1>
               <p className="shrinking-subtitle text-text-muted text-base">
@@ -453,7 +453,7 @@ export function App() {
                 <StatPanel result={result} />
                 <div className="grid grid-cols-1 min-[1000px]:grid-cols-2 gap-3 items-start">
                   <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-text mb-1.5">Portfolio balance over time</h3>
+                    <h3 className="font-display text-base font-semibold text-text mb-1.5">Portfolio balance over time</h3>
                     <SpaghettiChart
                       result={result}
                       overlay={null}
@@ -465,7 +465,7 @@ export function App() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-text mb-1.5">Spending and final balance by retirement start year (real $)</h3>
+                    <h3 className="font-display text-base font-semibold text-text mb-1.5">Spending and final balance by retirement start year (real $)</h3>
                     <StartYearChart
                       result={result}
                       initialBalance={scenario.initialBalance}

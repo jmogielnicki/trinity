@@ -55,7 +55,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-surface-muted px-3 py-2 rounded-md flex flex-col justify-center">
       <div className="text-2xs text-text-muted uppercase tracking-[0.04em] leading-tight">{label}</div>
-      <div className="text-lg font-medium mt-0.5">{value}</div>
+      <div className="tnum text-lg font-semibold mt-0.5">{value}</div>
     </div>
   );
 }
