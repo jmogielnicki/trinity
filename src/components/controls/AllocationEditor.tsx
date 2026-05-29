@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { AllocationStrategy } from '../../engine/strategies';
 import type { Weights } from '../../engine/types';
-import { ASSET } from '../colors';
-import { StackedBar } from './StackedBar';
+import { FixedAllocationBar } from './FixedAllocationBar';
 import { AllocationRuleBuilder } from './AllocationRuleBuilder';
 import { CustomScriptEditor } from './CustomScriptEditor';
 import { GlidePath } from './GlidePath';
@@ -100,16 +99,11 @@ function FixedAllocationEditor({ weights, onChange }: { weights: Weights; onChan
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-text-secondary">Drag the band boundaries to set the allocation.</div>
-      <StackedBar
-        weights={[local]}
-        onChange={(ws) => { setLocal(ws[0]); onChange(ws[0]); }}
+      <div className="text-sm text-text-secondary">Drag the handles to set the allocation.</div>
+      <FixedAllocationBar
+        weights={local}
+        onChange={(w) => { setLocal(w); onChange(w); }}
       />
-      <div className="flex gap-3 text-xs text-text-secondary">
-        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.stock }} /> stocks</span>
-        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.bond }} /> bonds</span>
-        <span><span className="inline-block w-2.5 h-2.5 align-middle mr-1 rounded-sm" style={{ background: ASSET.cash }} /> cash</span>
-      </div>
     </div>
   );
 }

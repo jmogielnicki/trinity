@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { AuthModal } from './AuthModal';
 
 const BTN =
-  'flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold cursor-pointer transition-opacity hover:opacity-90';
+  'flex items-center px-5 py-2.5 rounded-full text-md font-semibold cursor-pointer transition-opacity hover:opacity-90';
 
 export function AuthControl() {
   const { status, user, refresh, signOut, authModalOpen, setAuthModalOpen } = useAuthStore();
@@ -91,7 +91,7 @@ export function AuthControl() {
   return (
     <>
       <button
-        className={`${BTN} text-text-secondary border border-border bg-surface`}
+        className={`${BTN} text-white bg-accent`}
         onClick={() => setAuthModalOpen(true)}
         title="Sign in or create an account"
       >

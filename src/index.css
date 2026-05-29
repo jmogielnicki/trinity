@@ -17,16 +17,18 @@
   --color-accent-soft:   #F3E7CF;
 
   /* Asset class colors — consumed by components/colors.ts via getComputedStyle.
-     Evergreen set: forest stock / gold bond / sage cash. Mutually distinct and
-     distinct from the survived/depleted/in-progress outcome colors (blue/red/
-     grey), which never share a chart with these. */
-  --color-stock: #14513A;
+     Wine stock / gold bond / slate-blue cash. Stock moved off forest so the
+     result charts' "survived" line can own forest green (see outcome colors);
+     the three stay mutually distinct and distinct from the outcome colors. */
+  --color-stock: #5D2A42;
   --color-bond:  #C2872B;
-  --color-cash:  #7CA98C;
-  --color-cash-wash:  #CFE2D3;
+  --color-cash:  #40476D;
+  --color-cash-wash:  #C3C7D8;
 
-  /* Simulation outcome colors — consumed by components/colors.ts. Unchanged in Phase 1. */
-  --color-survived:    #2c5282;
+  /* Simulation outcome colors — consumed by components/colors.ts.
+     survived = forest brand green so the spaghetti / start-year charts read
+     on-theme; no longer collides with stock (now wine). */
+  --color-survived:    #14513A;
   --color-depleted:    #dd3333;
   --color-in-progress: #888888;
   --color-snapshot:    #cc4444;

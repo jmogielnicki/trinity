@@ -98,23 +98,26 @@ function SuccessDonut({ rate }: { rate: number }) {
   const r = 66;
   const sw = 18;
   const c = 2 * Math.PI * r;
+  const successLen = clamped * c;
   return (
     <svg
       viewBox={`0 0 ${D} ${D}`}
-      className="flex-shrink-0 w-40 h-40 min-[1100px]:w-32 min-[1100px]:h-32"
+      className="flex-shrink-0 w-44 h-44 min-[560px]:w-48 min-[560px]:h-48"
       role="img"
       aria-label={`${pct} percent success`}
     >
-      <g transform={`translate(${cx},${cx})`}>
-        <circle r={r} fill="none" stroke="var(--color-surface-3)" strokeWidth={sw} />
+      {/* Red failure track fills the ring; green success arc overlays the
+          leading portion. Butt caps → a crisp straight division between the
+          two, prioritising data legibility. */}
+      <g transform={`translate(${cx},${cx}) rotate(-90)`}>
+        <circle r={r} fill="none" stroke="var(--color-depleted)" strokeWidth={sw} />
         <circle
           r={r}
           fill="none"
-          stroke="var(--color-success)"
+          stroke="var(--color-survived)"
           strokeWidth={sw}
-          strokeDasharray={`${clamped * c} ${c}`}
-          transform="rotate(-90)"
-          strokeLinecap="round"
+          strokeDasharray={`${successLen} ${c}`}
+          strokeLinecap="butt"
         />
       </g>
       <text
