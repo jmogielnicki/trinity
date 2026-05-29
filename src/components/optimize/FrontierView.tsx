@@ -4,6 +4,7 @@ import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
 import { Btn } from '../ui/Btn';
+import { Button } from '../ui/Button';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
 
@@ -457,14 +458,9 @@ function RunStudyButton({
       : `Runs every variant against all historical start years.`;
   return (
     <div className="flex flex-col items-center gap-1.5 py-1">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className="px-6 py-3 rounded-md text-base font-semibold bg-primary text-white shadow-sm cursor-pointer hover:brightness-110 disabled:bg-text-disabled disabled:text-text-faint disabled:cursor-not-allowed disabled:shadow-none transition-all"
-      >
+      <Button onClick={onClick} disabled={disabled} className="px-6 py-3">
         {label}
-      </button>
+      </Button>
       <div className="text-xs text-text-muted">{hint}</div>
     </div>
   );

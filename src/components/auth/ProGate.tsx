@@ -1,5 +1,6 @@
 import { startCheckout } from '../../billing';
 import { useAuthStore } from '../../store/authStore';
+import { Button } from '../ui/Button';
 
 /**
  * Paywall panel shown in place of an advanced (Pro) tool for free/anonymous
@@ -24,12 +25,9 @@ export function ProGate({ title, blurb }: { title: string; blurb: string }) {
       </span>
       <h2 className="m-0 text-xl font-bold text-text">{title}</h2>
       <p className="m-0 max-w-[440px] text-base text-text-muted leading-relaxed">{blurb}</p>
-      <button
-        className="mt-1 px-5 py-2.5 rounded-lg text-md font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
-        onClick={onClick}
-      >
+      <Button className="mt-1" onClick={onClick}>
         {authed ? 'Upgrade to Pro' : 'Sign in to upgrade'}
-      </button>
+      </Button>
     </div>
   );
 }

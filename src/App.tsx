@@ -16,6 +16,8 @@ import { AboutPanel } from './components/AboutPanel';
 import { AuthControl } from './components/auth/AuthControl';
 import { ProGate } from './components/auth/ProGate';
 import { SaveScenarioModal } from './components/SaveScenarioModal';
+import { Button } from './components/ui/Button';
+import { Card } from './components/ui/Card';
 import { IconButton } from './components/ui/IconButton';
 import { NavTab } from './components/ui/NavTab';
 import { authConfigured } from './auth';
@@ -285,13 +287,14 @@ export function App() {
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               {topMode === 'single' && (
-                <button
-                  className="hidden md:flex items-center px-2.5 py-[5px] rounded-lg text-xs font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
+                <Button
+                  size="sm"
+                  className="hidden md:inline-flex text-xs font-semibold"
                   onClick={() => setSaveOpen(true)}
                   title="Save strategy"
                 >
                   Save strategy
-                </button>
+                </Button>
               )}
               <AuthControl />
               <button
@@ -375,17 +378,13 @@ export function App() {
               <ScenarioLibrary />
               {/* Desktop save button — sticky footer */}
               <div className="hidden md:block border-t border-border pt-4 mt-1">
-                <button
-                  className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-md font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
-                  style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.18)' }}
-                  onClick={() => setSaveOpen(true)}
-                >
+                <Button size="lg" fullWidth elevated onClick={() => setSaveOpen(true)}>
                   Save strategy
-                </button>
+                </Button>
               </div>
             </aside>
           )}
-          <main className="bg-surface border border-border rounded-lg p-4 min-w-0">
+          <Card as="section" className="min-w-0">
             {/* Split FAB — mobile only. Left: edit strategy. Right: save strategy.
                 Text labels collapse when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
@@ -504,7 +503,7 @@ export function App() {
               </>
             )}
             </>}
-          </main>
+          </Card>
         </div>
       </div>
 

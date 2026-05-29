@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { FIELD_FULL } from '../ui/fieldCls';
 
@@ -82,13 +83,9 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
 
         {error && <div className="text-sm text-error">{error}</div>}
 
-        <button
-          className="w-full px-4 py-2.5 rounded-lg text-md font-semibold text-white bg-secondary cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={submit}
-          disabled={busy || !email || !password}
-        >
+        <Button fullWidth onClick={submit} disabled={busy || !email || !password}>
           {busy ? 'Working…' : mode === 'signin' ? 'Sign in' : 'Create account'}
-        </button>
+        </Button>
 
         <div className="text-sm text-text-muted text-center">
           {mode === 'signin' ? (
