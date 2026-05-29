@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build-data": "tsx scripts/build-data.ts",
+    "screenshot": "node scripts/screenshot.mjs",
     "sim": "tsx scripts/sim.ts",
     "db:migrate": "tsx scripts/migrate.ts",
     "prepare": "git config core.hooksPath .githooks"
