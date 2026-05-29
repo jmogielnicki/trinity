@@ -28,34 +28,58 @@ export function StatPanel({ result }: Props) {
           <Stat
             label="Success rate (bootstrap-projected)"
             value={`${(result.projectedSuccessRate! * 100).toFixed(1)}%`}
+            sub="sampled tails"
+            accent="var(--color-success)"
           />
         )}
         <Stat
           label="Median final balance"
           value={Number.isFinite(finalP50) ? fmt(finalP50) : '—'}
+          sub="real, today's $"
+          accent="var(--color-primary)"
         />
         <Stat
           label="5th-pct final balance"
           value={Number.isFinite(finalP5) ? fmt(finalP5) : '—'}
+          sub="worst survivors"
+          accent="var(--color-accent)"
         />
         <Stat
           label="Avg annual withdrawal"
           value={Number.isFinite(avgWithdrawal) ? fmt(avgWithdrawal) : '—'}
+          sub="per year"
+          accent="var(--color-cash)"
         />
         <Stat
           label="Min balance reached"
           value={Number.isFinite(minBalance) ? fmt(minBalance) : '—'}
+          sub="across all years"
+          accent="var(--color-negative)"
         />
       </div>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: string;
+}) {
   return (
-    <div className="bg-surface-muted px-3.5 py-2.5 rounded-md flex flex-col justify-center">
+    <div
+      className="bg-surface-muted px-3.5 py-2.5 rounded-md flex flex-col justify-center"
+      style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
+    >
       <div className="text-2xs text-text-muted uppercase tracking-[0.04em] leading-tight">{label}</div>
-      <div className="tnum text-lg font-semibold mt-1">{value}</div>
+      <div className="tnum text-lg font-semibold mt-1 leading-none">{value}</div>
+      {sub && <div className="text-2xs text-text-faint mt-1 leading-tight">{sub}</div>}
     </div>
   );
 }

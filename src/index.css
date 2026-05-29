@@ -18,11 +18,13 @@
   --color-accent-soft:   #F3E7CF;
 
   /* Asset class colors — consumed by components/colors.ts via getComputedStyle.
-     Chart palette intentionally UNCHANGED in Phase 1 (see STYLING_PLAN Phase 4/5). */
-  --color-stock: #372554;
-  --color-bond:  #E99C20;
-  --color-cash:  #3F612D;
-  --color-cash-wash:  #B0D29D;
+     Evergreen set: forest stock / gold bond / sage cash. Mutually distinct and
+     distinct from the survived/depleted/in-progress outcome colors (blue/red/
+     grey), which never share a chart with these. */
+  --color-stock: #14513A;
+  --color-bond:  #C2872B;
+  --color-cash:  #7CA98C;
+  --color-cash-wash:  #CFE2D3;
 
   /* Simulation outcome colors — consumed by components/colors.ts. Unchanged in Phase 1. */
   --color-survived:    #2c5282;
