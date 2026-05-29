@@ -1,10 +1,18 @@
 # Styling audit — live app vs. Evergreen prototype
 
-Comparison of the current app (post Phase 1–5) against the approved Evergreen
-prototype (`/optiona`, preserved at commit `8e32c7d:src/proto/`). Captured all
-three tabs at desktop (1280) + mobile (390), top and scrolled-to-bottom.
+Comparison of the current app against the approved Evergreen prototype
+(`/optiona`, preserved at commit `8e32c7d:src/proto/`). Captured all three tabs
+at desktop (1280) + mobile (390), top and scrolled-to-bottom.
 
-**This is a findings list — no fixes applied yet.** Ordered by impact.
+## STATUS: ✅ ALL RESOLVED
+
+The gaps below were found after Phase 5 and have since been fixed (commits
+`ce8d4c6` #1+#2, `8e8a243` #3+#4, `c428761` #5–7) and re-verified by a second
+screenshot pass against the prototype: the live app now matches the proto's
+color story, depth, type, and finish at desktop + mobile, including the
+scroll-collapsed header state. Items #8–9 were intentionally left as-is
+(by-design product choices, not styling gaps). Original findings kept below as
+the record.
 
 ---
 
