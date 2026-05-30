@@ -20,9 +20,9 @@
      Wine stock / gold bond / slate-blue cash. Stock moved off forest so the
      result charts' "survived" line can own forest green (see outcome colors);
      the three stay mutually distinct and distinct from the outcome colors. */
-  --color-stock: #5D2A42;
-  --color-bond:  #C2872B;
-  --color-cash:  #40476D;
+  --color-stock: #C2872B;
+  --color-bond:  #40476D;
+  --color-cash:  #6C91C2;
   --color-cash-wash:  #C3C7D8;
 
   /* Simulation outcome colors — consumed by components/colors.ts.
