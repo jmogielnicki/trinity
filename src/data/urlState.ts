@@ -29,6 +29,8 @@ export type SerializedState = {
   optimizeStudy?: StudyConfig;
   /** Optimize tab: display label for the pinned base (null = user-edited away). */
   optimizeBaseLabel?: string | null;
+  /** Optimize tab: select-option key for the base picker (`preset:<id>` or `saved:<uuid>`). */
+  optimizeBasePickerKey?: string | null;
   /** Optimize tab: minimum success-rate filter [0, 1]; omitted when 0. */
   optimizeMinSuccessRate?: number;
 };

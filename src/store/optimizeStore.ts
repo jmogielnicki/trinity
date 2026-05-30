@@ -36,6 +36,12 @@ export type OptimizeState = {
    */
   baseLabel: string | null;
   /**
+   * The select-option value used to pick the base (`preset:<id>` or
+   * `saved:<uuid>`), or null. Persisted so the dropdown restores correctly
+   * after a page reload.
+   */
+  basePickerKey: string | null;
+  /**
    * True once a base has ever been loaded in this session. Stays true even
    * after the user edits the locked baseline away from that base — used by
    * the UI to keep the sweep editor and run button visible.
@@ -57,7 +63,7 @@ export type OptimizeState = {
   lastConfig: OptimizeConfig | null;
   setStudy: (study: StudyConfig) => void;
   /** Load a preset / saved strategy as the pinned baseline for all dimensions. */
-  loadBase: (base: StudyBase) => void;
+  loadBase: (base: StudyBase, pickerKey?: string) => void;
   run: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
   toggleSelected: (id: string) => void;
   setSelected: (ids: string[]) => void;
@@ -112,6 +118,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
   return {
     study: DEFAULT_STUDY,
     baseLabel: null,
+    basePickerKey: null,
     hasBase: false,
     studyDirty: false,
     results: [],
@@ -137,11 +144,12 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
           study,
           studyDirty: true,
           baseLabel: lockedChanged ? null : s.baseLabel,
+          basePickerKey: lockedChanged ? null : s.basePickerKey,
         };
       });
     },
 
-    loadBase(base) {
+    loadBase(base, pickerKey) {
       set((s) => ({
         study: {
           ...s.study,
@@ -153,6 +161,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
           lockedSource: base.source,
         },
         baseLabel: base.label,
+        basePickerKey: pickerKey ?? null,
         hasBase: true,
         studyDirty: true,
       }));
@@ -230,6 +239,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       set({
         study: DEFAULT_STUDY,
         baseLabel: null,
+        basePickerKey: null,
         hasBase: false,
         studyDirty: false,
         results: [],

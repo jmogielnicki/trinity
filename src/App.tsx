@@ -57,6 +57,7 @@ export function App() {
   const optimizeStudy = useOptimizeStore((s) => s.study);
   const optimizeHasBase = useOptimizeStore((s) => s.hasBase);
   const optimizeBaseLabel = useOptimizeStore((s) => s.baseLabel);
+  const optimizeBasePickerKey = useOptimizeStore((s) => s.basePickerKey);
   const optimizeMinSuccessRate = useOptimizeStore((s) => s.minSuccessRate);
 
   const [topMode, setTopMode] = useState<TopMode>('single');
@@ -168,6 +169,7 @@ export function App() {
         studyDirty: true,
         hasBase: true,
         baseLabel: parsed.optimizeBaseLabel ?? null,
+        basePickerKey: parsed.optimizeBasePickerKey ?? null,
       });
     }
     if (parsed.optimizeMinSuccessRate != null) {
@@ -192,6 +194,7 @@ export function App() {
       ...(optimizeHasBase && {
         optimizeStudy,
         optimizeBaseLabel,
+        optimizeBasePickerKey,
         ...(optimizeMinSuccessRate > 0 && { optimizeMinSuccessRate }),
       }),
     });
@@ -209,6 +212,7 @@ export function App() {
     optimizeStudy,
     optimizeHasBase,
     optimizeBaseLabel,
+    optimizeBasePickerKey,
     optimizeMinSuccessRate,
   ]);
 
