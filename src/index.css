@@ -65,6 +65,7 @@
 
   /* Surface backgrounds — warm paper, three elevations */
   --color-surface:       #FFFFFF;
+  --color-surface-1:     #FCFBF8;   /* lifted card — between white and page */
   --color-surface-page:  #F4F1E9;
   --color-surface-2:     #F1EDE3;
   --color-surface-3:     #E8E2D4;

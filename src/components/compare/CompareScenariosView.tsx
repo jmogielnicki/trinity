@@ -32,7 +32,7 @@ function successCls(r: number): string {
 
 function SummaryTable({ entries }: { entries: CompareEntry[] }) {
 	return (
-		<div className="border border-border-light rounded p-2 bg-surface-page flex flex-col h-full min-w-0">
+		<div className="border border-border-light rounded p-2 bg-surface flex flex-col h-full min-w-0">
 			<div className="flex items-center justify-between gap-4 text-xs text-text-muted mb-1.5 px-1">
 				<span>Strategy</span>
 				<span>Success</span>
@@ -90,7 +90,7 @@ function CompareBar({
 		.filter((x) => x.s);
 
 	return (
-		<div className="sticky top-[var(--header-h)] z-20 -mx-3 px-3 sm:-mx-6 sm:px-6 flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 mb-2 bg-surface-page/90 backdrop-blur-md border-b border-border-light min-h-[52px]">
+		<div className="sticky top-[var(--header-h)] z-30 -mx-4 px-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 mb-2 border-b border-border-light min-h-[52px]" style={{ background: 'var(--color-surface-1)' }}>
 			<div className="flex flex-wrap items-center gap-1.5 flex-1 min-h-[28px]">
 				{items.length === 0 && (
 					<span className="text-xs text-text-faint italic">
@@ -466,7 +466,7 @@ const renderCard = (item: PickerItem) => {
 						<SpendOverTimeChart series={chartSeries} mode={yearMode} />
 					</div>
 
-					<details className="border border-border-light rounded bg-surface-page mt-2">
+					<details className="border border-border-light rounded bg-surface mt-2">
 						<summary className="cursor-pointer px-3 py-2 text-sm text-text-secondary select-none hover:bg-surface-hover">
 							Show full metrics table
 						</summary>
