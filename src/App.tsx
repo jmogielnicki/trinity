@@ -23,6 +23,8 @@ import { authConfigured } from './auth';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, serialize, tryDeserialize } from './data/urlState';
 import { useAuthStore } from './store/authStore';
+import { useCompareScenariosStore } from './store/compareScenariosStore';
+import { useOptimizeStore } from './store/optimizeStore';
 import { useResultsStore } from './store/resultsStore';
 import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
@@ -49,6 +51,14 @@ export function App() {
     authConfigured &&
     subscriptionStatus !== 'pro' &&
     !import.meta.env.VITE_DISABLE_PRO_GATE;
+
+  // Per-tab state read for URL sync.
+  const compareSelectedIds = useCompareScenariosStore((s) => s.selectedIds);
+  const optimizeStudy = useOptimizeStore((s) => s.study);
+  const optimizeHasBase = useOptimizeStore((s) => s.hasBase);
+  const optimizeBaseLabel = useOptimizeStore((s) => s.baseLabel);
+  const optimizeMinSuccessRate = useOptimizeStore((s) => s.minSuccessRate);
+
   const [topMode, setTopMode] = useState<TopMode>('single');
   const tabBarRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -142,12 +152,33 @@ export function App() {
     (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
       sweep.setAxis(a, parsed.axes[a]),
     );
+
+    // Restore active tab.
+    if (parsed.tab) setTopMode(parsed.tab);
+
+    // Restore compare tab selection.
+    if (parsed.compareSelectedIds?.length) {
+      useCompareScenariosStore.getState().setSelection(parsed.compareSelectedIds);
+    }
+
+    // Restore optimize tab state.
+    if (parsed.optimizeStudy) {
+      useOptimizeStore.setState({
+        study: parsed.optimizeStudy,
+        studyDirty: true,
+        hasBase: true,
+        baseLabel: parsed.optimizeBaseLabel ?? null,
+      });
+    }
+    if (parsed.optimizeMinSuccessRate != null) {
+      useOptimizeStore.getState().setMinSuccessRate(parsed.optimizeMinSuccessRate);
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync single-scenario state to URL hash so shared links restore the exact view.
+  // Sync state to URL hash so shared links and page refreshes restore the exact view.
   useEffect(() => {
-    if (topMode !== 'single') return;
     const hash = serialize({
       initialBalance: scenario.initialBalance,
       horizonYears: scenario.horizonYears,
@@ -156,6 +187,13 @@ export function App() {
       axes: sweep.axes,
       tailMethod: scenario.tailMethod,
       withdrawalSource: scenario.withdrawalSource,
+      tab: topMode,
+      ...(compareSelectedIds.length > 0 && { compareSelectedIds }),
+      ...(optimizeHasBase && {
+        optimizeStudy,
+        optimizeBaseLabel,
+        ...(optimizeMinSuccessRate > 0 && { optimizeMinSuccessRate }),
+      }),
     });
     history.replaceState(null, '', '#' + hash);
   }, [
@@ -167,6 +205,11 @@ export function App() {
     scenario.tailMethod,
     scenario.withdrawalSource,
     sweep.axes,
+    compareSelectedIds,
+    optimizeStudy,
+    optimizeHasBase,
+    optimizeBaseLabel,
+    optimizeMinSuccessRate,
   ]);
 
   useEffect(() => {
