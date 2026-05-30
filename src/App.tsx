@@ -499,7 +499,7 @@ export function App() {
               </Card>
             )}
             {topMode === 'compare' && (
-              <Card variant="elevated" style={{ background: 'var(--color-surface-2)' }}>
+              <Card variant="elevated" style={{ background: 'var(--color-surface)' }}>
                 <CompareScenariosView />
               </Card>
             )}
