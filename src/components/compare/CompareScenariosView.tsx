@@ -147,6 +147,7 @@ function CompareBar({
 
 export function CompareScenariosView() {
 	const saved = useLibraryStore((s) => s.saved);
+	const libraryLoading = useLibraryStore((s) => s.loading);
 	const saveToLibrary = useLibraryStore((s) => s.save);
 	const removeFromLibrary = useLibraryStore((s) => s.remove);
 	const pool = useResultsStore((s) => s.pool);
@@ -166,6 +167,7 @@ export function CompareScenariosView() {
 	const [pendingDelete, setPendingDelete] = useState<PickerItem | null>(null);
 	const [presetsOpen, setPresetsOpen] = useState(true);
 	const [yearMode, setYearMode] = useState<YearMode>("median");
+	const [missingDismissed, setMissingDismissed] = useState(false);
 
 	const presetItems = useMemo<PickerItem[]>(
 		() =>
@@ -189,6 +191,21 @@ export function CompareScenariosView() {
 		() => [...savedItems, ...presetItems],
 		[savedItems, presetItems],
 	);
+
+	const allItemIds = useMemo(() => new Set(allItems.map((i) => i.id)), [allItems]);
+
+	// IDs from URL that don't exist in this user's library or presets.
+	const missingIds = useMemo(
+		() => (!libraryLoading ? selectedIds.filter((id) => !allItemIds.has(id)) : []),
+		[selectedIds, allItemIds, libraryLoading],
+	);
+
+	// Once the library finishes loading, drop any missing IDs from the selection
+	// so the compare runs correctly with whatever strategies are available.
+	useEffect(() => {
+		if (libraryLoading || missingIds.length === 0) return;
+		setSelection(selectedIds.filter((id) => allItemIds.has(id)));
+	}, [libraryLoading, missingIds.length]);
 
 	useEffect(() => {
 		if (selectedIds.length > 0) return;
@@ -295,6 +312,26 @@ const renderCard = (item: PickerItem) => {
 				ones, or the presets below) and run each across every historical
 				start year, lined up side by side. Pick up to {COMPARE_MAX}.
 			</div>
+
+			{missingIds.length > 0 && !missingDismissed && (
+				<div className="flex items-start gap-2.5 px-3 py-2.5 bg-surface border border-border-strong rounded-md text-sm text-text-secondary">
+					<svg className="flex-shrink-0 mt-px text-text-muted" width="15" height="15" viewBox="0 0 15 15" fill="none">
+						<path d="M7.5 1.5a6 6 0 1 0 0 12 6 6 0 0 0 0-12ZM7.5 5v3.5M7.5 10h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+					</svg>
+					<span className="flex-1">
+						{missingIds.length === 1
+							? "1 strategy from this shared link isn't in your library and was removed from the comparison."
+							: `${missingIds.length} strategies from this shared link aren't in your library and were removed from the comparison.`}
+					</span>
+					<button
+						className="flex-shrink-0 text-text-faint hover:text-text-muted bg-transparent border-none cursor-pointer p-0 leading-none"
+						onClick={() => setMissingDismissed(true)}
+						aria-label="Dismiss"
+					>
+						✕
+					</button>
+				</div>
+			)}
 
 			<div className="flex flex-col gap-6">
 				{/* Saved Scenarios Section */}

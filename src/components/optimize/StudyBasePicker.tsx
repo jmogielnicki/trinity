@@ -25,16 +25,22 @@ export function StudyBasePicker({ onEditInBuild }: { onEditInBuild?: () => void 
   const setTailMethod = useScenarioStore((s) => s.setTailMethod);
   const study = useOptimizeStore((s) => s.study);
   const baseLabel = useOptimizeStore((s) => s.baseLabel);
+  const basePickerKey = useOptimizeStore((s) => s.basePickerKey);
   const loadBase = useOptimizeStore((s) => s.loadBase);
 
-  const [picked, setPicked] = useState('');
+  const [picked, setPicked] = useState(() => basePickerKey ?? '');
 
   // An edit to the study detaches it from its base; drop the selection too.
+  // Also sync when basePickerKey changes (e.g. restored from URL on mount).
   useEffect(() => {
-    if (baseLabel === null) setPicked('');
-  }, [baseLabel]);
+    if (baseLabel === null) {
+      setPicked('');
+    } else if (basePickerKey && picked !== basePickerKey) {
+      setPicked(basePickerKey);
+    }
+  }, [baseLabel, basePickerKey, picked]);
 
-  const apply = (state: SerializedState, label: string) => {
+  const apply = (state: SerializedState, label: string, pickerKey: string) => {
     setBalance(state.initialBalance);
     setHorizon(state.horizonYears);
     if (state.tailMethod) setTailMethod(state.tailMethod);
@@ -43,17 +49,17 @@ export function StudyBasePicker({ onEditInBuild }: { onEditInBuild?: () => void 
       withdrawal: state.withdrawal,
       source: state.withdrawalSource ?? DEFAULT_WITHDRAWAL_SOURCE,
       label,
-    });
+    }, pickerKey);
   };
 
   const onPick = (value: string) => {
     setPicked(value);
     if (value.startsWith('preset:')) {
       const p = PRESETS.find((x) => x.id === value.slice('preset:'.length));
-      if (p) apply(p.state, p.name);
+      if (p) apply(p.state, p.name, value);
     } else if (value.startsWith('saved:')) {
       const sv = saved.find((x) => x.id === value.slice('saved:'.length));
-      if (sv) apply(sv.state, sv.name);
+      if (sv) apply(sv.state, sv.name, value);
     }
   };
 

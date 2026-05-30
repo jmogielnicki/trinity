@@ -1,8 +1,11 @@
 import type { AllocationStrategy, WithdrawalStrategy } from '../engine/strategies';
 import type { TailMethod } from '../engine/sweep';
+import type { StudyConfig } from '../engine/study';
 import type { Weights } from '../engine/types';
 import type { WithdrawalSource } from '../engine/withdrawalSource';
 import type { Axis, AxisMode } from '../store/sweepStore';
+
+export type TopTab = 'single' | 'compare' | 'optimize';
 
 /**
  * URL-shareable scenario + sweep state. We use a compact JSON blob in the
@@ -18,6 +21,18 @@ export type SerializedState = {
   tailMethod?: TailMethod;
   withdrawalSource?: WithdrawalSource;
   view?: string;
+  /** Active top-level tab. */
+  tab?: TopTab;
+  /** Compare tab: IDs of saved scenarios selected for comparison. */
+  compareSelectedIds?: string[];
+  /** Optimize tab: the study configuration. */
+  optimizeStudy?: StudyConfig;
+  /** Optimize tab: display label for the pinned base (null = user-edited away). */
+  optimizeBaseLabel?: string | null;
+  /** Optimize tab: select-option key for the base picker (`preset:<id>` or `saved:<uuid>`). */
+  optimizeBasePickerKey?: string | null;
+  /** Optimize tab: minimum success-rate filter [0, 1]; omitted when 0. */
+  optimizeMinSuccessRate?: number;
 };
 
 const HASH_KEY = 's=';
