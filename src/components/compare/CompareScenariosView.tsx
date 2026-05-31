@@ -416,8 +416,8 @@ export function CompareScenariosView() {
 					</div>
 
 					<div className="flex flex-col gap-3">
-						<div className="flex items-center gap-3">
-							<span className="text-sm text-text-secondary">
+						<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+							<span className="text-sm text-text-secondary whitespace-nowrap">
 								Play out the
 							</span>
 							<TabBar>
@@ -440,7 +440,7 @@ export function CompareScenariosView() {
 									Best
 								</ToggleButton>
 							</TabBar>
-							<span className="text-sm text-text-secondary">
+							<span className="text-sm text-text-secondary whitespace-nowrap">
 								historical start year
 							</span>
 						</div>
