@@ -39,8 +39,8 @@ function moneyAxis(v: number): string {
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border border-border-light rounded p-2 bg-surface-page min-w-0">
-      <div className="text-xs text-text-secondary mb-1.5">{title}</div>
+    <div className="border border-border-light rounded-lg p-3 bg-surface min-w-0">
+      <div className="text-sm font-semibold text-text mb-2.5">{title}</div>
       {children}
     </div>
   );
