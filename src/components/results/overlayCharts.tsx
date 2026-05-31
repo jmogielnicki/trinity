@@ -40,7 +40,7 @@ function moneyAxis(v: number): string {
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="border border-border-light rounded-lg p-3 bg-surface min-w-0">
-      <div className="text-sm font-semibold text-text mb-2.5">{title}</div>
+      <div className="font-display text-lg font-bold text-text mb-2.5">{title}</div>
       {children}
     </div>
   );
@@ -148,7 +148,7 @@ export function FinalBalanceDistributionChart({ series }: { series: Series[] }) 
   );
   return (
     <DistributionBoxplot
-      title="Final-balance distribution (p5–p95, median bar)"
+      title="Final balance distribution"
       axisTitle="final balance (real $)"
       series={series}
       data={data}
@@ -178,7 +178,7 @@ export function SpendDistributionChart({ series }: { series: Series[] }) {
   const data = series.map((s) => boxPoint(s.color, spendQuantiles(s)));
   return (
     <DistributionBoxplot
-      title="Avg annual spend distribution (p5–p95, median bar)"
+      title="Annual spend distribution"
       axisTitle="avg annual spend (real $)"
       series={series}
       data={data}
