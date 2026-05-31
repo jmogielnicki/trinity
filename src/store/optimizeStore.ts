@@ -18,6 +18,7 @@ import type {
   WithdrawalStrategy,
 } from '../engine/strategies';
 import type { WithdrawalSource } from '../engine/withdrawalSource';
+import type { ScenarioResult } from '../engine/types';
 import type { SimPool } from '../worker/pool';
 
 /** A base strategy loaded into the study as the pinned baseline. */
@@ -76,6 +77,12 @@ export type OptimizeState = {
   run: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
   /** Run the auto-mode all-dimensions sweep. */
   runAuto: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
+  /**
+   * Re-simulate full trajectories for the given candidate ids if they're
+   * missing (auto mode keeps metrics only). Used to populate overlay charts
+   * for the handful of selected candidates without retaining every result.
+   */
+  ensureResults: (ids: string[], cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
   setAutoMode: (v: boolean) => void;
   setMinWithdrawalRate: (v: number) => void;
   toggleSelected: (id: string) => void;
@@ -218,18 +225,23 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         horizonYears: cfg.horizonYears,
       });
       const scenarios = candidates.map((c) => candidateToScenario(c, cfg));
-      // Filter inside the workers: only candidates clearing minSuccessRate
-      // come back. With tens of thousands of candidates, returning every full
-      // ScenarioResult (all trajectories for all start years) would exhaust
-      // memory — so in auto mode the success threshold is a *run* filter, not
-      // just a display one. Lowering it later requires a re-run.
+      // Workers return only the (tiny) metrics of candidates clearing
+      // minSuccessRate — never the multi-MB ScenarioResult. Retaining full
+      // trajectories for every passing candidate (often thousands) would
+      // exhaust tab memory; instead full results are re-simulated on demand
+      // for the few candidates selected to overlay (see ensureResults). The
+      // success threshold is therefore a *run* filter — lowering it re-runs.
       const minSuccessRate = get().minSuccessRate;
-      const passers = await pool.runManyFiltered(scenarios, minSuccessRate);
+      const passers = await pool.runManyMetrics(
+        scenarios,
+        minSuccessRate,
+        cfg.initialBalance,
+      );
       if (myId !== pendingId) return;
-      const results: CandidateResult[] = passers.map(({ index, result }) => ({
+      const results: CandidateResult[] = passers.map(({ index, metrics }) => ({
         candidate: candidates[index],
-        metrics: metricsFromResult(result, cfg.initialBalance),
-        result,
+        metrics,
+        // result intentionally absent — filled lazily on selection.
       }));
       const frontier = filterAndFront(results, minSuccessRate);
       set({
@@ -243,6 +255,32 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         studyDirty: false,
         computeMs: performance.now() - t0,
         lastConfig: cfg,
+      });
+    },
+
+    async ensureResults(ids, cfg, pool) {
+      const { results } = get();
+      const byId = new Map(results.map((r) => [r.candidate.id, r]));
+      const missing = ids
+        .map((id) => byId.get(id))
+        .filter((r): r is CandidateResult => !!r && !r.result);
+      if (missing.length === 0) return;
+      // Re-simulate just these few candidates to recover full trajectories.
+      const fresh = await Promise.all(
+        missing.map((r) => pool.runScenario(candidateToScenario(r.candidate, cfg))),
+      );
+      const filled = new Map<string, ScenarioResult>();
+      missing.forEach((r, i) => filled.set(r.candidate.id, fresh[i]));
+      // Merge back without disturbing identity of untouched rows. Bail if the
+      // result set was replaced by a newer run while we awaited.
+      const cur = get().results;
+      if (cur !== results) return;
+      set({
+        results: cur.map((r) =>
+          filled.has(r.candidate.id)
+            ? { ...r, result: filled.get(r.candidate.id) }
+            : r,
+        ),
       });
     },
 

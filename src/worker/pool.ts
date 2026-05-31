@@ -1,5 +1,6 @@
 import * as Comlink from 'comlink';
 import type { Scenario } from '../engine/sweep';
+import type { CandidateMetrics } from '../engine/optimize';
 import type { HistoricalSeries, ScenarioResult } from '../engine/types';
 import type { SimWorkerApi } from './sim.worker';
 
@@ -8,15 +9,18 @@ export type SimPool = {
   runScenario: (s: Scenario) => Promise<ScenarioResult>;
   runMany: (scenarios: Scenario[]) => Promise<ScenarioResult[]>;
   /**
-   * Run scenarios but only return those whose success rate clears
-   * `minSuccessRate`, each tagged with its original index. Failing candidates'
-   * heavy results are discarded inside the workers, so this stays within
-   * memory even for tens of thousands of candidates (auto mode).
+   * Run scenarios but return only the lightweight metrics of those whose
+   * success rate clears `minSuccessRate`, each tagged with its original index.
+   * Full ScenarioResults are computed and discarded inside the workers, so the
+   * main thread never holds tens of thousands of trajectory sets (auto mode).
+   * Re-simulate individual candidates via runScenario when full detail is
+   * actually needed.
    */
-  runManyFiltered: (
+  runManyMetrics: (
     scenarios: Scenario[],
     minSuccessRate: number,
-  ) => Promise<Array<{ index: number; result: ScenarioResult }>>;
+    initialBalance: number,
+  ) => Promise<Array<{ index: number; metrics: CandidateMetrics }>>;
   size: number;
   destroy: () => void;
 };
@@ -72,7 +76,7 @@ export function createPool(size?: number): SimPool {
       return out;
     },
 
-    async runManyFiltered(scenarios, minSuccessRate) {
+    async runManyMetrics(scenarios, minSuccessRate, initialBalance) {
       if (scenarios.length === 0) return [];
       // Round-robin distribute, remembering each scenario's global index so we
       // can map a worker's local passer index back to the original candidate.
@@ -86,14 +90,14 @@ export function createPool(size?: number): SimPool {
       const perWorker = await Promise.all(
         apis.map((a, i) =>
           buckets[i].length
-            ? a.runManyFiltered(buckets[i], minSuccessRate)
+            ? a.runManyMetrics(buckets[i], minSuccessRate, initialBalance)
             : Promise.resolve([]),
         ),
       );
-      const out: Array<{ index: number; result: ScenarioResult }> = [];
+      const out: Array<{ index: number; metrics: CandidateMetrics }> = [];
       perWorker.forEach((passers, b) => {
-        for (const { local, result } of passers) {
-          out.push({ index: globalIndices[b][local], result });
+        for (const { local, metrics } of passers) {
+          out.push({ index: globalIndices[b][local], metrics });
         }
       });
       // Stable original order so selection/curation is deterministic.

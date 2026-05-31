@@ -11,17 +11,19 @@ export function StudyTrajectories({ results }: { results: CandidateResult[] }) {
         red.
       </div>
       <div className="grid [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))] gap-3 mt-2">
-        {results.map((cr) => (
-          <div key={cr.candidate.id} className="border border-border-light rounded p-1.5">
-            <div className="text-xs text-text-secondary mb-1">
-              {cr.candidate.label} —{' '}
-              {Number.isFinite(cr.metrics.successRate)
-                ? `${(cr.metrics.successRate * 100).toFixed(0)}%`
-                : '—'}
+        {results.map((cr) =>
+          cr.result ? (
+            <div key={cr.candidate.id} className="border border-border-light rounded p-1.5">
+              <div className="text-xs text-text-secondary mb-1">
+                {cr.candidate.label} —{' '}
+                {Number.isFinite(cr.metrics.successRate)
+                  ? `${(cr.metrics.successRate * 100).toFixed(0)}%`
+                  : '—'}
+              </div>
+              <SpaghettiChart result={cr.result} height={160} />
             </div>
-            <SpaghettiChart result={cr.result} height={160} />
-          </div>
-        ))}
+          ) : null,
+        )}
       </div>
     </div>
   );

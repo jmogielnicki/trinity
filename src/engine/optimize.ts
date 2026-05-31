@@ -77,8 +77,13 @@ export type Candidate = {
 export type CandidateResult = {
   candidate: Candidate;
   metrics: CandidateMetrics;
-  /** Full scenario result, kept so 1D studies can show trajectory fans. */
-  result: ScenarioResult;
+  /**
+   * Full scenario result, kept so studies can show trajectory fans / overlays.
+   * Optional: auto mode retains only metrics for the whole (huge) candidate set
+   * to stay within memory, and re-simulates the full result on demand for the
+   * handful of candidates the user selects to overlay.
+   */
+  result?: ScenarioResult;
   /** Index into sorted frontier (only set for Pareto-optimal results). */
   paretoRank?: number;
 };

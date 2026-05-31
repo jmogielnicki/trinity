@@ -1,5 +1,6 @@
 import * as Comlink from 'comlink';
 import { runScenario, type Scenario } from '../engine/sweep';
+import { metricsFromResult, type CandidateMetrics } from '../engine/optimize';
 import type { HistoricalSeries, ScenarioResult } from '../engine/types';
 
 let cachedData: HistoricalSeries | null = null;
@@ -17,29 +18,31 @@ const api = {
     return scenarios.map((s) => runScenario(s, cachedData!));
   },
   /**
-   * Run a batch but only return the results whose success rate clears
-   * `minSuccessRate`. Filtering here — before anything crosses the worker
-   * boundary — is what makes large auto-mode sweeps (tens of thousands of
-   * candidates) survivable: the heavy per-year trajectories of failing
-   * candidates are discarded the moment we know they fail, so only the
-   * passing set is ever serialized back to and retained on the main thread.
-   * Each passer carries its local index so the caller can map it back to the
-   * originating candidate.
+   * Run a batch but return ONLY the (tiny) metrics of candidates whose success
+   * rate clears `minSuccessRate` — never the full ScenarioResult. This is what
+   * makes large auto-mode sweeps survivable: a passing candidate's heavy
+   * per-year trajectories are computed, reduced to a handful of numbers, and
+   * then discarded inside the worker, so the main thread only ever holds
+   * metrics. Full results for the few candidates the user actually inspects
+   * are re-simulated on demand via `runScenario`. Each passer carries its
+   * local index so the caller can map it back to the originating candidate.
    */
-  runManyFiltered(
+  runManyMetrics(
     scenarios: Scenario[],
     minSuccessRate: number,
-  ): Array<{ local: number; result: ScenarioResult }> {
+    initialBalance: number,
+  ): Array<{ local: number; metrics: CandidateMetrics }> {
     if (!cachedData) throw new Error('worker: data not initialized');
-    const out: Array<{ local: number; result: ScenarioResult }> = [];
+    const out: Array<{ local: number; metrics: CandidateMetrics }> = [];
     for (let i = 0; i < scenarios.length; i++) {
       const result = runScenario(scenarios[i], cachedData);
       // Same rate metricsFromResult reports: projected (bootstrap) when
       // present, otherwise the observed historical rate.
       const sr = result.projectedSuccessRate ?? result.successRate;
       if (Number.isFinite(sr) && sr >= minSuccessRate) {
-        out.push({ local: i, result });
+        out.push({ local: i, metrics: metricsFromResult(result, initialBalance) });
       }
+      // `result` falls out of scope here and is collected — never serialized.
     }
     return out;
   },

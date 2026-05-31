@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { interpolatePlasma } from 'd3-scale-chromatic';
 import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
@@ -157,6 +157,7 @@ export function FrontierView({ onApplied }: Props) {
     lastConfig,
     run,
     runAuto,
+    ensureResults,
     setAutoMode,
     toggleSelected,
     setSelected,
@@ -210,13 +211,24 @@ export function FrontierView({ onApplied }: Props) {
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
+  // Auto mode keeps metrics only; re-simulate full trajectories for the
+  // currently-selected candidates so their overlay charts can render.
+  useEffect(() => {
+    if (!pool || !data || selectedIds.length === 0) return;
+    void ensureResults(selectedIds, cfg, pool);
+    // cfg is rebuilt each render but its fields are primitives; depend on them.
+  }, [selectedIds, pool, data, cfg.initialBalance, cfg.horizonYears]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Selected candidates as overlay-chart series, in selection order with
-  // colors that match the comparison-table row swatches.
+  // colors that match the comparison-table row swatches. Rows whose full
+  // result hasn't been re-simulated yet are held back until it arrives.
   const selectedSeries = useMemo<Series[]>(() => {
     const byId = new Map(results.map((r) => [r.candidate.id, r]));
     return selectedIds
       .map((id) => byId.get(id))
-      .filter((r): r is CandidateResult => !!r)
+      .filter((r): r is CandidateResult & { result: NonNullable<CandidateResult['result']> } =>
+        !!r && !!r.result,
+      )
       .map((r, i) => ({
         id: r.candidate.id,
         label: r.candidate.label,
