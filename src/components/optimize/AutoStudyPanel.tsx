@@ -13,9 +13,9 @@ const parsePct = (s: string) => {
 
 /**
  * Auto-mode config: pick a floor withdrawal rate and a minimum success rate,
- * then run the all-dimensions sweep. Min success is a display filter applied
- * after the run (see optimizeStore.setMinSuccessRate), so changing it doesn't
- * require re-running — but it's surfaced here as the primary up-front knob.
+ * then run the all-dimensions sweep. Min success is a *run* filter here —
+ * candidates below it are discarded inside the workers so the (huge) sweep
+ * fits in memory, which means lowering it requires a re-run.
  */
 export function AutoStudyPanel({
   horizonYears,
@@ -45,8 +45,10 @@ export function AutoStudyPanel({
       <div className="text-text-secondary text-sm max-w-[640px] leading-[1.4]">
         <strong>Auto mode</strong> — sweeps every fixed and glide holdings mix
         (10% increments, stocks ≥ 50%), a spread of fixed / ratchet / curve
-        withdrawal strategies, and all four withdrawal sources at once. Pick the
-        floor withdrawal rate and the minimum success rate to keep, then run.
+        withdrawal strategies, and all four withdrawal sources at once. Only
+        plans that clear your minimum success rate are kept (the rest are
+        discarded as they run, to stay within memory). Pick the floor
+        withdrawal rate and minimum success rate, then run.
       </div>
 
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
@@ -92,8 +94,8 @@ export function AutoStudyPanel({
       <div className="text-xs text-text-muted">
         ≈ {counts.total.toLocaleString()} plans ({counts.allocations} mixes ×{' '}
         {counts.withdrawals} withdrawals × {counts.sources} sources), each run
-        against all historical start years. Min success is a display filter —
-        adjust it without re-running.
+        against all historical start years. Only plans at or above the minimum
+        success rate are kept — lower it and re-run to widen the field.
       </div>
     </div>
   );

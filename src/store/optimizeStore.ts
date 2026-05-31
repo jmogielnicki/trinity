@@ -218,14 +218,19 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         horizonYears: cfg.horizonYears,
       });
       const scenarios = candidates.map((c) => candidateToScenario(c, cfg));
-      const scenarioResults = await pool.runMany(scenarios);
-      if (myId !== pendingId) return;
-      const results: CandidateResult[] = candidates.map((c, i) => ({
-        candidate: c,
-        metrics: metricsFromResult(scenarioResults[i], cfg.initialBalance),
-        result: scenarioResults[i],
-      }));
+      // Filter inside the workers: only candidates clearing minSuccessRate
+      // come back. With tens of thousands of candidates, returning every full
+      // ScenarioResult (all trajectories for all start years) would exhaust
+      // memory — so in auto mode the success threshold is a *run* filter, not
+      // just a display one. Lowering it later requires a re-run.
       const minSuccessRate = get().minSuccessRate;
+      const passers = await pool.runManyFiltered(scenarios, minSuccessRate);
+      if (myId !== pendingId) return;
+      const results: CandidateResult[] = passers.map(({ index, result }) => ({
+        candidate: candidates[index],
+        metrics: metricsFromResult(result, cfg.initialBalance),
+        result,
+      }));
       const frontier = filterAndFront(results, minSuccessRate);
       set({
         results,
