@@ -120,7 +120,7 @@ function CompareBar({
 			<div className="flex flex-wrap items-center gap-1.5 flex-1 min-h-[28px]">
 				{items.length === 0 && (
 					<span className="text-xs text-text-faint italic">
-						Pick up to {max} strategies to compare
+						Pick up to {max} plans to compare
 					</span>
 				)}
 				{items.map(({ s, c }) => (
@@ -349,7 +349,7 @@ export function CompareScenariosView() {
 				{/* Saved strategies */}
 				<div className="flex flex-col gap-3">
 					<SectionDivider
-						label="Your saved strategies"
+						label="Your saved plans"
 						count={savedItems.length > 0 ? savedItems.length : undefined}
 					/>
 					{savedItems.length === 0 ? (
