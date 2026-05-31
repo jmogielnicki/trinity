@@ -686,3 +686,145 @@ export function generateStudy(study: StudyConfig): StudyResult {
 export function generateStudyCandidates(study: StudyConfig): Candidate[] {
   return generateStudy(study).candidates;
 }
+
+// ---------------------------------------------------------------------------
+// Auto mode — sweep all three dimensions at once over a fixed preset grid
+// ---------------------------------------------------------------------------
+
+export type AutoStudyParams = {
+  /** Lower bound for withdrawal sweeps, e.g. 0.03. */
+  minWithdrawalRate: number;
+  /** Retirement horizon, used as the transition length for glides and curves. */
+  horizonYears: number;
+};
+
+/**
+ * The 10%-increment weight grid used by auto mode: every (stock, bond, cash)
+ * triple that sums to 100% with stock ≥ 50%. Cash is whatever's left after
+ * stock and bond. Yields 21 mixes (6 + 5 + 4 + 3 + 2 + 1).
+ */
+function autoWeightGrid(): Weights[] {
+  const out: Weights[] = [];
+  for (let s = 5; s <= 10; s++) {
+    for (let b = 0; b <= 10 - s; b++) {
+      const stock = round6(s / 10);
+      const bond = round6(b / 10);
+      const cash = round6(1 - stock - bond);
+      out.push({ stock, bond, cash });
+    }
+  }
+  return out;
+}
+
+/**
+ * Allocation variants for auto mode: every fixed mix from the weight grid
+ * (21) plus every ordered glide between two distinct grid mixes (21×21 − 21 =
+ * 420), for 441 total. Glides span the full horizon and include both rising
+ * and declining equity.
+ */
+export function autoAllocationVariants(horizonYears: number): AllocationStrategy[] {
+  const grid = autoWeightGrid();
+  const out: AllocationStrategy[] = [];
+  for (const w of grid) out.push({ type: 'static', weights: w });
+  const transitionYears = Math.max(1, Math.round(horizonYears));
+  for (const start of grid) {
+    for (const end of grid) {
+      if (start === end) continue; // same mix = a static alloc, already added
+      out.push({ type: 'glidepath', start, end, transitionYears });
+    }
+  }
+  return out;
+}
+
+/**
+ * Withdrawal variants for auto mode (W = minWithdrawalRate):
+ *   - fixed %: W → 5% in 0.25% steps
+ *   - ratchet: baseRate = W, stepSize = 10%, stepBoost 3% → 10% in 1% steps
+ *   - curve:   flat-W start, end ramped W+0.25% → 6% in 0.25% steps over the
+ *              full horizon (the end == W case is dropped — it's just fixed W)
+ */
+export function autoWithdrawalVariants(
+  p: AutoStudyParams,
+): Array<{ wd: WithdrawalStrategy; numeric: CandidateNumericParams }> {
+  const W = p.minWithdrawalRate;
+  const transitionYears = Math.max(1, Math.round(p.horizonYears));
+  const out: Array<{ wd: WithdrawalStrategy; numeric: CandidateNumericParams }> = [];
+
+  for (const rate of rangeValues(W, 0.05, 0.0025)) {
+    out.push({ wd: { type: 'fixedPercent', rate }, numeric: { withdrawalRate: rate } });
+  }
+  for (const stepBoost of rangeValues(0.03, 0.1, 0.01)) {
+    out.push({
+      wd: { type: 'ratchet', baseRate: W, stepSize: 0.1, stepBoost },
+      numeric: { withdrawalRate: W },
+    });
+  }
+  for (const endRate of rangeValues(round6(W + 0.0025), 0.06, 0.0025)) {
+    out.push({
+      wd: {
+        type: 'piecewiseLinear',
+        points: [
+          { t: 0, rate: W },
+          { t: transitionYears, rate: endRate },
+        ],
+      },
+      numeric: { withdrawalRate: (W + endRate) / 2 },
+    });
+  }
+  return out;
+}
+
+/** Per-dimension and total candidate counts — cheap, for the panel's preview. */
+export function autoCandidateCounts(p: AutoStudyParams): {
+  allocations: number;
+  withdrawals: number;
+  sources: number;
+  total: number;
+} {
+  const allocations = autoAllocationVariants(p.horizonYears).length;
+  const withdrawals = autoWithdrawalVariants(p).length;
+  const sources = SOURCE_PRESETS.length;
+  return { allocations, withdrawals, sources, total: allocations * withdrawals * sources };
+}
+
+/**
+ * Build the full auto-mode candidate set — the cartesian product of
+ * allocation × withdrawal × source. Emits the same `Candidate` shape as
+ * `generateStudy` so the entire metrics / frontier / scatter pipeline is
+ * reused unchanged. There is no swept axis, so callers pair this with
+ * `axes: []`.
+ */
+export function generateAutoCandidates(p: AutoStudyParams): Candidate[] {
+  const allocations = autoAllocationVariants(p.horizonYears);
+  const withdrawals = autoWithdrawalVariants(p);
+  const sources = SOURCE_PRESETS.map((preset) => preset.source);
+
+  const candidates: Candidate[] = [];
+  let idx = 0;
+  for (const allocation of allocations) {
+    const stockPct = stockPctOf(allocation);
+    const allocLabel = describeAllocation(allocation);
+    for (const { wd, numeric } of withdrawals) {
+      const wdLabel = describeWithdrawal(wd);
+      for (const source of sources) {
+        const srcLabel = describeSource(source);
+        const label = `${allocLabel}  ×  ${wdLabel}  ×  ${srcLabel}`;
+        candidates.push({
+          id: `a${idx}·${label}`,
+          label,
+          allocation,
+          withdrawal: wd,
+          withdrawalSource: source,
+          params: {
+            allocation: allocLabel,
+            withdrawal: wdLabel,
+            source: srcLabel,
+          },
+          numericParams: { ...numeric, stockPct, varyValue: stockPct ?? 0 },
+        });
+        idx++;
+      }
+    }
+  }
+  return candidates;
+}

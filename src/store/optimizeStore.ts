@@ -8,6 +8,7 @@ import {
 } from '../engine/optimize';
 import {
   DEFAULT_STUDY,
+  generateAutoCandidates,
   generateStudy,
   type StudyAxis,
   type StudyConfig,
@@ -49,6 +50,14 @@ export type OptimizeState = {
   hasBase: boolean;
   /** True when the study has changed since the last search — results are stale. */
   studyDirty: boolean;
+  /**
+   * Auto mode sweeps all three dimensions over a fixed preset grid instead of
+   * the manual pin/sweep config. Replaces the study editor with a simple
+   * min-withdrawal / min-success / Go panel.
+   */
+  autoMode: boolean;
+  /** Lower bound for auto-mode withdrawal sweeps, [0, 1]. */
+  minWithdrawalRate: number;
   /** All candidates with metrics (unfiltered), row-major for 2D studies. */
   results: CandidateResult[];
   /** Swept-dimension axes from the last run — 1 entry for 1D, 2 for 2D. */
@@ -65,6 +74,10 @@ export type OptimizeState = {
   /** Load a preset / saved strategy as the pinned baseline for all dimensions. */
   loadBase: (base: StudyBase, pickerKey?: string) => void;
   run: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
+  /** Run the auto-mode all-dimensions sweep. */
+  runAuto: (cfg: OptimizeConfig, pool: SimPool) => Promise<void>;
+  setAutoMode: (v: boolean) => void;
+  setMinWithdrawalRate: (v: number) => void;
   toggleSelected: (id: string) => void;
   setSelected: (ids: string[]) => void;
   selectAllFrontier: () => void;
@@ -121,6 +134,8 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     basePickerKey: null,
     hasBase: false,
     studyDirty: false,
+    autoMode: false,
+    minWithdrawalRate: 0.03,
     results: [],
     axes: [],
     frontier: [],
@@ -194,6 +209,51 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
       });
     },
 
+    async runAuto(cfg, pool) {
+      const myId = ++pendingId;
+      set({ running: true });
+      const t0 = performance.now();
+      const candidates = generateAutoCandidates({
+        minWithdrawalRate: get().minWithdrawalRate,
+        horizonYears: cfg.horizonYears,
+      });
+      const scenarios = candidates.map((c) => candidateToScenario(c, cfg));
+      const scenarioResults = await pool.runMany(scenarios);
+      if (myId !== pendingId) return;
+      const results: CandidateResult[] = candidates.map((c, i) => ({
+        candidate: c,
+        metrics: metricsFromResult(scenarioResults[i], cfg.initialBalance),
+        result: scenarioResults[i],
+      }));
+      const minSuccessRate = get().minSuccessRate;
+      const frontier = filterAndFront(results, minSuccessRate);
+      set({
+        results,
+        // No swept axis in auto mode — the scatter is metric-vs-metric and
+        // curate() returns [] when axes.length !== 1, so nothing auto-overlays.
+        axes: [],
+        frontier,
+        selectedIds: [],
+        running: false,
+        studyDirty: false,
+        computeMs: performance.now() - t0,
+        lastConfig: cfg,
+      });
+    },
+
+    setAutoMode(v) {
+      // Engaging auto mode defaults the success filter to 100% (the user's
+      // intended starting point); leaving it preserves whatever's set.
+      set((s) => ({
+        autoMode: v,
+        minSuccessRate: v ? 1 : s.minSuccessRate,
+      }));
+    },
+
+    setMinWithdrawalRate(v) {
+      set({ minWithdrawalRate: Math.max(0, Math.min(1, v)), studyDirty: true });
+    },
+
     toggleSelected(id) {
       const cur = get().selectedIds;
       if (cur.includes(id)) {
@@ -242,6 +302,8 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         basePickerKey: null,
         hasBase: false,
         studyDirty: false,
+        autoMode: false,
+        minWithdrawalRate: 0.03,
         results: [],
         axes: [],
         frontier: [],

@@ -24,6 +24,7 @@ import { varyLabel } from '../../engine/study';
 import { StudyConfigPanel } from './StudyConfigPanel';
 import { StudyBasePicker } from './StudyBasePicker';
 import { StudyTrajectories } from './StudyTrajectories';
+import { AutoStudyPanel } from './AutoStudyPanel';
 import { DEFAULT_WITHDRAWAL_SOURCE } from '../../engine/withdrawalSource';
 import { SaveScenarioModal } from '../SaveScenarioModal';
 import type { SerializedState } from '../../data/urlState';
@@ -146,6 +147,7 @@ export function FrontierView({ onApplied }: Props) {
     study,
     studyDirty,
     hasBase,
+    autoMode,
     results,
     frontier,
     selectedIds,
@@ -154,6 +156,8 @@ export function FrontierView({ onApplied }: Props) {
     computeMs,
     lastConfig,
     run,
+    runAuto,
+    setAutoMode,
     toggleSelected,
     setSelected,
     selectAllFrontier,
@@ -164,19 +168,29 @@ export function FrontierView({ onApplied }: Props) {
 
   const [xAxis, setXAxis] = useState<Axis>('successRate');
   const [yAxis, setYAxis] = useState<Axis>('avgAnnualWithdrawal');
-  const [colorBy, setColorBy] = useState<ColorBy>('varyValue');
+  // Auto mode mixes all three dimensions, so the "swept parameter" colour is
+  // meaningless — stock % is the most interpretable default there.
+  const [colorBy, setColorBy] = useState<ColorBy>(autoMode ? 'stockPct' : 'varyValue');
   const [viewMode, setViewMode] = useState<'scatter' | 'trajectories'>('scatter');
+
+  // Auto mode would render one SpaghettiChart per result (tens of thousands) —
+  // force the scatter when it's on.
+  const effectiveViewMode = autoMode ? 'scatter' : viewMode;
+
+  const cfg = {
+    initialBalance: scenario.initialBalance,
+    horizonYears: scenario.horizonYears,
+    tailMethod: scenario.tailMethod,
+  };
 
   const runSearch = () => {
     if (!pool || !data) return;
-    void run(
-      {
-        initialBalance: scenario.initialBalance,
-        horizonYears: scenario.horizonYears,
-        tailMethod: scenario.tailMethod,
-      },
-      pool,
-    );
+    void run(cfg, pool);
+  };
+
+  const runAutoSearch = () => {
+    if (!pool || !data) return;
+    void runAuto(cfg, pool);
   };
 
   // Filtered results — drives both the scatter (hides non-passers) and the
@@ -258,17 +272,39 @@ export function FrontierView({ onApplied }: Props) {
         current horizon ({scenario.horizonYears}y), starting balance, and tail
         method.
       </div>
-      <StudyBasePicker onEditInBuild={editBaseline} />
-      {hasBase && (
+      <div className="flex items-center gap-2">
+        <TabBar>
+          <ToggleButton active={!autoMode} onClick={() => setAutoMode(false)}>
+            Manual
+          </ToggleButton>
+          <ToggleButton active={autoMode} onClick={() => setAutoMode(true)}>
+            Auto
+          </ToggleButton>
+        </TabBar>
+      </div>
+      {autoMode ? (
+        <AutoStudyPanel
+          horizonYears={scenario.horizonYears}
+          disabled={running || !pool || !data}
+          running={running}
+          hasResults={results.length > 0}
+          onRun={runAutoSearch}
+        />
+      ) : (
         <>
-          <StudyConfigPanel />
-          <RunStudyButton
-            running={running}
-            disabled={running || !pool || !data || study.varying.length === 0}
-            hasResults={results.length > 0}
-            sweptCount={study.varying.length}
-            onClick={runSearch}
-          />
+          <StudyBasePicker onEditInBuild={editBaseline} />
+          {hasBase && (
+            <>
+              <StudyConfigPanel />
+              <RunStudyButton
+                running={running}
+                disabled={running || !pool || !data || study.varying.length === 0}
+                hasResults={results.length > 0}
+                sweptCount={study.varying.length}
+                onClick={runSearch}
+              />
+            </>
+          )}
         </>
       )}
       {!!results.length && (
@@ -308,17 +344,19 @@ export function FrontierView({ onApplied }: Props) {
               Explore all {results.length} variants
             </div>
           <div className="flex flex-wrap gap-[18px] text-sm text-text-secondary items-center py-1">
-            <div className="mr-1">
-              <TabBar>
-                <ToggleButton active={viewMode === 'scatter'} onClick={() => setViewMode('scatter')}>
-                  Scatter
-                </ToggleButton>
-                <ToggleButton active={viewMode === 'trajectories'} onClick={() => setViewMode('trajectories')}>
-                  Trajectories
-                </ToggleButton>
-              </TabBar>
-            </div>
-            {viewMode === 'scatter' && (
+            {!autoMode && (
+              <div className="mr-1">
+                <TabBar>
+                  <ToggleButton active={viewMode === 'scatter'} onClick={() => setViewMode('scatter')}>
+                    Scatter
+                  </ToggleButton>
+                  <ToggleButton active={viewMode === 'trajectories'} onClick={() => setViewMode('trajectories')}>
+                    Trajectories
+                  </ToggleButton>
+                </TabBar>
+              </div>
+            )}
+            {effectiveViewMode === 'scatter' && (
               <>
                 <label className="flex gap-1.5 items-center">
                   x:
@@ -384,7 +422,7 @@ export function FrontierView({ onApplied }: Props) {
               </>
             )}
           </div>
-          {viewMode === 'scatter' ? (
+          {effectiveViewMode === 'scatter' ? (
             <>
               <ScatterPlot
                 results={filteredResults}
@@ -719,7 +757,9 @@ function ScatterPlot({
         color: colorFor(r),
         custom: { id: r.candidate.id, result: r },
       }));
-  }, [results, xAxis, yAxis, colorFor, selectedIds]);
+    // selectedIds intentionally omitted — not read here, and rebuilding ~50k
+    // points on every selection click is needlessly expensive.
+  }, [results, xAxis, yAxis, colorFor]);
 
   const options: Options = useMemo(() => ({
     chart: {
