@@ -109,7 +109,7 @@ export function SaveScenarioModal({
       <div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[420px] flex flex-col gap-4 p-5 max-h-[90vh] overflow-y-auto">
 
         <div className="flex items-center justify-between">
-          <h2 className="font-display m-0 text-lg font-bold text-text">Save strategy</h2>
+          <h2 className="font-display m-0 text-lg font-bold text-text">Save plan</h2>
           <IconButton onClick={onClose} aria-label="Close">✕</IconButton>
         </div>
 
@@ -184,7 +184,7 @@ export function SaveScenarioModal({
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSave()}
             autoFocus
-            placeholder="Name this strategy…"
+            placeholder="Name this plan…"
           />
         </div>
 
