@@ -251,8 +251,8 @@ export function FrontierView({ onApplied }: Props) {
   return (
     <div className="flex flex-col gap-3.5 text-base">
       <div className="text-text-secondary text-sm max-w-[720px] leading-[1.4]">
-        <strong>Strategy study</strong> — start from a preset or saved
-        strategy, then sweep one of {`{`}holdings mix, withdrawal strategy,
+        <strong>Plan study</strong> — start from a preset or saved
+        plan, then sweep one of {`{`}holdings mix, withdrawal strategy,
         withdrawal source{`}`} to see how that dimension trades off against the
         rest. Every variant runs against all historical start years. Uses the
         current horizon ({scenario.horizonYears}y), starting balance, and tail
@@ -834,7 +834,7 @@ function ComparisonTable({
         <thead>
           <tr>
             <th className={thCls}></th>
-            <th className={thCls}>Strategy</th>
+            <th className={thCls}>Plan</th>
             <th className={thCls}>Withdrawal</th>
             <th className={thCls}>Allocation</th>
             <th className={thCls}>Source</th>
@@ -880,7 +880,7 @@ function ComparisonTable({
                 <button
                   className="text-xs px-2 py-[3px] border border-text-disabled bg-surface rounded-xs cursor-pointer text-chart-blue hover:bg-surface-code hover:border-chart-blue"
                   onClick={() => onApply(r)}
-                  title="Load this strategy into the build-strategy view"
+                  title="Load this plan into the Build plan view"
                 >
                   Apply
                 </button>
@@ -929,13 +929,13 @@ function FrontierList({
 
   return (
     <details className="[&_summary]:cursor-pointer [&_summary]:text-sm [&_summary]:text-text-secondary [&_summary]:py-1 [&[open]_summary]:mb-1.5">
-      <summary>Show all {frontier.length} frontier strategies</summary>
+      <summary>Show all {frontier.length} frontier plans</summary>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
               <th className={thCls}></th>
-              <th className={thCls}>Strategy</th>
+              <th className={thCls}>Plan</th>
               <th className={thCls}>Success</th>
               <th className={thCls}>Avg wd/yr</th>
               <th className={thCls}>P5 final</th>

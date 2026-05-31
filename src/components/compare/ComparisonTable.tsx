@@ -71,7 +71,7 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
           </tr>
           <tr>
             <th className={thCls}></th>
-            <th className={thCls}>Strategy</th>
+            <th className={thCls}>Plan</th>
             <th className={`${thCls} text-right`}>Success</th>
             {TABLE_BUCKETS.map((b, bi) => (
               <th
@@ -109,8 +109,8 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
                   <span className="inline-flex items-center gap-1.5">
                     {e.saved.name}
                     <button
-                      aria-label="Strategy details"
-                      title="Strategy details"
+                      aria-label="Plan details"
+                      title="Plan details"
                       className="w-4 h-4 inline-flex items-center justify-center rounded-full text-text-faint hover:text-text hover:bg-surface-hover"
                       onClick={() => setInfo(e)}
                     >

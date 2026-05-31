@@ -342,8 +342,8 @@ export function App() {
             <div className="flex items-center gap-3 flex-shrink-0">
               {topMode === 'single' && (
                 <div className="hidden md:block">
-                  <Button size="md" onClick={() => setSaveOpen(true)} title="Save strategy">
-                    Save strategy
+                  <Button size="md" onClick={() => setSaveOpen(true)} title="Save plan">
+                    Save plan
                   </Button>
                 </div>
               )}
@@ -374,19 +374,19 @@ export function App() {
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5l5-5 4 4 5-7 4 4" />
             </svg>
-            Build strategy
+            Build plan
           </NavTab>
           <NavTab active={topMode === 'compare'} onClick={() => setTopMode('compare')}>
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
             </svg>
-            Compare strategies
+            Compare plans
           </NavTab>
           <NavTab active={topMode === 'optimize'} onClick={() => setTopMode('optimize')}>
             <svg className="hidden sm:block w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
             </svg>
-            Optimize strategies
+            Optimize plans
           </NavTab>
         </div>
 
@@ -403,12 +403,12 @@ export function App() {
             <aside className={`fixed top-0 left-0 h-full w-[300px] z-50 overflow-y-auto transition-transform duration-200 ease-in-out md:static md:h-fit md:w-auto md:z-auto md:overflow-visible md:translate-x-0 flex flex-col gap-5 bg-surface border-r border-border md:border md:rounded-lg md:shadow-card p-4${sidebarOpen ? ' translate-x-0 shadow-popover' : ' -translate-x-full'}`}>
               {/* Close button — mobile only */}
               <div className="flex items-center justify-between pb-3 border-b border-border md:hidden">
-                <span className="text-md font-bold text-text uppercase tracking-[0.05em]">Strategy</span>
+                <span className="text-md font-bold text-text uppercase tracking-[0.05em]">Plan</span>
                 <IconButton onClick={() => setSidebarOpen(false)} aria-label="Close panel">✕</IconButton>
               </div>
               <section className="control-zone flex flex-col gap-5">
                 <div className="hidden md:flex flex-col gap-0.5">
-                  <span className="text-2xs font-semibold text-text-faint uppercase tracking-[0.14em]">Strategy</span>
+                  <span className="text-2xs font-semibold text-text-faint uppercase tracking-[0.14em]">Plan</span>
                   <h2 className="font-display m-0 text-xl font-bold text-text">Build your plan</h2>
                 </div>
                 <PresetPicker />
@@ -430,7 +430,7 @@ export function App() {
               {/* Desktop save button — sticky footer */}
               <div className="hidden md:block border-t border-border pt-4 mt-1">
                 <Button variant="soft" size="lg" fullWidth onClick={() => setSaveOpen(true)}>
-                  Save strategy
+                  Save plan
                 </Button>
               </div>
             </aside>
@@ -444,7 +444,7 @@ export function App() {
                 <button
                   className="flex items-center px-4 bg-secondary cursor-pointer hover:opacity-90 active:opacity-80 text-white h-full"
                   onClick={() => setSidebarOpen(true)}
-                  aria-label="Edit strategy"
+                  aria-label="Edit plan"
                 >
                   <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
@@ -468,7 +468,7 @@ export function App() {
                 <button
                   className="flex items-center px-4 bg-secondary cursor-pointer hover:opacity-90 active:opacity-80 text-white h-full"
                   onClick={() => setSaveOpen(true)}
-                  aria-label="Save strategy"
+                  aria-label="Save plan"
                 >
                   <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
@@ -490,7 +490,7 @@ export function App() {
               <Card variant="elevated">
                 {proGated ? (
                   <ProGate
-                    title="Optimize strategies"
+                    title="Optimize plans"
                     blurb="Sweep allocation and withdrawal strategies across every historical start year and compare them on a Pareto frontier. Available with Pro."
                   />
                 ) : (

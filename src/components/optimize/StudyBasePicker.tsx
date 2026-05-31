@@ -72,9 +72,9 @@ export function StudyBasePicker({ onEditInBuild }: { onEditInBuild?: () => void 
           value={picked}
           onChange={(e) => onPick(e.target.value)}
         >
-          <option value="">— a preset or saved strategy —</option>
+          <option value="">— a preset or saved plan —</option>
           {saved.length > 0 && (
-            <optgroup label="Your saved strategies">
+            <optgroup label="Your saved plans">
               {saved.map((s) => (
                 <option key={s.id} value={`saved:${s.id}`}>
                   {s.name}

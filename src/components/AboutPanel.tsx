@@ -10,7 +10,7 @@ export function AboutPanel() {
 			<p>
 				This tool stress-tests retirement withdrawal strategies against{" "}
 				<strong>actual historical market sequences</strong> rather than
-				averages or Monte-Carlo draws. A strategy is replayed starting
+				averages or Monte-Carlo draws. A plan is replayed starting
 				in every year on record, played forward year-by-year using the
 				real returns that actually occurred. The output is a fan of
 				trajectories — one per start year — that exposes{" "}

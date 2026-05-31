@@ -35,7 +35,7 @@ function SummaryTable({ entries }: { entries: CompareEntry[] }) {
 	return (
 		<div className="border border-border-light rounded-lg p-3 bg-surface flex flex-col min-w-0">
 			<div className="flex items-center justify-between gap-4 text-xs text-text-muted mb-2 px-0.5">
-				<span>Strategy</span>
+				<span>Plan</span>
 				<span>Success</span>
 			</div>
 			<div className="flex flex-col gap-2">
@@ -120,7 +120,7 @@ function CompareBar({
 			<div className="flex flex-wrap items-center gap-1.5 flex-1 min-h-[28px]">
 				{items.length === 0 && (
 					<span className="text-xs text-text-faint italic">
-						Pick up to {max} strategies to compare
+						Pick up to {max} plans to compare
 					</span>
 				)}
 				{items.map(({ s, c }) => (
@@ -331,8 +331,8 @@ export function CompareScenariosView() {
 					</svg>
 					<span className="flex-1">
 						{missingIds.length === 1
-							? "1 strategy from this shared link isn't in your library and was removed from the comparison."
-							: `${missingIds.length} strategies from this shared link aren't in your library and were removed from the comparison.`}
+							? "1 plan from this shared link isn't in your library and was removed from the comparison."
+							: `${missingIds.length} plans from this shared link aren't in your library and were removed from the comparison.`}
 					</span>
 					<button
 						className="flex-shrink-0 text-text-faint hover:text-text-muted bg-transparent border-none cursor-pointer p-0 leading-none"
@@ -349,7 +349,7 @@ export function CompareScenariosView() {
 				{/* Saved strategies */}
 				<div className="flex flex-col gap-3">
 					<SectionDivider
-						label="Your saved strategies"
+						label="Your saved plans"
 						count={savedItems.length > 0 ? savedItems.length : undefined}
 					/>
 					{savedItems.length === 0 ? (
@@ -358,7 +358,7 @@ export function CompareScenariosView() {
 								<path d="M5 3 H13 V15 L9 12 L5 15 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
 							</svg>
 							<span>
-								No saved strategies yet — click{" "}
+								No saved plans yet — click{" "}
 								<b className="font-semibold text-text-secondary">Save</b>{" "}
 								on a preset below to start your list.
 							</span>
@@ -395,7 +395,7 @@ export function CompareScenariosView() {
 			{entries.length === 0 ? (
 				<p className="text-sm text-text-faint py-4 text-center border border-dashed border-text-disabled rounded">
 					{selectedIds.length === 0
-						? "Select at least one strategy above to compare."
+						? "Select at least one plan above to compare."
 						: "Computing…"}
 				</p>
 			) : (
@@ -404,7 +404,7 @@ export function CompareScenariosView() {
 						label="Results"
 						action={
 							<span className="text-xs text-text-faint tabular-nums">
-								{entries.length} {entries.length === 1 ? "strategy" : "strategies"} · {computeMs.toFixed(0)} ms{running ? " · updating…" : ""}
+								{entries.length} {entries.length === 1 ? "plan" : "plans"} · {computeMs.toFixed(0)} ms{running ? " · updating…" : ""}
 							</span>
 						}
 					/>
@@ -485,7 +485,7 @@ export function CompareScenariosView() {
 					/>
 					<div className="relative bg-surface rounded-xl shadow-popover w-full max-w-[360px] flex flex-col gap-4 p-5 animate-in fade-in zoom-in-95 duration-150">
 						<h2 className="font-display m-0 text-lg font-bold text-text">
-							Delete strategy?
+							Delete plan?
 						</h2>
 						<p className="text-sm text-text-secondary leading-[1.5]">
 							"{pendingDelete.name}" will be permanently removed from your
