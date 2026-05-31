@@ -19,7 +19,8 @@ import {
 	type Series,
 	type YearMode,
 } from "../results/overlayCharts";
-import { FIELD_BASE } from "../ui/fieldCls";
+import { TabBar } from "../ui/TabBar";
+import { ToggleButton } from "../ui/ToggleButton";
 
 type PickerItem = SavedScenario & { isPreset: boolean; description?: string };
 
@@ -32,21 +33,20 @@ function successCls(r: number): string {
 
 function SummaryTable({ entries }: { entries: CompareEntry[] }) {
 	return (
-		<div className="border border-border-light rounded p-2 bg-surface flex flex-col h-full min-w-0">
-			<div className="flex items-center justify-between gap-4 text-xs text-text-muted mb-1.5 px-1">
+		<div className="border border-border-light rounded-lg p-3 bg-surface flex flex-col min-w-0">
+			<div className="flex items-center justify-between gap-4 text-xs text-text-muted mb-2 px-0.5">
 				<span>Strategy</span>
 				<span>Success</span>
 			</div>
-			<div className="h-2.5 shrink-0" />
-			<div className="flex-1 flex flex-col">
+			<div className="flex flex-col gap-2">
 				{entries.map((e, i) => (
 					<div
 						key={e.saved.id}
-						className="flex-1 flex items-center justify-between gap-3 px-1"
+						className="flex items-center justify-between gap-3 px-0.5"
 					>
 						<span className="flex items-center gap-2 min-w-0">
 							<span
-								className="inline-block w-3 h-3 rounded-sm shrink-0"
+								className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
 								style={{ background: colorAt(i) }}
 							/>
 							<span className="text-sm font-medium text-text truncate">
@@ -65,7 +65,30 @@ function SummaryTable({ entries }: { entries: CompareEntry[] }) {
 					</div>
 				))}
 			</div>
-			<div className="h-9 shrink-0" />
+		</div>
+	);
+}
+
+// Horizontal rule section header — used for both static and collapsible sections
+function SectionDivider({
+	label,
+	count,
+	action,
+}: {
+	label: string;
+	count?: string | number;
+	action?: React.ReactNode;
+}) {
+	return (
+		<div className="flex items-center gap-2.5">
+			<span className="text-xs font-semibold text-text-secondary tracking-[0.06em] uppercase whitespace-nowrap">
+				{label}
+			</span>
+			{count != null && (
+				<span className="text-xs text-text-faint">{count}</span>
+			)}
+			<div className="flex-1 h-px bg-border-light" />
+			{action}
 		</div>
 	);
 }
@@ -90,7 +113,10 @@ function CompareBar({
 		.filter((x) => x.s);
 
 	return (
-		<div className="sticky top-[var(--header-h)] z-30 -mx-4 px-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 mb-2 border-b border-border-light min-h-[52px]" style={{ background: 'var(--color-surface-1)' }}>
+		<div
+			className="sticky top-[var(--header-h)] z-30 -mx-4 px-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2 mb-2 border-b border-border-light min-h-[44px]"
+			style={{ background: "var(--color-surface-1)" }}
+		>
 			<div className="flex flex-wrap items-center gap-1.5 flex-1 min-h-[28px]">
 				{items.length === 0 && (
 					<span className="text-xs text-text-faint italic">
@@ -194,14 +220,11 @@ export function CompareScenariosView() {
 
 	const allItemIds = useMemo(() => new Set(allItems.map((i) => i.id)), [allItems]);
 
-	// IDs from URL that don't exist in this user's library or presets.
 	const missingIds = useMemo(
 		() => (!libraryLoading ? selectedIds.filter((id) => !allItemIds.has(id)) : []),
 		[selectedIds, allItemIds, libraryLoading],
 	);
 
-	// Once the library finishes loading, drop any missing IDs from the selection
-	// so the compare runs correctly with whatever strategies are available.
 	useEffect(() => {
 		if (libraryLoading || missingIds.length === 0) return;
 		setSelection(selectedIds.filter((id) => allItemIds.has(id)));
@@ -210,8 +233,6 @@ export function CompareScenariosView() {
 	useEffect(() => {
 		if (selectedIds.length > 0) return;
 		if (saved.length >= 2) {
-			// Enough saved strategies to compare on their own — focus on them
-			// and tuck the presets away.
 			setSelection(saved.slice(0, COMPARE_MAX).map((s) => s.id));
 			setPresetsOpen(false);
 		} else {
@@ -254,64 +275,54 @@ export function CompareScenariosView() {
 		await removeFromLibrary(id);
 	};
 
-const renderCard = (item: PickerItem) => {
-    const checked = selectedIds.includes(item.id);
-    const pickIndex = selectedIds.indexOf(item.id);
+	const renderCard = (item: PickerItem) => {
+		const checked = selectedIds.includes(item.id);
+		const pickIndex = selectedIds.indexOf(item.id);
+		const savedMatch = item.isPreset ? savedItems.find((s) => s.name === item.name) : undefined;
+		const isSaved = !!savedMatch;
 
-    // Check if this preset already exists in the user's saved list (matching by name)
-    const savedMatch = item.isPreset ? savedItems.find(s => s.name === item.name) : undefined;
-    const isSaved = !!savedMatch;
+		return (
+			<ScenarioCard
+				key={item.id}
+				name={item.name}
+				color={colorById.get(item.id)}
+				selected={checked}
+				disabled={!checked && selectedIds.length >= COMPARE_MAX}
+				pickIndex={checked ? pickIndex : undefined}
+				allocation={item.state.allocation}
+				withdrawal={item.state.withdrawal}
+				withdrawalSource={item.state.withdrawalSource}
+				isPreset={item.isPreset}
+				isSaved={isSaved}
+				description={item.description}
+				onToggle={() => toggle(item.id)}
+				onSave={
+					item.isPreset
+						? () => {
+								if (isSaved && savedMatch) {
+									setPendingDelete(savedMatch);
+								} else {
+									void saveToLibrary(item.name, item.state);
+								}
+							}
+						: undefined
+				}
+				onDelete={item.isPreset ? undefined : () => setPendingDelete(item)}
+			/>
+		);
+	};
 
-    return (
-      <ScenarioCard
-        key={item.id}
-        name={item.name}
-        color={colorById.get(item.id)}
-        selected={checked}
-        disabled={!checked && selectedIds.length >= COMPARE_MAX}
-        pickIndex={checked ? pickIndex : undefined}
-        allocation={item.state.allocation}
-        withdrawal={item.state.withdrawal}
-        withdrawalSource={item.state.withdrawalSource}
-        isPreset={item.isPreset}
-        isSaved={isSaved}
-        description={item.description}
-        onToggle={() => toggle(item.id)}
-        onSave={
-          item.isPreset
-            ? () => {
-                if (isSaved && savedMatch) {
-                  // If it's already saved, clicking it again triggers the unsave modal
-                  setPendingDelete(savedMatch);
-                } else {
-                  void saveToLibrary(item.name, item.state);
-                }
-              }
-            : undefined
-        }
-        onDelete={item.isPreset ? undefined : () => setPendingDelete(item)}
-      />
-    );
-  };
-
-	// Adjusted grid to handle slightly wider expanded cards nicely
 	const cardGrid =
-		"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 items-start";
+		"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 items-start";
 
 	return (
-		<div className="flex flex-col gap-4 text-base relative">
+		<div className="flex flex-col gap-5 text-base relative">
 			<CompareBar
 				selectedIds={selectedIds}
 				allItems={allItems}
 				toggle={toggle}
 				max={COMPARE_MAX}
 			/>
-
-			<div className="text-text-secondary text-sm leading-[1.4] max-w-[760px] -mt-1">
-				<strong>Compare strategies</strong> — pick strategies (your saved
-				ones, or the presets below) and run each across every historical
-				start year, lined up side by side. Pick up to {COMPARE_MAX}.
-			</div>
 
 			{missingIds.length > 0 && !missingDismissed && (
 				<div className="flex items-start gap-2.5 px-3 py-2.5 bg-surface border border-border-strong rounded-md text-sm text-text-secondary">
@@ -333,101 +344,54 @@ const renderCard = (item: PickerItem) => {
 				</div>
 			)}
 
-			<div className="flex flex-col gap-6">
-				{/* Saved Scenarios Section */}
-				<div className="flex flex-col">
-					<div className="flex items-baseline gap-2 px-1 pb-2">
-						<span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-							Your saved strategies
-						</span>
-						<span className="text-[11.5px] font-medium text-text-faint">
-							{savedItems.length === 0
-								? "none yet"
-								: savedItems.length}
-						</span>
-					</div>
+			{/* ── Strategy picker ── */}
+			<div className="flex flex-col gap-5">
+				{/* Saved strategies */}
+				<div className="flex flex-col gap-3">
+					<SectionDivider
+						label="Your saved strategies"
+						count={savedItems.length > 0 ? savedItems.length : undefined}
+					/>
 					{savedItems.length === 0 ? (
 						<div className="flex items-center gap-2.5 p-3.5 bg-surface border-[1.5px] border-dashed border-border-light rounded-lg text-[12.5px] text-text-muted">
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 18 18"
-								fill="none"
-								className="flex-shrink-0 text-text-faint"
-							>
-								<path
-									d="M5 3 H13 V15 L9 12 L5 15 Z"
-									stroke="currentColor"
-									strokeWidth="1.4"
-									strokeLinejoin="round"
-								/>
+							<svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="flex-shrink-0 text-text-faint">
+								<path d="M5 3 H13 V15 L9 12 L5 15 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
 							</svg>
 							<span>
 								No saved strategies yet — click{" "}
-								<b className="font-semibold text-text-secondary">
-									Save
-								</b>{" "}
+								<b className="font-semibold text-text-secondary">Save</b>{" "}
 								on a preset below to start your list.
 							</span>
 						</div>
 					) : (
-						<div className={cardGrid}>
-							{savedItems.map(renderCard)}
-						</div>
+						<div className={cardGrid}>{savedItems.map(renderCard)}</div>
 					)}
 				</div>
 
-				{/* Presets Section */}
-				<div className="flex flex-col">
+				{/* Presets */}
+				<div className="flex flex-col gap-3">
 					<button
-						className="flex items-baseline gap-2 px-1.5 py-1.5 -ml-1.5 bg-transparent border-none rounded-md cursor-pointer hover:bg-surface-hover transition-colors text-left w-full"
+						className="bg-transparent border-none p-0 cursor-pointer text-left"
 						onClick={() => setPresetsOpen(!presetsOpen)}
 						aria-expanded={presetsOpen}
 					>
-						<span
-							className={`inline-flex items-center justify-center w-3 h-3 text-text-muted transition-transform duration-200 ${
-								presetsOpen ? "rotate-90" : ""
-							}`}
-						>
-							<svg width="10" height="10" viewBox="0 0 10 10">
-								<path
-									d="M3 1.5 L7 5 L3 8.5"
-									stroke="currentColor"
-									strokeWidth="1.6"
-									fill="none"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-								/>
-							</svg>
-						</span>
-						<span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-							Presets
-						</span>
-						<span className="text-[11.5px] font-medium text-text-faint">
-							{presetItems.length}
-						</span>
-						<span className="ml-auto text-[10.5px] font-medium tracking-[0.04em] text-text-muted">
-							{presetsOpen ? "Hide" : "Show"}
-						</span>
+						<SectionDivider
+							label="Presets"
+							count={presetItems.length}
+							action={
+								<span className="text-xs text-text-muted hover:text-text-secondary transition-colors">
+									{presetsOpen ? "Hide" : "Show"}
+								</span>
+							}
+						/>
 					</button>
-
 					{presetsOpen && (
-						<div className={`${cardGrid} mt-1`}>
-							{presetItems.map(renderCard)}
-						</div>
+						<div className={cardGrid}>{presetItems.map(renderCard)}</div>
 					)}
 				</div>
 			</div>
 
-			{entries.length > 0 && (
-				<div className="text-xs text-text-faint mt-4 border-t border-border-light pt-4">
-					{entries.length}{" "}
-					{entries.length === 1 ? "strategy" : "strategies"} compared ·
-					compute {computeMs.toFixed(0)} ms
-					{running ? " · updating…" : ""}
-				</div>
-			)}
-
+			{/* ── Results ── */}
 			{entries.length === 0 ? (
 				<p className="text-sm text-text-faint py-4 text-center border border-dashed border-text-disabled rounded">
 					{selectedIds.length === 0
@@ -435,40 +399,75 @@ const renderCard = (item: PickerItem) => {
 						: "Computing…"}
 				</p>
 			) : (
-				<div className="flex flex-col gap-4">
-					<div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_1fr] gap-3">
+				<div className="flex flex-col gap-5 pt-1">
+					<SectionDivider
+						label="Results"
+						action={
+							<span className="text-xs text-text-faint tabular-nums">
+								{entries.length} {entries.length === 1 ? "strategy" : "strategies"} · {computeMs.toFixed(0)} ms{running ? " · updating…" : ""}
+							</span>
+						}
+					/>
+
+					<div className="grid grid-cols-1 lg:grid-cols-[180px_1fr_1fr] gap-3">
 						<SummaryTable entries={entries} />
 						<FinalBalanceDistributionChart series={chartSeries} />
 						<SpendDistributionChart series={chartSeries} />
 					</div>
 
-					<div className="flex items-center gap-2 text-sm text-text-secondary mt-2">
-						<span>Play out each strategy's</span>
-						<select
-							className={`${FIELD_BASE} px-2 py-[3px] text-text`}
-							value={yearMode}
-							onChange={(e) =>
-								setYearMode(e.target.value as YearMode)
-							}
-						>
-							<option value="worst">worst</option>
-							<option value="median">median</option>
-							<option value="best">best</option>
-						</select>
-						<span>historical start year (by final balance).</span>
+					<div className="flex flex-col gap-3">
+						<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+							<span className="text-sm text-text-secondary whitespace-nowrap">
+								Play out the
+							</span>
+							<TabBar>
+								<ToggleButton
+									active={yearMode === "worst"}
+									onClick={() => setYearMode("worst")}
+								>
+									Worst
+								</ToggleButton>
+								<ToggleButton
+									active={yearMode === "median"}
+									onClick={() => setYearMode("median")}
+								>
+									Median
+								</ToggleButton>
+								<ToggleButton
+									active={yearMode === "best"}
+									onClick={() => setYearMode("best")}
+								>
+									Best
+								</ToggleButton>
+							</TabBar>
+							<span className="text-sm text-text-secondary whitespace-nowrap">
+								historical start year
+							</span>
+						</div>
+						<div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+							<BalanceOverTimeChart series={chartSeries} mode={yearMode} />
+							<SpendOverTimeChart series={chartSeries} mode={yearMode} />
+						</div>
 					</div>
 
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-						<BalanceOverTimeChart
-							series={chartSeries}
-							mode={yearMode}
-						/>
-						<SpendOverTimeChart series={chartSeries} mode={yearMode} />
-					</div>
-
-					<details className="border border-border-light rounded bg-surface mt-2">
-						<summary className="cursor-pointer px-3 py-2 text-sm text-text-secondary select-none hover:bg-surface-hover">
-							Show full metrics table
+					<details className="group border border-border-light rounded-lg bg-surface overflow-hidden">
+						<summary className="flex items-center gap-2 px-4 py-3 cursor-pointer select-none hover:bg-surface-hover list-none">
+							<svg
+								className="w-3 h-3 text-text-muted transition-transform duration-150 group-open:rotate-90 shrink-0"
+								viewBox="0 0 10 10"
+								fill="none"
+							>
+								<path
+									d="M3 1.5 L7 5 L3 8.5"
+									stroke="currentColor"
+									strokeWidth="1.6"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								/>
+							</svg>
+							<span className="text-sm font-semibold text-text-secondary">
+								Full metrics table
+							</span>
 						</summary>
 						<div className="px-2 pb-2">
 							<ComparisonTable entries={entries} />
@@ -489,8 +488,8 @@ const renderCard = (item: PickerItem) => {
 							Delete strategy?
 						</h2>
 						<p className="text-sm text-text-secondary leading-[1.5]">
-							“{pendingDelete.name}” will be permanently removed
-							from your library. This can’t be undone.
+							"{pendingDelete.name}" will be permanently removed from your
+							library. This can't be undone.
 						</p>
 						<div className="flex justify-end gap-2 mt-1">
 							<button
