@@ -97,7 +97,7 @@ export function AuthControl() {
       >
         Sign in
       </button>
-      {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
+      {authModalOpen && createPortal(<AuthModal onClose={() => setAuthModalOpen(false)} />, document.body)}
     </>
   );
 }
