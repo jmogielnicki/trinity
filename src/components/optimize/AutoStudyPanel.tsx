@@ -116,10 +116,11 @@ export function AutoStudyPanel({
 
       <div className="text-xs text-text-muted">
         {summary.ladders.toLocaleString()} ladders ({summary.allocations} mixes ×{' '}
-        {summary.sources} sources × 6 strategies), each climbing from your floor
-        to ≈5–6% against all historical start years. Early termination skips
-        rates that can't clear your success target, so the actual simulation
-        count is usually far lower than the bar's maximum.
+        {summary.sources} sources × {summary.strategies} strategies), each climbing
+        from your floor to ≈5–6% (CAPE rules run their fixed formula) against all
+        historical start years. Early termination skips rates that can't clear
+        your success target, so the actual simulation count is usually far lower
+        than the bar's maximum.
       </div>
     </div>
   );

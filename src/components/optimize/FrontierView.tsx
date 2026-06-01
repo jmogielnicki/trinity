@@ -157,7 +157,9 @@ const AXIS_HIGHER_BETTER: Record<Axis, boolean> = {
 };
 
 /** Withdrawal family of a candidate, for the "type" facet. */
-function withdrawalFamilyOf(r: CandidateResult): 'fixed' | 'ratchet' | 'curve' | 'other' {
+function withdrawalFamilyOf(
+  r: CandidateResult,
+): 'fixed' | 'ratchet' | 'curve' | 'cape' | 'other' {
   switch (r.candidate.withdrawal.type) {
     case 'fixedPercent':
       return 'fixed';
@@ -165,6 +167,8 @@ function withdrawalFamilyOf(r: CandidateResult): 'fixed' | 'ratchet' | 'curve' |
       return 'ratchet';
     case 'piecewiseLinear':
       return 'curve';
+    case 'capeWithdrawal':
+      return 'cape';
     default:
       return 'other';
   }
@@ -173,7 +177,7 @@ function withdrawalFamilyOf(r: CandidateResult): 'fixed' | 'ratchet' | 'curve' |
 type Facets = {
   /** Allocation start-mix descriptor (e.g. "70/20/10"), or '' for any. */
   startMix: string;
-  family: '' | 'fixed' | 'ratchet' | 'curve';
+  family: '' | 'fixed' | 'ratchet' | 'curve' | 'cape';
   /** Source descriptor (the human label), or '' for any. */
   source: string;
 };
@@ -982,6 +986,7 @@ function FilterBar({
             <option value="fixed">fixed %</option>
             <option value="ratchet">ratchet</option>
             <option value="curve">curve</option>
+            <option value="cape">CAPE</option>
           </select>
         </label>
 

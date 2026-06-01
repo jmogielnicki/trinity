@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AUTO_RATCHET_BOOSTS,
+  AUTO_CAPE_RULES,
   autoLadderRungs,
   buildAutoLadderCandidate,
   buildAutoLadders,
@@ -43,9 +44,10 @@ describe('auto-mode ladders', () => {
     expect(rungs[rungs.length - 1]).toBeCloseTo(0.06, 6);
   });
 
-  it('builds one fixed + boosts + one curve ladder per [allocation, source]', () => {
+  it('builds one fixed + boosts + one curve + CAPE rules per [allocation, source]', () => {
     const summary = autoSearchSummary(params.horizonYears);
-    const perPair = 1 + AUTO_RATCHET_BOOSTS.length + 1;
+    const perPair = 1 + AUTO_RATCHET_BOOSTS.length + 1 + AUTO_CAPE_RULES.length;
+    expect(summary.strategies).toBe(perPair);
     expect(summary.ladders).toBe(summary.allocations * summary.sources * perPair);
 
     const ladders = buildAutoLadders(params);
@@ -54,6 +56,33 @@ describe('auto-mode ladders', () => {
     expect(AUTO_RATCHET_BOOSTS).toEqual([0.03, 0.05, 0.07, 0.1]);
     const ratchet = ladders.filter((l) => l.kind === 'ratchet');
     expect(ratchet.length).toBe(summary.allocations * summary.sources * AUTO_RATCHET_BOOSTS.length);
+    const cape = ladders.filter((l) => l.kind === 'cape');
+    expect(cape.length).toBe(summary.allocations * summary.sources * AUTO_CAPE_RULES.length);
+  });
+
+  it('CAPE rules are single-rung and build the right capeWithdrawal strategy', () => {
+    const base: Omit<AutoLadder, 'kind'> = {
+      allocation: { type: 'static', weights: { stock: 0.6, bond: 0.4, cash: 0 } },
+      source: { type: 'proportional', rebalance: true },
+      baseRate: 0.0325,
+    };
+    const rule = AUTO_CAPE_RULES.find((r) => r.label === 'CAPE 1.75/0.5')!;
+    const ladder: AutoLadder = { ...base, kind: 'cape', cape: rule };
+    // No rate to climb — exactly one rung.
+    expect(autoLadderRungs(ladder)).toEqual([0]);
+
+    const cand = buildAutoLadderCandidate(ladder, 0, 30);
+    expect(cand.withdrawal).toMatchObject({
+      type: 'capeWithdrawal',
+      a: 0.0175,
+      b: 0.5,
+    });
+    expect(cand.params.withdrawal).toBe('CAPE 1.75/0.5');
+
+    // Distinct CAPE rules over the same [alloc, source] get distinct ids.
+    const other = AUTO_CAPE_RULES.find((r) => r.label === 'CAPE 1.50/0.5')!;
+    const cand2 = buildAutoLadderCandidate({ ...base, kind: 'cape', cape: other }, 0, 30);
+    expect(cand.id).not.toBe(cand2.id);
   });
 
   it('builds concrete candidates with distinct ids and informative curve labels', () => {

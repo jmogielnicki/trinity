@@ -759,7 +759,26 @@ const AUTO_RATCHET_STEP_SIZE = 0.1;
 /** Ratchet boosts to race against each other (additive % of initial per step). */
 export const AUTO_RATCHET_BOOSTS = [0.03, 0.05, 0.07, 0.1];
 
-export type AutoLadderKind = 'fixed' | 'ratchet' | 'curve';
+/**
+ * ERN's yield-free CAPE rules (Early Retirement Now, SWR Series). Each sets a
+ * dynamic rate `a + b/CAPE` applied to the *current* balance. Unlike the rate
+ * ladders these are fixed (a, b) points — there's no rate to climb — so each
+ * is a single-rung ladder. The two "robust" rules that also weight bond/cash
+ * yields are omitted: we don't ship yield data. The constant 4% (b=0) is the
+ * percent-of-balance baseline ERN compares against.
+ */
+export const AUTO_CAPE_RULES: { label: string; a: number; b: number }[] = [
+  { label: 'CAPE 1.00/0.5', a: 0.01, b: 0.5 },
+  { label: 'CAPE 1.50/0.5', a: 0.015, b: 0.5 },
+  { label: 'CAPE 1.75/0.5', a: 0.0175, b: 0.5 },
+  { label: 'CAPE 2.08/0.4', a: 0.0208, b: 0.4 },
+  { label: 'CAPE 1.42/0.6', a: 0.0142, b: 0.6 },
+  { label: '4% of balance', a: 0.04, b: 0 },
+];
+/** Pre-1881 start years have no CAPE; fall back to this long-run average. */
+const AUTO_CAPE_FALLBACK = 20;
+
+export type AutoLadderKind = 'fixed' | 'ratchet' | 'curve' | 'cape';
 
 export type AutoLadder = {
   allocation: AllocationStrategy;
@@ -767,14 +786,16 @@ export type AutoLadder = {
   kind: AutoLadderKind;
   /** Ratchet stepBoost; unused for other kinds. */
   boost?: number;
+  /** CAPE rule (a, b, label); only set when kind === 'cape'. */
+  cape?: { label: string; a: number; b: number };
   /** The user's floor withdrawal rate — the climb's start (and the curve's start point). */
   baseRate: number;
 };
 
 /**
- * One ladder per [allocation, source] for fixed %, one per ratchet boost, and
- * one for the curve. Allocation/source objects are reference-shared across
- * ladders, so this is cheap despite the count.
+ * One ladder per [allocation, source] for fixed %, one per ratchet boost, one
+ * for the curve, and one per CAPE rule. Allocation/source objects are
+ * reference-shared across ladders, so this is cheap despite the count.
  */
 export function buildAutoLadders(p: AutoStudyParams): AutoLadder[] {
   const allocations = autoAllocationVariants(p.horizonYears);
@@ -787,6 +808,9 @@ export function buildAutoLadders(p: AutoStudyParams): AutoLadder[] {
         ladders.push({ allocation, source, kind: 'ratchet', boost, baseRate: p.minWithdrawalRate });
       }
       ladders.push({ allocation, source, kind: 'curve', baseRate: p.minWithdrawalRate });
+      for (const cape of AUTO_CAPE_RULES) {
+        ladders.push({ allocation, source, kind: 'cape', cape, baseRate: p.minWithdrawalRate });
+      }
     }
   }
   return ladders;
@@ -794,6 +818,9 @@ export function buildAutoLadders(p: AutoStudyParams): AutoLadder[] {
 
 /** The rate values a ladder climbs through, low → high. */
 export function autoLadderRungs(ladder: AutoLadder): number[] {
+  // CAPE rules have a fixed (a, b); their rate emerges from CAPE each year, so
+  // there's nothing to climb — a single rung (the rate arg is ignored).
+  if (ladder.kind === 'cape') return [0];
   if (ladder.kind === 'curve') {
     // Curve climbs its END rate; the flat end==base case is just fixed-base.
     return rangeValues(round6(ladder.baseRate + AUTO_RATE_STEP), AUTO_CURVE_CAP, AUTO_RATE_STEP);
@@ -840,13 +867,23 @@ export function buildAutoLadderCandidate(
       wdLabel = `curve ${pct(ladder.baseRate)}→${pct(rate)}`;
       numeric = { withdrawalRate: (ladder.baseRate + rate) / 2 };
       break;
+    case 'cape': {
+      const rule = ladder.cape!;
+      wd = { type: 'capeWithdrawal', a: rule.a, b: rule.b, fallbackCape: AUTO_CAPE_FALLBACK };
+      // Use ERN's name directly — clearer than describeWithdrawal's a/b form,
+      // and unique per rule. The descriptor rate is the value at the fallback
+      // CAPE, matching the range-mode CAPE sweep's convention.
+      wdLabel = rule.label;
+      numeric = { withdrawalRate: rule.a + rule.b / AUTO_CAPE_FALLBACK };
+      break;
+    }
   }
   const allocLabel = describeAllocation(ladder.allocation);
   const srcLabel = describeSource(ladder.source);
   const stockPct = stockPctOf(ladder.allocation);
   return {
-    // Unique across the whole search: kind + allocation + source + boost + rate.
-    id: `auto|${ladder.kind}|${allocLabel}|${srcLabel}|${ladder.boost ?? ''}|${rate}`,
+    // Unique across the whole search: kind + allocation + source + boost/cape + rate.
+    id: `auto|${ladder.kind}|${allocLabel}|${srcLabel}|${ladder.boost ?? ''}|${ladder.cape?.label ?? ''}|${rate}`,
     label: `${allocLabel}  ×  ${wdLabel}  ×  ${srcLabel}`,
     allocation: ladder.allocation,
     withdrawal: wd,
@@ -860,11 +897,12 @@ export function buildAutoLadderCandidate(
 export function autoSearchSummary(horizonYears: number): {
   allocations: number;
   sources: number;
+  strategies: number;
   ladders: number;
 } {
   const allocations = autoAllocationVariants(horizonYears).length;
   const sources = SOURCE_PRESETS.length;
-  // 1 fixed + AUTO_RATCHET_BOOSTS ratchet + 1 curve ladder per [alloc, source].
-  const perPair = 1 + AUTO_RATCHET_BOOSTS.length + 1;
-  return { allocations, sources, ladders: allocations * sources * perPair };
+  // 1 fixed + AUTO_RATCHET_BOOSTS ratchet + 1 curve + CAPE rules, per [alloc, source].
+  const strategies = 1 + AUTO_RATCHET_BOOSTS.length + 1 + AUTO_CAPE_RULES.length;
+  return { allocations, sources, strategies, ladders: allocations * sources * strategies };
 }
