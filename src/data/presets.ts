@@ -194,7 +194,8 @@ export const PRESETS: Preset[] = [
 		id: "cape-withdrawal",
 		name: "CAPE-based withdrawal — 60/40",
 		description:
-			"Blanchett CAPE rule: W = 1.75% + 0.5 × (1/CAPE), applied to the current balance each year. " +
+			"Blanchett CAPE rule: W = 1.00% + 0.5 × (1/CAPE), applied to the current balance each year. " +
+			"This is the traditional CAPE-based default (e.g. cFIREsim); at today's elevated CAPE it implies a fairly conservative ~2.7% rate. " +
 			"Pulls back automatically when markets are expensive and spends more when they are cheap. " +
 			"CAPE data available from 1881; earlier start years use a fallback CAPE of 20.",
 		state: {
@@ -203,7 +204,7 @@ export const PRESETS: Preset[] = [
 			allocation: flatStatic(0.6, 0.4, 0),
 			withdrawal: {
 				type: "capeWithdrawal",
-				a: 0.0175,
+				a: 0.01,
 				b: 0.5,
 				fallbackCape: 20,
 			},
