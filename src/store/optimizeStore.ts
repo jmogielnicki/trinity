@@ -8,7 +8,8 @@ import {
 } from '../engine/optimize';
 import {
   DEFAULT_STUDY,
-  generateAutoCandidates,
+  buildAutoLadders,
+  autoLadderRungs,
   generateStudy,
   type StudyAxis,
   type StudyConfig,
@@ -69,6 +70,10 @@ export type OptimizeState = {
   /** Minimum success rate, [0, 1]. Strategies below this are hidden + excluded from the frontier. */
   minSuccessRate: number;
   running: boolean;
+  /** Simulations completed so far in the active auto run (for the progress bar). */
+  progressDone: number;
+  /** Upper-bound simulation count for the active auto run (without early termination). */
+  progressTotal: number;
   computeMs: number;
   lastConfig: OptimizeConfig | null;
   setStudy: (study: StudyConfig) => void;
@@ -149,6 +154,8 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
     selectedIds: [],
     minSuccessRate: 0,
     running: false,
+    progressDone: 0,
+    progressTotal: 0,
     computeMs: 0,
     lastConfig: null,
 
@@ -218,28 +225,42 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
 
     async runAuto(cfg, pool) {
       const myId = ++pendingId;
-      set({ running: true });
-      const t0 = performance.now();
-      const candidates = generateAutoCandidates({
-        minWithdrawalRate: get().minWithdrawalRate,
+      const minWithdrawalRate = get().minWithdrawalRate;
+      const minSuccessRate = get().minSuccessRate;
+      const ladders = buildAutoLadders({
+        minWithdrawalRate,
         horizonYears: cfg.horizonYears,
       });
-      const scenarios = candidates.map((c) => candidateToScenario(c, cfg));
-      // Workers return only the (tiny) metrics of candidates clearing
-      // minSuccessRate — never the multi-MB ScenarioResult. Retaining full
-      // trajectories for every passing candidate (often thousands) would
-      // exhaust tab memory; instead full results are re-simulated on demand
-      // for the few candidates selected to overlay (see ensureResults). The
-      // success threshold is therefore a *run* filter — lowering it re-runs.
-      const minSuccessRate = get().minSuccessRate;
-      const passers = await pool.runManyMetrics(
-        scenarios,
-        minSuccessRate,
-        cfg.initialBalance,
+      // Upper bound on simulations (every rung of every ladder). Early
+      // termination means the actual count is usually far lower; this is just
+      // the denominator the progress bar fills toward.
+      const progressTotal = ladders.reduce(
+        (sum, l) => sum + autoLadderRungs(l).length,
+        0,
+      );
+      set({ running: true, progressDone: 0, progressTotal });
+      const t0 = performance.now();
+      // Ladders climb withdrawal rate from the floor and stop the moment a rung
+      // misses minSuccessRate (higher rates can only fail too) — so the success
+      // threshold is a *run* filter, not a post-run display one. Workers return
+      // only lightweight metrics for passing rungs; full trajectories are
+      // re-simulated on demand for the few plans selected to overlay.
+      const passers = await pool.runAutoLadders(
+        ladders,
+        {
+          horizonYears: cfg.horizonYears,
+          initialBalance: cfg.initialBalance,
+          tailMethod: cfg.tailMethod,
+          minSuccessRate,
+        },
+        (simsRun) => {
+          // Ignore stale progress from a superseded run.
+          if (myId === pendingId) set({ progressDone: simsRun });
+        },
       );
       if (myId !== pendingId) return;
-      const results: CandidateResult[] = passers.map(({ index, metrics }) => ({
-        candidate: candidates[index],
+      const results: CandidateResult[] = passers.map(({ candidate, metrics }) => ({
+        candidate,
         metrics,
         // result intentionally absent — filled lazily on selection.
       }));
@@ -252,6 +273,7 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         frontier,
         selectedIds: [],
         running: false,
+        progressDone: progressTotal,
         studyDirty: false,
         computeMs: performance.now() - t0,
         lastConfig: cfg,
@@ -353,6 +375,8 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => {
         selectedIds: [],
         minSuccessRate: 0,
         running: false,
+        progressDone: 0,
+        progressTotal: 0,
         computeMs: 0,
         lastConfig: null,
       });

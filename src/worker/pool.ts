@@ -1,26 +1,23 @@
 import * as Comlink from 'comlink';
 import type { Scenario } from '../engine/sweep';
-import type { CandidateMetrics } from '../engine/optimize';
 import type { HistoricalSeries, ScenarioResult } from '../engine/types';
-import type { SimWorkerApi } from './sim.worker';
+import type { AutoLadder } from '../engine/study';
+import type { AutoLadderOpts, AutoLadderResult, SimWorkerApi } from './sim.worker';
 
 export type SimPool = {
   setData: (d: HistoricalSeries) => Promise<void>;
   runScenario: (s: Scenario) => Promise<ScenarioResult>;
   runMany: (scenarios: Scenario[]) => Promise<ScenarioResult[]>;
   /**
-   * Run scenarios but return only the lightweight metrics of those whose
-   * success rate clears `minSuccessRate`, each tagged with its original index.
-   * Full ScenarioResults are computed and discarded inside the workers, so the
-   * main thread never holds tens of thousands of trajectory sets (auto mode).
-   * Re-simulate individual candidates via runScenario when full detail is
-   * actually needed.
+   * Run auto-mode ladders with early termination across all workers, returning
+   * only the lightweight metrics of passing rungs. `onProgress` receives the
+   * total simulations run so far across every worker (for a progress bar).
    */
-  runManyMetrics: (
-    scenarios: Scenario[],
-    minSuccessRate: number,
-    initialBalance: number,
-  ) => Promise<Array<{ index: number; metrics: CandidateMetrics }>>;
+  runAutoLadders: (
+    ladders: AutoLadder[],
+    opts: AutoLadderOpts,
+    onProgress?: (simsRun: number) => void,
+  ) => Promise<AutoLadderResult[]>;
   size: number;
   destroy: () => void;
 };
@@ -76,33 +73,33 @@ export function createPool(size?: number): SimPool {
       return out;
     },
 
-    async runManyMetrics(scenarios, minSuccessRate, initialBalance) {
-      if (scenarios.length === 0) return [];
-      // Round-robin distribute, remembering each scenario's global index so we
-      // can map a worker's local passer index back to the original candidate.
-      const buckets: Scenario[][] = apis.map(() => []);
-      const globalIndices: number[][] = apis.map(() => []);
-      scenarios.forEach((s, i) => {
-        const b = i % apis.length;
-        buckets[b].push(s);
-        globalIndices[b].push(i);
-      });
+    async runAutoLadders(ladders, opts, onProgress) {
+      if (ladders.length === 0) return [];
+      // Round-robin ladders across workers. Each worker reports its own running
+      // sim count; we sum the latest from each for a global total.
+      const buckets: AutoLadder[][] = apis.map(() => []);
+      ladders.forEach((l, i) => buckets[i % apis.length].push(l));
+      const perWorkerCounts = apis.map(() => 0);
+      const emit = () => {
+        if (onProgress) {
+          onProgress(perWorkerCounts.reduce((a, b) => a + b, 0));
+        }
+      };
       const perWorker = await Promise.all(
         apis.map((a, i) =>
           buckets[i].length
-            ? a.runManyMetrics(buckets[i], minSuccessRate, initialBalance)
-            : Promise.resolve([]),
+            ? a.runAutoLadders(
+                buckets[i],
+                opts,
+                Comlink.proxy((simsRun: number) => {
+                  perWorkerCounts[i] = simsRun;
+                  emit();
+                }),
+              )
+            : Promise.resolve([] as AutoLadderResult[]),
         ),
       );
-      const out: Array<{ index: number; metrics: CandidateMetrics }> = [];
-      perWorker.forEach((passers, b) => {
-        for (const { local, metrics } of passers) {
-          out.push({ index: globalIndices[b][local], metrics });
-        }
-      });
-      // Stable original order so selection/curation is deterministic.
-      out.sort((a, c) => a.index - c.index);
-      return out;
+      return perWorker.flat();
     },
 
     destroy() {

@@ -736,95 +736,135 @@ export function autoAllocationVariants(horizonYears: number): AllocationStrategy
   return out;
 }
 
-/**
- * Withdrawal variants for auto mode (W = minWithdrawalRate):
- *   - fixed %: W → 5% in 0.25% steps
- *   - ratchet: baseRate = W, stepSize = 10%, stepBoost 3% → 10% in 1% steps
- *   - curve:   flat-W start, end ramped W+0.25% → 6% in 0.25% steps over the
- *              full horizon (the end == W case is dropped — it's just fixed W)
- */
-export function autoWithdrawalVariants(
-  p: AutoStudyParams,
-): Array<{ wd: WithdrawalStrategy; numeric: CandidateNumericParams }> {
-  const W = p.minWithdrawalRate;
-  const transitionYears = Math.max(1, Math.round(p.horizonYears));
-  const out: Array<{ wd: WithdrawalStrategy; numeric: CandidateNumericParams }> = [];
+// ---------------------------------------------------------------------------
+// Auto mode — "ladders" with early termination
+// ---------------------------------------------------------------------------
+//
+// Rather than a flat candidate grid, auto mode searches *ladders*. A ladder
+// fixes [allocation, source, withdrawal family] (and the boost, for ratchet)
+// and climbs the withdrawal rate from the user's floor upward in 0.25% steps.
+// Because higher withdrawals can only lower success, a ladder stops the moment
+// a rung falls below the target success rate — every higher rung would fail
+// too. This skips the bulk of doomed simulations and is what keeps the search
+// both fast and within memory.
 
-  for (const rate of rangeValues(W, 0.05, 0.0025)) {
-    out.push({ wd: { type: 'fixedPercent', rate }, numeric: { withdrawalRate: rate } });
-  }
-  for (const stepBoost of rangeValues(0.03, 0.1, 0.01)) {
-    out.push({
-      wd: { type: 'ratchet', baseRate: W, stepSize: 0.1, stepBoost },
-      numeric: { withdrawalRate: W },
-    });
-  }
-  for (const endRate of rangeValues(round6(W + 0.0025), 0.06, 0.0025)) {
-    out.push({
-      wd: {
-        type: 'piecewiseLinear',
-        points: [
-          { t: 0, rate: W },
-          { t: transitionYears, rate: endRate },
-        ],
-      },
-      numeric: { withdrawalRate: (W + endRate) / 2 },
-    });
-  }
-  return out;
-}
+/** Rate step shared by every auto ladder. */
+const AUTO_RATE_STEP = 0.0025;
+/** Top of the climb for fixed % and ratchet base rate. */
+const AUTO_BASE_CAP = 0.05;
+/** Top of the climb for the curve's end rate. */
+const AUTO_CURVE_CAP = 0.06;
+/** Ratchet stepSize (portfolio-gain threshold per step) — pinned. */
+const AUTO_RATCHET_STEP_SIZE = 0.1;
+/** Ratchet boosts to race against each other (additive % of initial per step). */
+export const AUTO_RATCHET_BOOSTS = [0.03, 0.05, 0.07, 0.1];
 
-/** Per-dimension and total candidate counts — cheap, for the panel's preview. */
-export function autoCandidateCounts(p: AutoStudyParams): {
-  allocations: number;
-  withdrawals: number;
-  sources: number;
-  total: number;
-} {
-  const allocations = autoAllocationVariants(p.horizonYears).length;
-  const withdrawals = autoWithdrawalVariants(p).length;
-  const sources = SOURCE_PRESETS.length;
-  return { allocations, withdrawals, sources, total: allocations * withdrawals * sources };
-}
+export type AutoLadderKind = 'fixed' | 'ratchet' | 'curve';
+
+export type AutoLadder = {
+  allocation: AllocationStrategy;
+  source: WithdrawalSource;
+  kind: AutoLadderKind;
+  /** Ratchet stepBoost; unused for other kinds. */
+  boost?: number;
+  /** The user's floor withdrawal rate — the climb's start (and the curve's start point). */
+  baseRate: number;
+};
 
 /**
- * Build the full auto-mode candidate set — the cartesian product of
- * allocation × withdrawal × source. Emits the same `Candidate` shape as
- * `generateStudy` so the entire metrics / frontier / scatter pipeline is
- * reused unchanged. There is no swept axis, so callers pair this with
- * `axes: []`.
+ * One ladder per [allocation, source] for fixed %, one per ratchet boost, and
+ * one for the curve. Allocation/source objects are reference-shared across
+ * ladders, so this is cheap despite the count.
  */
-export function generateAutoCandidates(p: AutoStudyParams): Candidate[] {
+export function buildAutoLadders(p: AutoStudyParams): AutoLadder[] {
   const allocations = autoAllocationVariants(p.horizonYears);
-  const withdrawals = autoWithdrawalVariants(p);
   const sources = SOURCE_PRESETS.map((preset) => preset.source);
-
-  const candidates: Candidate[] = [];
-  let idx = 0;
+  const ladders: AutoLadder[] = [];
   for (const allocation of allocations) {
-    const stockPct = stockPctOf(allocation);
-    const allocLabel = describeAllocation(allocation);
-    for (const { wd, numeric } of withdrawals) {
-      const wdLabel = describeWithdrawal(wd);
-      for (const source of sources) {
-        const srcLabel = describeSource(source);
-        const label = `${allocLabel}  ×  ${wdLabel}  ×  ${srcLabel}`;
-        candidates.push({
-          id: `a${idx}·${label}`,
-          label,
-          allocation,
-          withdrawal: wd,
-          withdrawalSource: source,
-          params: {
-            allocation: allocLabel,
-            withdrawal: wdLabel,
-            source: srcLabel,
-          },
-          numericParams: { ...numeric, stockPct, varyValue: stockPct ?? 0 },
-        });
-        idx++;
+    for (const source of sources) {
+      ladders.push({ allocation, source, kind: 'fixed', baseRate: p.minWithdrawalRate });
+      for (const boost of AUTO_RATCHET_BOOSTS) {
+        ladders.push({ allocation, source, kind: 'ratchet', boost, baseRate: p.minWithdrawalRate });
       }
+      ladders.push({ allocation, source, kind: 'curve', baseRate: p.minWithdrawalRate });
     }
   }
-  return candidates;
+  return ladders;
+}
+
+/** The rate values a ladder climbs through, low → high. */
+export function autoLadderRungs(ladder: AutoLadder): number[] {
+  if (ladder.kind === 'curve') {
+    // Curve climbs its END rate; the flat end==base case is just fixed-base.
+    return rangeValues(round6(ladder.baseRate + AUTO_RATE_STEP), AUTO_CURVE_CAP, AUTO_RATE_STEP);
+  }
+  return rangeValues(ladder.baseRate, AUTO_BASE_CAP, AUTO_RATE_STEP);
+}
+
+/** Build the concrete Candidate for one rung of a ladder at the given rate. */
+export function buildAutoLadderCandidate(
+  ladder: AutoLadder,
+  rate: number,
+  horizonYears: number,
+): Candidate {
+  const transitionYears = Math.max(1, Math.round(horizonYears));
+  let wd: WithdrawalStrategy;
+  let wdLabel: string;
+  let numeric: CandidateNumericParams;
+  switch (ladder.kind) {
+    case 'fixed':
+      wd = { type: 'fixedPercent', rate };
+      wdLabel = describeWithdrawal(wd);
+      numeric = { withdrawalRate: rate };
+      break;
+    case 'ratchet':
+      wd = {
+        type: 'ratchet',
+        baseRate: rate,
+        stepSize: AUTO_RATCHET_STEP_SIZE,
+        stepBoost: ladder.boost ?? 0,
+      };
+      wdLabel = describeWithdrawal(wd);
+      numeric = { withdrawalRate: rate };
+      break;
+    case 'curve':
+      wd = {
+        type: 'piecewiseLinear',
+        points: [
+          { t: 0, rate: ladder.baseRate },
+          { t: transitionYears, rate },
+        ],
+      };
+      // describeWithdrawal collapses every curve to "withdrawal curve", which
+      // wouldn't distinguish rungs — build an informative, unique label here.
+      wdLabel = `curve ${pct(ladder.baseRate)}→${pct(rate)}`;
+      numeric = { withdrawalRate: (ladder.baseRate + rate) / 2 };
+      break;
+  }
+  const allocLabel = describeAllocation(ladder.allocation);
+  const srcLabel = describeSource(ladder.source);
+  const stockPct = stockPctOf(ladder.allocation);
+  return {
+    // Unique across the whole search: kind + allocation + source + boost + rate.
+    id: `auto|${ladder.kind}|${allocLabel}|${srcLabel}|${ladder.boost ?? ''}|${rate}`,
+    label: `${allocLabel}  ×  ${wdLabel}  ×  ${srcLabel}`,
+    allocation: ladder.allocation,
+    withdrawal: wd,
+    withdrawalSource: ladder.source,
+    params: { allocation: allocLabel, withdrawal: wdLabel, source: srcLabel },
+    numericParams: { ...numeric, stockPct, varyValue: stockPct ?? 0 },
+  };
+}
+
+/** Cheap summary for the panel preview: how big is the search? */
+export function autoSearchSummary(horizonYears: number): {
+  allocations: number;
+  sources: number;
+  ladders: number;
+} {
+  const allocations = autoAllocationVariants(horizonYears).length;
+  const sources = SOURCE_PRESETS.length;
+  // 1 fixed + AUTO_RATCHET_BOOSTS ratchet + 1 curve ladder per [alloc, source].
+  const perPair = 1 + AUTO_RATCHET_BOOSTS.length + 1;
+  return { allocations, sources, ladders: allocations * sources * perPair };
 }

@@ -1,9 +1,28 @@
 import * as Comlink from 'comlink';
-import { runScenario, type Scenario } from '../engine/sweep';
-import { metricsFromResult, type CandidateMetrics } from '../engine/optimize';
+import { runScenario, type Scenario, type TailMethod } from '../engine/sweep';
+import {
+  candidateToScenario,
+  metricsFromResult,
+  type Candidate,
+  type CandidateMetrics,
+} from '../engine/optimize';
+import {
+  autoLadderRungs,
+  buildAutoLadderCandidate,
+  type AutoLadder,
+} from '../engine/study';
 import type { HistoricalSeries, ScenarioResult } from '../engine/types';
 
 let cachedData: HistoricalSeries | null = null;
+
+export type AutoLadderResult = { candidate: Candidate; metrics: CandidateMetrics };
+
+export type AutoLadderOpts = {
+  horizonYears: number;
+  initialBalance: number;
+  tailMethod?: TailMethod;
+  minSuccessRate: number;
+};
 
 const api = {
   setData(d: HistoricalSeries) {
@@ -18,32 +37,51 @@ const api = {
     return scenarios.map((s) => runScenario(s, cachedData!));
   },
   /**
-   * Run a batch but return ONLY the (tiny) metrics of candidates whose success
-   * rate clears `minSuccessRate` — never the full ScenarioResult. This is what
-   * makes large auto-mode sweeps survivable: a passing candidate's heavy
-   * per-year trajectories are computed, reduced to a handful of numbers, and
-   * then discarded inside the worker, so the main thread only ever holds
-   * metrics. Full results for the few candidates the user actually inspects
-   * are re-simulated on demand via `runScenario`. Each passer carries its
-   * local index so the caller can map it back to the originating candidate.
+   * Run a set of auto-mode ladders with early termination. Each ladder climbs
+   * its withdrawal rate from the floor upward; because higher withdrawals can
+   * only lower success, the climb stops the instant a rung drops below
+   * `minSuccessRate` (every higher rung would fail too). Only the (tiny)
+   * metrics of passing rungs are returned — the heavy ScenarioResult is
+   * computed, reduced, and discarded inside the worker, so the main thread
+   * never holds tens of thousands of trajectory sets. `onProgress` is called
+   * with this worker's running simulation count, throttled.
    */
-  runManyMetrics(
-    scenarios: Scenario[],
-    minSuccessRate: number,
-    initialBalance: number,
-  ): Array<{ local: number; metrics: CandidateMetrics }> {
+  runAutoLadders(
+    ladders: AutoLadder[],
+    opts: AutoLadderOpts,
+    onProgress?: (simsRun: number) => void,
+  ): AutoLadderResult[] {
     if (!cachedData) throw new Error('worker: data not initialized');
-    const out: Array<{ local: number; metrics: CandidateMetrics }> = [];
-    for (let i = 0; i < scenarios.length; i++) {
-      const result = runScenario(scenarios[i], cachedData);
-      // Same rate metricsFromResult reports: projected (bootstrap) when
-      // present, otherwise the observed historical rate.
-      const sr = result.projectedSuccessRate ?? result.successRate;
-      if (Number.isFinite(sr) && sr >= minSuccessRate) {
-        out.push({ local: i, metrics: metricsFromResult(result, initialBalance) });
+    const out: AutoLadderResult[] = [];
+    let simsRun = 0;
+    let lastReport = 0;
+    const report = (force: boolean) => {
+      // Throttle so Comlink isn't flooded: every 50 sims (or at the end).
+      if (onProgress && (force || simsRun - lastReport >= 50)) {
+        lastReport = simsRun;
+        onProgress(simsRun);
       }
-      // `result` falls out of scope here and is collected — never serialized.
+    };
+    for (const ladder of ladders) {
+      for (const rate of autoLadderRungs(ladder)) {
+        const candidate = buildAutoLadderCandidate(ladder, rate, opts.horizonYears);
+        const result = runScenario(
+          candidateToScenario(candidate, opts),
+          cachedData,
+        );
+        simsRun++;
+        const sr = result.projectedSuccessRate ?? result.successRate;
+        if (Number.isFinite(sr) && sr >= opts.minSuccessRate) {
+          out.push({ candidate, metrics: metricsFromResult(result, opts.initialBalance) });
+          report(false);
+        } else {
+          // This rung missed — no higher rate in this ladder can pass. Stop.
+          report(false);
+          break;
+        }
+      }
     }
+    report(true);
     return out;
   },
 };
