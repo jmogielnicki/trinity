@@ -233,6 +233,62 @@ function currentAxesFrontier(
   return front;
 }
 
+/**
+ * Pick `n` ids spread evenly *along* the frontier curve, end to end. We
+ * normalise both axes to [0,1], walk the points in frontier order (ascending
+ * x, which on a Pareto edge means descending y), accumulate arc length, and
+ * sample at equal arc-length intervals. Spacing by arc length rather than by
+ * index is what guarantees variety: a dense cluster in one corner collapses to
+ * roughly one pick instead of hogging the whole sample.
+ */
+function spreadAlongFrontier(
+  results: CandidateResult[],
+  xAxis: Axis,
+  yAxis: Axis,
+  n: number,
+): string[] {
+  const pts = results
+    .map((r) => ({ id: r.candidate.id, x: r.metrics[xAxis], y: r.metrics[yAxis] }))
+    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+  if (pts.length <= n) return pts.map((p) => p.id);
+
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const xr = Math.max(...xs) - Math.min(...xs) || 1;
+  const yr = Math.max(...ys) - Math.min(...ys) || 1;
+  const xMin = Math.min(...xs);
+  const yMin = Math.min(...ys);
+  const norm = pts
+    .map((p) => ({ id: p.id, nx: (p.x - xMin) / xr, ny: (p.y - yMin) / yr }))
+    .sort((a, b) => a.nx - b.nx || a.ny - b.ny);
+
+  const cum = [0];
+  for (let i = 1; i < norm.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(norm[i].nx - norm[i - 1].nx, norm[i].ny - norm[i - 1].ny));
+  }
+  const total = cum[cum.length - 1] || 1;
+
+  const picked: string[] = [];
+  const seen = new Set<number>();
+  for (let k = 0; k < n; k++) {
+    const target = (k * total) / (n - 1);
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < cum.length; i++) {
+      const d = Math.abs(cum[i] - target);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    if (!seen.has(best)) {
+      seen.add(best);
+      picked.push(norm[best].id);
+    }
+  }
+  return picked;
+}
+
 export function FrontierView({ onApplied }: Props) {
   const scenario = useScenarioStore();
   const pool = useResultsStore((s) => s.pool);
@@ -271,9 +327,17 @@ export function FrontierView({ onApplied }: Props) {
 
   // Highlight / filter state: free-text search, structured facets, and a
   // toggle that narrows the highlight to the frontier of the two plotted axes.
+  // `search` drives the input; `debouncedSearch` drives the (expensive) filter
+  // so typing across a field of thousands of points stays responsive.
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [facets, setFacets] = useState<Facets>(EMPTY_FACETS);
   const [frontierOnly, setFrontierOnly] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 200);
+    return () => clearTimeout(t);
+  }, [search]);
 
   // Auto mode would render one SpaghettiChart per result (tens of thousands) —
   // force the scatter when it's on.
@@ -336,7 +400,7 @@ export function FrontierView({ onApplied }: Props) {
   // current-axes frontier. Empty search + no facets + no frontier = "no filter
   // active," in which case everything is highlighted (nothing dims).
   const filterActive =
-    search.trim() !== '' ||
+    debouncedSearch.trim() !== '' ||
     facets.startMix !== '' ||
     facets.family !== '' ||
     facets.source !== '' ||
@@ -344,7 +408,7 @@ export function FrontierView({ onApplied }: Props) {
 
   const matchIds = useMemo(() => {
     if (!filterActive) return null; // null = no filter; everything full strength
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     let pool = filteredResults.filter((r) => {
       if (q && !r.candidate.label.toLowerCase().includes(q)) return false;
       if (facets.startMix && startMixOf(r) !== facets.startMix) return false;
@@ -357,20 +421,30 @@ export function FrontierView({ onApplied }: Props) {
       pool = pool.filter((r) => front.has(r.candidate.id));
     }
     return new Set(pool.map((r) => r.candidate.id));
-  }, [filterActive, search, facets, frontierOnly, filteredResults, xAxis, yAxis]);
+  }, [filterActive, debouncedSearch, facets, frontierOnly, filteredResults, xAxis, yAxis]);
 
   const matchCount = matchIds ? matchIds.size : filteredResults.length;
 
   const clearFilters = () => {
     setSearch('');
+    setDebouncedSearch('');
     setFacets(EMPTY_FACETS);
     setFrontierOnly(false);
   };
 
-  // Push the current match set into the overlay (capped + evenly spaced).
+  // Push the current match set into the overlay. With "frontier only" on, the
+  // matches lie on a curve, so pick points spread along it (by arc length, end
+  // to end) rather than the store's index-even spacing — that keeps the eight
+  // from bunching in one quadrant. Otherwise the matches are a blob; let the
+  // store pick an index-even sample.
   const overlayMatches = () => {
     if (!matchIds) return;
-    setSelected([...matchIds]);
+    const matched = filteredResults.filter((r) => matchIds.has(r.candidate.id));
+    setSelected(
+      frontierOnly
+        ? spreadAlongFrontier(matched, xAxis, yAxis, OVERLAY_MAX)
+        : matched.map((r) => r.candidate.id),
+    );
   };
 
   // Auto mode keeps metrics only; re-simulate full trajectories for the
@@ -944,7 +1018,9 @@ function FilterBar({
             </span>
             {matchCount > 0 && (
               <Btn size="sm" onClick={onOverlayMatches}>
-                Overlay these ({Math.min(matchCount, OVERLAY_MAX)})
+                {frontierOnly
+                  ? `Overlay ${Math.min(matchCount, OVERLAY_MAX)} across frontier`
+                  : `Overlay these (${Math.min(matchCount, OVERLAY_MAX)})`}
               </Btn>
             )}
             <Btn size="sm" onClick={onClear}>
