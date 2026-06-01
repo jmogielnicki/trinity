@@ -138,6 +138,101 @@ type Props = {
   onApplied?: () => void;
 };
 
+// ---------------------------------------------------------------------------
+// Highlight / filter — a single predicate over the plotted field, driven by a
+// text search, structured facets, and an optional "frontier of the current
+// two axes" narrowing. Matching plans render at full strength; the rest dim to
+// a faint wash so the field stays visible as context.
+// ---------------------------------------------------------------------------
+
+/** Which direction is "better" for each axis — used to build the visible frontier. */
+const AXIS_HIGHER_BETTER: Record<Axis, boolean> = {
+  successRate: true,
+  p5Final: true,
+  p50Final: true,
+  p95Final: true,
+  avgAnnualWithdrawal: true,
+  avgYearsNearDepletion: false, // fewer near-depletion years is better
+  minBalance: true,
+};
+
+/** Withdrawal family of a candidate, for the "type" facet. */
+function withdrawalFamilyOf(r: CandidateResult): 'fixed' | 'ratchet' | 'curve' | 'other' {
+  switch (r.candidate.withdrawal.type) {
+    case 'fixedPercent':
+      return 'fixed';
+    case 'ratchet':
+      return 'ratchet';
+    case 'piecewiseLinear':
+      return 'curve';
+    default:
+      return 'other';
+  }
+}
+
+type Facets = {
+  /** Allocation start-mix descriptor (e.g. "70/20/10"), or '' for any. */
+  startMix: string;
+  family: '' | 'fixed' | 'ratchet' | 'curve';
+  /** Source descriptor (the human label), or '' for any. */
+  source: string;
+};
+
+const EMPTY_FACETS: Facets = { startMix: '', family: '', source: '' };
+
+/** The start-mix descriptor for a candidate (static weights or glide start). */
+function startMixOf(r: CandidateResult): string {
+  const a = r.candidate.allocation;
+  if (a.type === 'static') {
+    const w = a.weights;
+    return `${Math.round(w.stock * 100)}/${Math.round(w.bond * 100)}/${Math.round(w.cash * 100)}`;
+  }
+  if (a.type === 'glidepath' || a.type === 'risingEquity') {
+    const w = a.start;
+    return `${Math.round(w.stock * 100)}/${Math.round(w.bond * 100)}/${Math.round(w.cash * 100)}`;
+  }
+  return '—';
+}
+
+/**
+ * Pareto frontier over the two plotted axes: the points not dominated on both
+ * x and y (respecting each axis's "higher is better" direction). This is the
+ * upper-right edge the eye reads as "the top of the field," recomputed per
+ * axis pair — distinct from the engine's global 4-objective frontier.
+ */
+function currentAxesFrontier(
+  results: CandidateResult[],
+  xAxis: Axis,
+  yAxis: Axis,
+): Set<string> {
+  const xUp = AXIS_HIGHER_BETTER[xAxis];
+  const yUp = AXIS_HIGHER_BETTER[yAxis];
+  const pts = results
+    .map((r) => ({
+      id: r.candidate.id,
+      x: r.metrics[xAxis],
+      y: r.metrics[yAxis],
+    }))
+    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+  const front = new Set<string>();
+  for (const a of pts) {
+    let dominated = false;
+    for (const b of pts) {
+      if (b.id === a.id) continue;
+      const xGE = xUp ? b.x >= a.x : b.x <= a.x;
+      const yGE = yUp ? b.y >= a.y : b.y <= a.y;
+      const xGT = xUp ? b.x > a.x : b.x < a.x;
+      const yGT = yUp ? b.y > a.y : b.y < a.y;
+      if (xGE && yGE && (xGT || yGT)) {
+        dominated = true;
+        break;
+      }
+    }
+    if (!dominated) front.add(a.id);
+  }
+  return front;
+}
+
 export function FrontierView({ onApplied }: Props) {
   const scenario = useScenarioStore();
   const pool = useResultsStore((s) => s.pool);
@@ -173,6 +268,12 @@ export function FrontierView({ onApplied }: Props) {
   // meaningless — stock % is the most interpretable default there.
   const [colorBy, setColorBy] = useState<ColorBy>(autoMode ? 'stockPct' : 'varyValue');
   const [viewMode, setViewMode] = useState<'scatter' | 'trajectories'>('scatter');
+
+  // Highlight / filter state: free-text search, structured facets, and a
+  // toggle that narrows the highlight to the frontier of the two plotted axes.
+  const [search, setSearch] = useState('');
+  const [facets, setFacets] = useState<Facets>(EMPTY_FACETS);
+  const [frontierOnly, setFrontierOnly] = useState(false);
 
   // Auto mode would render one SpaghettiChart per result (tens of thousands) —
   // force the scatter when it's on.
@@ -210,6 +311,67 @@ export function FrontierView({ onApplied }: Props) {
     [frontier],
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // Facet option lists — the distinct start mixes and sources present in the
+  // current (success-filtered) field, so the dropdowns only offer real values.
+  const facetOptions = useMemo(() => {
+    const mixes = new Set<string>();
+    const sources = new Set<string>();
+    for (const r of filteredResults) {
+      mixes.add(startMixOf(r));
+      if (r.candidate.params.source) sources.add(r.candidate.params.source);
+    }
+    const numericMixSort = (a: string, b: string) => {
+      const sa = parseInt(a, 10);
+      const sb = parseInt(b, 10);
+      return sb - sa || a.localeCompare(b);
+    };
+    return {
+      startMixes: [...mixes].sort(numericMixSort),
+      sources: [...sources].sort(),
+    };
+  }, [filteredResults]);
+
+  // The highlight set: text search ∩ facets, optionally narrowed to the
+  // current-axes frontier. Empty search + no facets + no frontier = "no filter
+  // active," in which case everything is highlighted (nothing dims).
+  const filterActive =
+    search.trim() !== '' ||
+    facets.startMix !== '' ||
+    facets.family !== '' ||
+    facets.source !== '' ||
+    frontierOnly;
+
+  const matchIds = useMemo(() => {
+    if (!filterActive) return null; // null = no filter; everything full strength
+    const q = search.trim().toLowerCase();
+    let pool = filteredResults.filter((r) => {
+      if (q && !r.candidate.label.toLowerCase().includes(q)) return false;
+      if (facets.startMix && startMixOf(r) !== facets.startMix) return false;
+      if (facets.family && withdrawalFamilyOf(r) !== facets.family) return false;
+      if (facets.source && r.candidate.params.source !== facets.source) return false;
+      return true;
+    });
+    if (frontierOnly) {
+      const front = currentAxesFrontier(pool, xAxis, yAxis);
+      pool = pool.filter((r) => front.has(r.candidate.id));
+    }
+    return new Set(pool.map((r) => r.candidate.id));
+  }, [filterActive, search, facets, frontierOnly, filteredResults, xAxis, yAxis]);
+
+  const matchCount = matchIds ? matchIds.size : filteredResults.length;
+
+  const clearFilters = () => {
+    setSearch('');
+    setFacets(EMPTY_FACETS);
+    setFrontierOnly(false);
+  };
+
+  // Push the current match set into the overlay (capped + evenly spaced).
+  const overlayMatches = () => {
+    if (!matchIds) return;
+    setSelected([...matchIds]);
+  };
 
   // Auto mode keeps metrics only; re-simulate full trajectories for the
   // currently-selected candidates so their overlay charts can render.
@@ -434,11 +596,30 @@ export function FrontierView({ onApplied }: Props) {
               </>
             )}
           </div>
+          {effectiveViewMode === 'scatter' && (
+            <FilterBar
+              search={search}
+              onSearch={setSearch}
+              facets={facets}
+              onFacets={setFacets}
+              startMixOptions={facetOptions.startMixes}
+              sourceOptions={facetOptions.sources}
+              frontierOnly={frontierOnly}
+              onFrontierOnly={setFrontierOnly}
+              frontierAxisLabels={[AXIS_LABELS[xAxis], AXIS_LABELS[yAxis]]}
+              active={filterActive}
+              matchCount={matchCount}
+              totalCount={filteredResults.length}
+              onClear={clearFilters}
+              onOverlayMatches={overlayMatches}
+            />
+          )}
           {effectiveViewMode === 'scatter' ? (
             <>
               <ScatterPlot
                 results={filteredResults}
                 frontierIds={frontierIds}
+                matchIds={matchIds}
                 selectedIds={selectedSet}
                 onToggle={toggleSelected}
                 onMarquee={setSelected}
@@ -645,12 +826,150 @@ function OverlaySection({
 }
 
 // ---------------------------------------------------------------------------
+// Filter & highlight bar — drives the scatter's highlight set
+// ---------------------------------------------------------------------------
+
+function FilterBar({
+  search,
+  onSearch,
+  facets,
+  onFacets,
+  startMixOptions,
+  sourceOptions,
+  frontierOnly,
+  onFrontierOnly,
+  frontierAxisLabels,
+  active,
+  matchCount,
+  totalCount,
+  onClear,
+  onOverlayMatches,
+}: {
+  search: string;
+  onSearch: (v: string) => void;
+  facets: Facets;
+  onFacets: (f: Facets) => void;
+  startMixOptions: string[];
+  sourceOptions: string[];
+  frontierOnly: boolean;
+  onFrontierOnly: (v: boolean) => void;
+  frontierAxisLabels: [string, string];
+  active: boolean;
+  matchCount: number;
+  totalCount: number;
+  onClear: () => void;
+  onOverlayMatches: () => void;
+}) {
+  const selCls = `${FIELD_BASE} px-2 py-[3px] text-sm text-text`;
+  return (
+    <div className="flex flex-col gap-2 border border-border-light rounded p-2.5 bg-surface-page">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-text-secondary">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+          Filter &amp; highlight
+        </span>
+
+        <label className="flex items-center gap-1.5">
+          find
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="e.g. 70/20/10, ratchet, waterfall"
+            className={`${FIELD_BASE} px-2 py-[3px] text-sm text-text w-[220px]`}
+          />
+        </label>
+
+        <label className="flex items-center gap-1.5">
+          start mix
+          <select
+            className={selCls}
+            value={facets.startMix}
+            onChange={(e) => onFacets({ ...facets, startMix: e.target.value })}
+          >
+            <option value="">any</option>
+            {startMixOptions.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-1.5">
+          type
+          <select
+            className={selCls}
+            value={facets.family}
+            onChange={(e) =>
+              onFacets({ ...facets, family: e.target.value as Facets['family'] })
+            }
+          >
+            <option value="">any</option>
+            <option value="fixed">fixed %</option>
+            <option value="ratchet">ratchet</option>
+            <option value="curve">curve</option>
+          </select>
+        </label>
+
+        <label className="flex items-center gap-1.5">
+          source
+          <select
+            className={selCls}
+            value={facets.source}
+            onChange={(e) => onFacets({ ...facets, source: e.target.value })}
+          >
+            <option value="">any</option>
+            {sourceOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <ToggleButton
+          active={frontierOnly}
+          onClick={() => onFrontierOnly(!frontierOnly)}
+          title={`Highlight only the frontier of ${frontierAxisLabels[0]} vs ${frontierAxisLabels[1]}`}
+        >
+          Frontier only
+        </ToggleButton>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-text-muted">
+        {active ? (
+          <>
+            <span className="text-text-body tabular-nums">
+              {matchCount.toLocaleString()} / {totalCount.toLocaleString()} highlighted
+            </span>
+            {matchCount > 0 && (
+              <Btn size="sm" onClick={onOverlayMatches}>
+                Overlay these ({Math.min(matchCount, OVERLAY_MAX)})
+              </Btn>
+            )}
+            <Btn size="sm" onClick={onClear}>
+              Clear filters
+            </Btn>
+          </>
+        ) : (
+          <span className="italic">
+            Search a label, pick a start mix / type / source, or isolate the
+            current-axes frontier to highlight a subset against the field.
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Scatter plot with marquee selection
 // ---------------------------------------------------------------------------
 
 function ScatterPlot({
   results,
   frontierIds,
+  matchIds,
   selectedIds,
   onToggle,
   onMarquee,
@@ -660,6 +979,8 @@ function ScatterPlot({
 }: {
   results: CandidateResult[];
   frontierIds: Set<string>;
+  /** Highlight set; null = no filter active (everything full strength). */
+  matchIds: Set<string> | null;
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   onMarquee: (ids: string[]) => void;
@@ -686,6 +1007,8 @@ function ScatterPlot({
   yAxisRef.current = yAxis;
   const colorByRef = useRef(colorBy);
   colorByRef.current = colorBy;
+  const matchIdsRef = useRef(matchIds);
+  matchIdsRef.current = matchIds;
 
   const fmtAxis = (a: Axis, v: number) => {
     switch (a) {
@@ -735,8 +1058,12 @@ function ScatterPlot({
 
     const currentXAxis = xAxisRef.current;
     const currentYAxis = yAxisRef.current;
+    const matches = matchIdsRef.current;
     const ids: string[] = [];
     for (const r of resultsRef.current) {
+      // When a filter is active, a marquee only grabs highlighted points —
+      // the dimmed field is context, not a selection target.
+      if (matches && !matches.has(r.candidate.id)) continue;
       const vx = r.metrics[currentXAxis];
       const vy = r.metrics[currentYAxis];
       if (Number.isFinite(vx) && Number.isFinite(vy) &&
@@ -761,17 +1088,30 @@ function ScatterPlot({
   const yVals = results.map((r) => r.metrics[yAxis]).filter(Number.isFinite);
 
   const seriesData = useMemo(() => {
-    return results
-      .filter((r) => Number.isFinite(r.metrics[xAxis]) && Number.isFinite(r.metrics[yAxis]))
-      .map((r) => ({
-        x: r.metrics[xAxis],
-        y: r.metrics[yAxis],
-        color: colorFor(r),
-        custom: { id: r.candidate.id, result: r },
-      }));
+    const plotted = results.filter(
+      (r) => Number.isFinite(r.metrics[xAxis]) && Number.isFinite(r.metrics[yAxis]),
+    );
+    const mapPoint = (r: CandidateResult, dim: boolean) => ({
+      x: r.metrics[xAxis],
+      y: r.metrics[yAxis],
+      // Non-matches fade to a faint wash so the field stays as context; matches
+      // keep their full computed colour and sit larger, drawn on top. The "33"
+      // alpha suffix makes dimmed points translucent.
+      color: dim ? `${CHART.grid}55` : colorFor(r),
+      marker: dim ? { radius: 3 } : matchIds ? { radius: 6 } : undefined,
+      custom: { id: r.candidate.id, result: r },
+    });
+    if (!matchIds) return plotted.map((r) => mapPoint(r, false));
+    // Dimmed first, highlighted last → highlighted render on top.
+    const dimmed = plotted.filter((r) => !matchIds.has(r.candidate.id));
+    const lit = plotted.filter((r) => matchIds.has(r.candidate.id));
+    return [
+      ...dimmed.map((r) => mapPoint(r, true)),
+      ...lit.map((r) => mapPoint(r, false)),
+    ];
     // selectedIds intentionally omitted — not read here, and rebuilding ~50k
     // points on every selection click is needlessly expensive.
-  }, [results, xAxis, yAxis, colorFor]);
+  }, [results, xAxis, yAxis, colorFor, matchIds]);
 
   const options: Options = useMemo(() => ({
     chart: {
