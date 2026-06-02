@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   AUTO_RATCHET_BOOSTS,
   AUTO_CAPE_RULES,
+  AUTO_CAPE_FLOOR,
   autoLadderRungs,
   buildAutoLadderCandidate,
   buildAutoLadders,
   autoSearchSummary,
   type AutoLadder,
 } from '../../src/engine/study';
+import { computeWithdrawal } from '../../src/engine/strategies';
 
 /**
  * Auto-mode ladders: the laddered search structure that replaced the flat
@@ -76,6 +78,9 @@ describe('auto-mode ladders', () => {
       type: 'capeWithdrawal',
       a: 0.0175,
       b: 0.5,
+      // A floor is required, else a %-of-balance rule never depletes and its
+      // success rate is meaningless.
+      floor: AUTO_CAPE_FLOOR,
     });
     expect(cand.params.withdrawal).toBe('CAPE 1.75/0.5');
 
@@ -83,6 +88,21 @@ describe('auto-mode ladders', () => {
     const other = AUTO_CAPE_RULES.find((r) => r.label === 'CAPE 1.50/0.5')!;
     const cand2 = buildAutoLadderCandidate({ ...base, kind: 'cape', cape: other }, 0, 30);
     expect(cand.id).not.toBe(cand2.id);
+  });
+
+  it('the CAPE floor binds when the balance is depressed (so it can deplete)', () => {
+    const initial = 1_000_000;
+    const wd = { type: 'capeWithdrawal' as const, a: 0.04, b: 0, fallbackCape: 20, floor: 0.0325 };
+    const state = (balance: number) =>
+      ({ t: 5, balance, cape: 20, trajectory: [] }) as never;
+    // Healthy balance: 4% of balance ($40k) beats the floor ($32.5k).
+    expect(computeWithdrawal(wd, state(1_000_000), initial, 0)).toBeCloseTo(40_000, 0);
+    // Crashed balance: 4% of $500k ($20k) is below the floor — floor binds, so
+    // the retiree keeps pulling $32.5k and the portfolio can actually run dry.
+    expect(computeWithdrawal(wd, state(500_000), initial, 0)).toBeCloseTo(32_500, 0);
+    // Floor 0 reverts to the pure, unfalsifiable %-of-balance rule.
+    const noFloor = { ...wd, floor: 0 };
+    expect(computeWithdrawal(noFloor, state(500_000), initial, 0)).toBeCloseTo(20_000, 0);
   });
 
   it('builds concrete candidates with distinct ids and informative curve labels', () => {

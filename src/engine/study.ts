@@ -262,7 +262,7 @@ export const WITHDRAWAL_ARCHETYPES: WithdrawalArchetype[] = [
   { id: 'floorUpside', label: 'Floor + upside', editable: true, make: () => ({ type: 'floorAndUpside', floor: 0.0325, upsideRate: 0.03 }) },
   { id: 'ratchet', label: 'Ratchet', editable: true, make: () => ({ type: 'ratchet', baseRate: 0.0325, stepSize: 0.1, stepBoost: 0.05 }) },
   { id: 'guardrails', label: 'Guardrails', editable: false, make: () => ({ type: 'guardrails', base: 0.05, trigger: 0.2, ceiling: 1.25, floor: 0.8 }) },
-  { id: 'cape', label: 'CAPE', editable: true, make: () => ({ type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20 }) },
+  { id: 'cape', label: 'CAPE', editable: true, make: () => ({ type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20, floor: 0.0325 }) },
   { id: 'endowment', label: 'Endowment', editable: false, make: () => ({ type: 'endowment', rate: 0.05, lookbackYears: 10, floorFraction: 0.9 }) },
   { id: 'vanguard', label: 'Vanguard dynamic', editable: false, make: () => ({ type: 'vanguardDynamic', rate: 0.05, ceiling: 0.05, floor: -0.025 }) },
 ];
@@ -777,6 +777,13 @@ export const AUTO_CAPE_RULES: { label: string; a: number; b: number }[] = [
 ];
 /** Pre-1881 start years have no CAPE; fall back to this long-run average. */
 const AUTO_CAPE_FALLBACK = 20;
+/**
+ * Minimum real withdrawal (fraction of initial) for the auto CAPE rules.
+ * Without a floor a %-of-balance rule never depletes — it just spends less and
+ * less — so success rate is meaningless. Matches the percent-of-balance
+ * archetype's floor. Spending can't fall below this, so the portfolio can.
+ */
+export const AUTO_CAPE_FLOOR = 0.0325;
 
 export type AutoLadderKind = 'fixed' | 'ratchet' | 'curve' | 'cape';
 
@@ -869,7 +876,13 @@ export function buildAutoLadderCandidate(
       break;
     case 'cape': {
       const rule = ladder.cape!;
-      wd = { type: 'capeWithdrawal', a: rule.a, b: rule.b, fallbackCape: AUTO_CAPE_FALLBACK };
+      wd = {
+        type: 'capeWithdrawal',
+        a: rule.a,
+        b: rule.b,
+        fallbackCape: AUTO_CAPE_FALLBACK,
+        floor: AUTO_CAPE_FLOOR,
+      };
       // Use ERN's name directly — clearer than describeWithdrawal's a/b form,
       // and unique per rule. The descriptor rate is the value at the fallback
       // CAPE, matching the range-mode CAPE sweep's convention.

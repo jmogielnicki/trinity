@@ -89,7 +89,7 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
         stepBoost: 0.05,
       });
     if (m === 'cape')
-      onChange({ type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20 });
+      onChange({ type: 'capeWithdrawal', a: 0.0175, b: 0.5, fallbackCape: 20, floor: 0.0325 });
   };
 
   return (
@@ -132,8 +132,9 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
           a={withdrawal.a}
           b={withdrawal.b}
           fallbackCape={withdrawal.fallbackCape}
-          onChange={(a, b, fallbackCape) =>
-            onChange({ type: 'capeWithdrawal', a, b, fallbackCape })
+          floor={withdrawal.floor ?? 0}
+          onChange={(a, b, fallbackCape, floor) =>
+            onChange({ type: 'capeWithdrawal', a, b, fallbackCape, floor })
           }
         />
       )}
@@ -218,12 +219,14 @@ function CapeWithdrawalEditor({
   a,
   b,
   fallbackCape,
+  floor,
   onChange,
 }: {
   a: number;
   b: number;
   fallbackCape: number;
-  onChange: (a: number, b: number, fallbackCape: number) => void;
+  floor: number;
+  onChange: (a: number, b: number, fallbackCape: number, floor: number) => void;
 }) {
   const exampleCape = 20.9;
   const exampleRate = (a + b / exampleCape) * 100;
@@ -236,9 +239,11 @@ function CapeWithdrawalEditor({
   return (
     <div className="flex flex-col gap-2.5">
       <div className="text-xs text-text-muted leading-[1.4]">
-        Each year: withdraw <strong>rate × current balance</strong>, where{' '}
-        <strong>rate = a + b ÷ CAPE</strong>. At CAPE {exampleCape.toFixed(1)},{' '}
-        rate = {exampleRate.toFixed(2)}%. Adjusts automatically as markets move.
+        Each year: withdraw <strong>max(floor, rate × current balance)</strong>,
+        where <strong>rate = a + b ÷ CAPE</strong>. At CAPE{' '}
+        {exampleCape.toFixed(1)}, rate = {exampleRate.toFixed(2)}%. Adjusts
+        automatically as markets move; the floor sets a minimum real spend so the
+        portfolio can actually deplete (set floor to 0 for the pure rule).
       </div>
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
@@ -249,7 +254,7 @@ function CapeWithdrawalEditor({
             parse={pctParse}
             min={0}
             max={0.1}
-            onChange={(v) => onChange(v, b, fallbackCape)}
+            onChange={(v) => onChange(v, b, fallbackCape, floor)}
           />
         </label>
         <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
@@ -264,7 +269,7 @@ function CapeWithdrawalEditor({
             }}
             min={0}
             max={2}
-            onChange={(v) => onChange(a, v, fallbackCape)}
+            onChange={(v) => onChange(a, v, fallbackCape, floor)}
           />
         </label>
         <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
@@ -279,7 +284,18 @@ function CapeWithdrawalEditor({
             }}
             min={5}
             max={60}
-            onChange={(v) => onChange(a, b, v)}
+            onChange={(v) => onChange(a, b, v, floor)}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-text-secondary font-medium">
+          Floor — min spend (% of initial)
+          <NumericInput
+            value={floor}
+            format={pctFmt}
+            parse={pctParse}
+            min={0}
+            max={0.1}
+            onChange={(v) => onChange(a, b, fallbackCape, v)}
           />
         </label>
       </div>

@@ -218,6 +218,7 @@ export function wdRows(w: WithdrawalStrategy): [string, string][] {
       return [
         ['Formula',       `${pct(w.a)} + ${w.b} ÷ CAPE`],
         ['Fallback CAPE', `${w.fallbackCape}`],
+        ['Floor',         w.floor ? `${pct(w.floor)} of initial` : 'none'],
       ];
     case 'ratchet':
       return [

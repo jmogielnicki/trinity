@@ -54,8 +54,11 @@ export type WithdrawalStrategy =
    * Applied to the current portfolio balance each year (variable withdrawal).
    * Conservative defaults: a = 0.0175, b = 0.5.
    * When CAPE is unavailable (pre-1881), falls back to rate = a + b / fallbackCape.
+   * Optional `floor` (fraction of initial, real) is the minimum real withdrawal —
+   * without it a pure %-of-balance rule can never deplete (it just spends less
+   * and less), so success rate is meaningless. Absent/0 = no floor.
    */
-  | { type: 'capeWithdrawal'; a: number; b: number; fallbackCape: number }
+  | { type: 'capeWithdrawal'; a: number; b: number; fallbackCape: number; floor?: number }
   /**
    * Ratchet: spending permanently steps up each time the portfolio's
    * all-time-high crosses a new multiple of `stepSize` above `initial`.
@@ -275,7 +278,11 @@ export function computeWithdrawal(
     case 'capeWithdrawal': {
       const cape = state.cape ?? strat.fallbackCape;
       const rate = strat.a + strat.b / cape;
-      return rate * state.balance;
+      // Floor in real $ (fraction of initial). Like percentOfBalance, this is
+      // what lets a crashed portfolio actually deplete rather than spend ever
+      // smaller amounts forever. Absent → 0 (no floor; back-compatible).
+      const floor = Number.isFinite(strat.floor) ? (strat.floor as number) : 0;
+      return Math.max(floor * initial, rate * state.balance);
     }
     case 'ratchet': {
       const peakBalance = state.trajectory.reduce(
