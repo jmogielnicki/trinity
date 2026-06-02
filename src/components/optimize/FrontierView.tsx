@@ -40,6 +40,7 @@ import {
   type YearMode,
 } from '../results/overlayCharts';
 import { FIELD_BASE } from '../ui/fieldCls';
+import { downsampleForRender } from './scatterDownsample';
 
 type Axis =
   | 'successRate'
@@ -1172,6 +1173,17 @@ function ScatterPlot({
     const plotted = results.filter(
       (r) => Number.isFinite(r.metrics[xAxis]) && Number.isFinite(r.metrics[yAxis]),
     );
+    // Thin the bulk for rendering, but never drop a frontier node (or, when a
+    // filter is active, a match — those are the points the user is studying).
+    const pinned = (r: CandidateResult) =>
+      frontierIds.has(r.candidate.id) || (matchIds?.has(r.candidate.id) ?? false);
+    const kept = downsampleForRender(
+      plotted,
+      (r) => r.metrics[xAxis],
+      (r) => r.metrics[yAxis],
+      (r) => r.candidate.id,
+      pinned,
+    );
     const mapPoint = (r: CandidateResult, dim: boolean) => ({
       x: r.metrics[xAxis],
       y: r.metrics[yAxis],
@@ -1182,17 +1194,17 @@ function ScatterPlot({
       marker: dim ? { radius: 3 } : matchIds ? { radius: 6 } : undefined,
       custom: { id: r.candidate.id, result: r },
     });
-    if (!matchIds) return plotted.map((r) => mapPoint(r, false));
+    if (!matchIds) return kept.map((r) => mapPoint(r, false));
     // Dimmed first, highlighted last → highlighted render on top.
-    const dimmed = plotted.filter((r) => !matchIds.has(r.candidate.id));
-    const lit = plotted.filter((r) => matchIds.has(r.candidate.id));
+    const dimmed = kept.filter((r) => !matchIds.has(r.candidate.id));
+    const lit = kept.filter((r) => matchIds.has(r.candidate.id));
     return [
       ...dimmed.map((r) => mapPoint(r, true)),
       ...lit.map((r) => mapPoint(r, false)),
     ];
     // selectedIds intentionally omitted — not read here, and rebuilding ~50k
     // points on every selection click is needlessly expensive.
-  }, [results, xAxis, yAxis, colorFor, matchIds]);
+  }, [results, xAxis, yAxis, colorFor, matchIds, frontierIds]);
 
   const options: Options = useMemo(() => ({
     chart: {
