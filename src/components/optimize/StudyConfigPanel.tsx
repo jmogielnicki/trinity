@@ -94,6 +94,7 @@ function familyDefault(family: WithdrawalFamily): WithdrawalRangeSpec {
         a: 0.0175,
         b: 0.5,
         fallbackCape: 20,
+        floor: 0.0325,
         from: 0.01,
         to: 0.025,
         step: 0.0025,
@@ -683,8 +684,9 @@ function WithdrawalRangeEditor({
             </select>
           </label>
           <div className="text-xs text-text-faint py-0.5">
-            Rate = a + b / CAPE. Pre-1881 falls back to a + b /{' '}
-            {spec.fallbackCape}.
+            Withdraw max(floor, [a + b / CAPE] × balance). Pre-1881 falls back to
+            a + b / {spec.fallbackCape}. The floor is the minimum real spend — set
+            it to 0 for the pure rule (which then never depletes).
           </div>
           {spec.sweep === 'a' ? (
             <PctNum
@@ -699,6 +701,11 @@ function WithdrawalRangeEditor({
               onChange={(a) => setSpec({ ...spec, a })}
             />
           )}
+          <PctNum
+            label="floor (pinned)"
+            value={spec.floor}
+            onChange={(floor) => setSpec({ ...spec, floor })}
+          />
           <PctRange
             from={spec.from}
             to={spec.to}

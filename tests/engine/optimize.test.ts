@@ -203,6 +203,7 @@ describe('generateStudyCandidates', () => {
         a: 0.0175,
         b: 0.5,
         fallbackCape: 20,
+        floor: 0.0325,
         from: 0.01,
         to: 0.025,
         step: 0.0025,
@@ -215,6 +216,8 @@ describe('generateStudyCandidates', () => {
       if (c.withdrawal.type === 'capeWithdrawal') {
         expect(c.withdrawal.b).toBe(0.5);
         expect(c.withdrawal.fallbackCape).toBe(20);
+        // Floor is pinned (not swept) and carried onto every candidate.
+        expect(c.withdrawal.floor).toBe(0.0325);
       }
     }
   });

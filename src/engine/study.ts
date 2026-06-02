@@ -118,6 +118,8 @@ export type WithdrawalRangeSpec =
       a: number;
       b: number;
       fallbackCape: number;
+      /** Minimum real withdrawal (fraction of initial); pinned, not swept. */
+      floor: number;
       from: number;
       to: number;
       step: number;
@@ -511,7 +513,7 @@ function withdrawalVariants(
         const a = spec.sweep === 'a' ? v : spec.a;
         const b = spec.sweep === 'b' ? v : spec.b;
         return {
-          wd: { type: 'capeWithdrawal', a, b, fallbackCape: spec.fallbackCape },
+          wd: { type: 'capeWithdrawal', a, b, fallbackCape: spec.fallbackCape, floor: spec.floor },
           numeric: { withdrawalRate: a + b / spec.fallbackCape },
         };
       });
