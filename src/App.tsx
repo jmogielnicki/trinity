@@ -326,7 +326,7 @@ export function App() {
               >
                 ↟
               </span>
-              <div className="min-w-0 flex flex-col justify-center gap-2">
+              <div className="min-w-0 flex flex-col justify-center gap-1">
               <h1 className="font-display font-bold text-primary m-0">
                 Retirement Planner
               </h1>
