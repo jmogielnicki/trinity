@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   AUTO_RATCHET_BOOSTS,
   AUTO_CAPE_RULES,
-  AUTO_CAPE_FLOOR,
   autoLadderRungs,
   buildAutoLadderCandidate,
   buildAutoLadders,
@@ -78,11 +77,19 @@ describe('auto-mode ladders', () => {
       type: 'capeWithdrawal',
       a: 0.0175,
       b: 0.5,
-      // A floor is required, else a %-of-balance rule never depletes and its
-      // success rate is meaningless.
-      floor: AUTO_CAPE_FLOOR,
+      // The user's min withdrawal rate (ladder.baseRate) IS the floor — without
+      // it a %-of-balance rule never depletes and success rate is meaningless.
+      floor: base.baseRate,
     });
     expect(cand.params.withdrawal).toBe('CAPE 1.75/0.5');
+
+    // The floor follows the user's min withdrawal rate, not a fixed constant.
+    const lowFloor = buildAutoLadderCandidate(
+      { ...base, baseRate: 0.02, kind: 'cape', cape: rule },
+      0,
+      30,
+    );
+    expect(lowFloor.withdrawal).toMatchObject({ type: 'capeWithdrawal', floor: 0.02 });
 
     // Distinct CAPE rules over the same [alloc, source] get distinct ids.
     const other = AUTO_CAPE_RULES.find((r) => r.label === 'CAPE 1.50/0.5')!;

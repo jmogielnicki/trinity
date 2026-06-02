@@ -779,13 +779,6 @@ export const AUTO_CAPE_RULES: { label: string; a: number; b: number }[] = [
 ];
 /** Pre-1881 start years have no CAPE; fall back to this long-run average. */
 const AUTO_CAPE_FALLBACK = 20;
-/**
- * Minimum real withdrawal (fraction of initial) for the auto CAPE rules.
- * Without a floor a %-of-balance rule never depletes — it just spends less and
- * less — so success rate is meaningless. Matches the percent-of-balance
- * archetype's floor. Spending can't fall below this, so the portfolio can.
- */
-export const AUTO_CAPE_FLOOR = 0.0325;
 
 export type AutoLadderKind = 'fixed' | 'ratchet' | 'curve' | 'cape';
 
@@ -883,7 +876,9 @@ export function buildAutoLadderCandidate(
         a: rule.a,
         b: rule.b,
         fallbackCape: AUTO_CAPE_FALLBACK,
-        floor: AUTO_CAPE_FLOOR,
+        // The user's "min withdrawal rate" IS the spending floor — without it a
+        // %-of-balance rule never depletes, so success rate is meaningless.
+        floor: ladder.baseRate,
       };
       // Use ERN's name directly — clearer than describeWithdrawal's a/b form,
       // and unique per rule. The descriptor rate is the value at the fallback

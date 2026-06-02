@@ -48,11 +48,12 @@ export function AutoStudyPanel({
     <div className="flex flex-col gap-3.5 border border-border-light rounded p-3.5 bg-surface-panel">
       <div className="text-text-secondary text-sm max-w-[640px] leading-[1.4]">
         <strong>Auto mode</strong> — sweeps every fixed and glide holdings mix
-        (10% increments, stocks ≥ 50%) against fixed %, ratchet, and curve
-        withdrawals across all four sources. Each combination climbs its
-        withdrawal rate from your floor upward and stops once it can no longer
-        clear your minimum success rate. Pick the floor and the minimum success
-        rate, then run.
+        (10% increments, stocks ≥ 50%) against fixed %, ratchet, curve, and CAPE
+        withdrawals across all four sources. The climbing strategies raise their
+        withdrawal rate from your floor upward and stop once they can no longer
+        clear your minimum success rate; the CAPE rules use your floor as their
+        minimum real spend. Pick the floor and the minimum success rate, then
+        run.
       </div>
 
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
