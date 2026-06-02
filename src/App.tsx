@@ -328,11 +328,10 @@ export function App() {
               </span>
               <div className="min-w-0 flex flex-col justify-center gap-1">
               <h1 className="font-display font-bold text-primary m-0">
-                Retirement calculator
+                Retirement Planner
               </h1>
               <p className="shrinking-subtitle text-text-muted text-base">
-                Stress-test all retirement start years from{' '}
-                {data?.start ?? '…'} to {data?.end ?? '…'}.
+                Build your retirement plan. Stress-test against historical returns.
               </p>
               </div>
             </div>
@@ -439,7 +438,7 @@ export function App() {
             {/* Split FAB — mobile only. Left: edit strategy. Right: save strategy.
                 Text labels collapse when scrolling down (Gmail compose pattern). */}
             {topMode === 'single' && (
-              <div className="md:hidden fixed bottom-5 right-4 z-40 h-14 flex rounded-2xl overflow-hidden shadow-fab">
+              <div className="md:hidden fixed bottom-6 right-3 z-40 h-14 flex rounded-2xl overflow-hidden shadow-fab">
                 {/* Edit half */}
                 <button
                   className="flex items-center px-4 bg-secondary cursor-pointer hover:opacity-90 active:opacity-80 text-white h-full"
