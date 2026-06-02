@@ -773,7 +773,7 @@ export const AUTO_CAPE_RULES: { label: string; a: number; b: number }[] = [
   { label: 'CAPE 1.75/0.5', a: 0.0175, b: 0.5 },
   { label: 'CAPE 2.08/0.4', a: 0.0208, b: 0.4 },
   { label: 'CAPE 1.42/0.6', a: 0.0142, b: 0.6 },
-  { label: '4% of balance', a: 0.04, b: 0 },
+  { label: 'CAPE 4.00/0', a: 0.04, b: 0 },
 ];
 /** Pre-1881 start years have no CAPE; fall back to this long-run average. */
 const AUTO_CAPE_FALLBACK = 20;
