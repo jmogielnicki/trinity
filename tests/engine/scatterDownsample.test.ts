@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   downsampleForRender,
   hash01,
-  SCATTER_RENDER_BUDGET,
-  SCATTER_THIN_THRESHOLD,
+  DEFAULT_THIN,
 } from '../../src/components/optimize/scatterDownsample';
+
+const SCATTER_RENDER_BUDGET = DEFAULT_THIN.budget;
+const SCATTER_THIN_THRESHOLD = DEFAULT_THIN.threshold;
 
 type Pt = { id: string; x: number; y: number; pin: boolean };
 

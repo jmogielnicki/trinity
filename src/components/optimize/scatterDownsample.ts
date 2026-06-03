@@ -7,14 +7,23 @@
 // drops out while the frontier neighborhood stays dense. Thinning is purely
 // visual — selection still runs over the full result set.
 
-/** ~max non-pinned points drawn. */
-export const SCATTER_RENDER_BUDGET = 4000;
-/** Below this many points there's no lag, so draw everything. */
-export const SCATTER_THIN_THRESHOLD = 3000;
-/** Higher → the bottom-left bulk thins harder relative to the frontier. */
-export const SCATTER_THIN_GAMMA = 2.5;
-/** Keeps a faint wash of the bottom-left bulk rather than clearing it entirely. */
-export const SCATTER_THIN_FLOOR = 0.02;
+export type ThinConfig = {
+  /** ~max non-pinned points drawn. */
+  budget: number;
+  /** Below this many points there's no lag, so draw everything. */
+  threshold: number;
+  /** Higher → the bottom-left bulk thins harder relative to the frontier. */
+  gamma: number;
+  /** Keeps a faint wash of the bottom-left bulk rather than clearing it entirely. */
+  floor: number;
+};
+
+export const DEFAULT_THIN: ThinConfig = {
+  budget: 4000,
+  threshold: 3000,
+  gamma: 2.5,
+  floor: 0.02,
+};
 
 // Deterministic [0,1) hash of an id, so a point's keep/drop is stable across
 // re-renders (no flicker) and independent of its keep weight.
@@ -33,8 +42,9 @@ export function downsampleForRender<T>(
   getY: (t: T) => number,
   getId: (t: T) => string,
   pinned: (t: T) => boolean,
+  cfg: ThinConfig = DEFAULT_THIN,
 ): T[] {
-  if (items.length <= SCATTER_THIN_THRESHOLD) return items;
+  if (items.length <= cfg.threshold) return items;
 
   let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
   for (const t of items) {
@@ -53,7 +63,7 @@ export function downsampleForRender<T>(
     const nx = (getX(t) - xMin) / xr;
     const ny = (getY(t) - yMin) / yr;
     const s = (nx + ny) / 2;
-    return SCATTER_THIN_FLOOR + Math.pow(s, SCATTER_THIN_GAMMA);
+    return cfg.floor + Math.pow(s, cfg.gamma);
   };
 
   const pinnedList = items.filter(pinned);
@@ -62,7 +72,7 @@ export function downsampleForRender<T>(
   // Scale weights so the expected kept count meets the budget (never inflates).
   let total = 0;
   for (const t of thinnable) total += weight(t);
-  const scale = total > 0 ? Math.min(1, SCATTER_RENDER_BUDGET / total) : 1;
+  const scale = total > 0 ? Math.min(1, cfg.budget / total) : 1;
 
   const sampled = thinnable.filter((t) => hash01(getId(t)) < weight(t) * scale);
   // Pinned drawn last → frontier/matched render on top of the thinned field.

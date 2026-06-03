@@ -40,7 +40,8 @@ import {
   type YearMode,
 } from '../results/overlayCharts';
 import { FIELD_BASE } from '../ui/fieldCls';
-import { downsampleForRender } from './scatterDownsample';
+import { downsampleForRender, DEFAULT_THIN, type ThinConfig } from './scatterDownsample';
+import { paretoSkyline } from './frontier2d';
 
 type Axis =
   | 'successRate'
@@ -200,42 +201,29 @@ function startMixOf(r: CandidateResult): string {
 }
 
 /**
- * Pareto frontier over the two plotted axes: the points not dominated on both
- * x and y (respecting each axis's "higher is better" direction). This is the
- * upper-right edge the eye reads as "the top of the field," recomputed per
- * axis pair — distinct from the engine's global 4-objective frontier.
+ * Pareto frontier over the two plotted axes: the non-dominated upper-right edge
+ * the eye reads as "the top of the field." This is exactly the curve from the
+ * best-x point (e.g. safest: max min-balance) to the best-y point (e.g. richest:
+ * max withdrawal), with the trade-off points in between — recomputed per axis
+ * pair, and distinct from the engine's global 4-objective frontier (which mixes
+ * in p50/p95 final balance and so looks scattered when projected onto 2 axes).
+ *
+ * Skyline scan in O(n log n): flip each axis so "higher is better" holds, sort
+ * by x descending, then keep any point whose y beats the best y seen so far.
  */
 function currentAxesFrontier(
   results: CandidateResult[],
   xAxis: Axis,
   yAxis: Axis,
 ): Set<string> {
-  const xUp = AXIS_HIGHER_BETTER[xAxis];
-  const yUp = AXIS_HIGHER_BETTER[yAxis];
-  const pts = results
-    .map((r) => ({
-      id: r.candidate.id,
-      x: r.metrics[xAxis],
-      y: r.metrics[yAxis],
-    }))
-    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
-  const front = new Set<string>();
-  for (const a of pts) {
-    let dominated = false;
-    for (const b of pts) {
-      if (b.id === a.id) continue;
-      const xGE = xUp ? b.x >= a.x : b.x <= a.x;
-      const yGE = yUp ? b.y >= a.y : b.y <= a.y;
-      const xGT = xUp ? b.x > a.x : b.x < a.x;
-      const yGT = yUp ? b.y > a.y : b.y < a.y;
-      if (xGE && yGE && (xGT || yGT)) {
-        dominated = true;
-        break;
-      }
-    }
-    if (!dominated) front.add(a.id);
-  }
-  return front;
+  return paretoSkyline(
+    results,
+    (r) => r.metrics[xAxis],
+    (r) => r.metrics[yAxis],
+    (r) => r.candidate.id,
+    AXIS_HIGHER_BETTER[xAxis],
+    AXIS_HIGHER_BETTER[yAxis],
+  );
 }
 
 /**
@@ -305,7 +293,6 @@ export function FrontierView({ onApplied }: Props) {
     hasBase,
     autoMode,
     results,
-    frontier,
     selectedIds,
     minSuccessRate,
     running,
@@ -317,7 +304,6 @@ export function FrontierView({ onApplied }: Props) {
     setAutoMode,
     toggleSelected,
     setSelected,
-    selectAllFrontier,
     autoCurate,
     clearSelection,
     setMinSuccessRate,
@@ -375,11 +361,27 @@ export function FrontierView({ onApplied }: Props) {
       ),
     [results, minSuccessRate],
   );
+  // The "frontier" shown here is the 2D Pareto edge of the *plotted* axes —
+  // what the user actually reads off the chart — not the engine's global
+  // 4-objective front. Recomputed when the axes or the passing field change.
   const frontierIds = useMemo(
-    () => new Set(frontier.map((r) => r.candidate.id)),
-    [frontier],
+    () => currentAxesFrontier(filteredResults, xAxis, yAxis),
+    [filteredResults, xAxis, yAxis],
   );
+  const frontierResults = useMemo(
+    () =>
+      filteredResults
+        .filter((r) => frontierIds.has(r.candidate.id))
+        .sort((a, b) => b.metrics[yAxis] - a.metrics[yAxis]),
+    [filteredResults, frontierIds, yAxis],
+  );
+  const selectFrontier = () =>
+    setSelected(spreadAlongFrontier(frontierResults, xAxis, yAxis, OVERLAY_MAX));
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // Temporary tuning surface for the scatter downsampler (see ScatterPlot).
+  const [thin, setThin] = useState<ThinConfig>(DEFAULT_THIN);
+  const [thinStats, setThinStats] = useState({ kept: 0, total: 0 });
 
   // Facet option lists — the distinct start mixes and sources present in the
   // current (success-filtered) field, so the dropdowns only offer real values.
@@ -563,7 +565,8 @@ export function FrontierView({ onApplied }: Props) {
       {!!results.length && (
         <div className="text-xs text-text-faint">
           {filteredResults.length}/{results.length} variants passing ·{' '}
-          {frontier.length} on Pareto frontier · compute {computeMs.toFixed(0)} ms ·{' '}
+          {frontierResults.length} on {AXIS_LABELS[xAxis]} × {AXIS_LABELS[yAxis]}{' '}
+          frontier · compute {computeMs.toFixed(0)} ms ·{' '}
           {selectedIds.length}/{OVERLAY_MAX} overlaid
           {(studyDirty ||
             (lastConfig &&
@@ -578,21 +581,7 @@ export function FrontierView({ onApplied }: Props) {
 
       {results.length > 0 && (
         <>
-          <OverlaySection
-            series={selectedSeries}
-            results={results}
-            selectedIds={selectedIds}
-            onToggle={toggleSelected}
-            onApply={applyStrategy}
-            onSave={setSaveTarget}
-            onAutoCurate={autoCurate}
-            onSelectFrontier={selectAllFrontier}
-            onClear={clearSelection}
-            frontierCount={frontier.length}
-            pickSource="scatter"
-          />
-
-          <div className="border-t border-border-light pt-3.5 mt-1 flex flex-col gap-3.5">
+          <div className="flex flex-col gap-3.5">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
               Explore all {results.length} variants
             </div>
@@ -693,6 +682,9 @@ export function FrontierView({ onApplied }: Props) {
               onOverlayMatches={overlayMatches}
             />
           )}
+          {effectiveViewMode === 'scatter' && (
+            <ThinControls value={thin} onChange={setThin} stats={thinStats} />
+          )}
           {effectiveViewMode === 'scatter' ? (
             <>
               <ScatterPlot
@@ -705,9 +697,11 @@ export function FrontierView({ onApplied }: Props) {
                 xAxis={xAxis}
                 yAxis={yAxis}
                 colorBy={colorBy}
+                thin={thin}
+                onStats={setThinStats}
               />
               <FrontierList
-                frontier={frontier}
+                frontier={frontierResults}
                 selectedIds={selectedSet}
                 onToggle={toggleSelected}
               />
@@ -716,6 +710,20 @@ export function FrontierView({ onApplied }: Props) {
             <StudyTrajectories results={results} />
           )}
           </div>
+
+          <OverlaySection
+            series={selectedSeries}
+            results={results}
+            selectedIds={selectedIds}
+            onToggle={toggleSelected}
+            onApply={applyStrategy}
+            onSave={setSaveTarget}
+            onAutoCurate={autoCurate}
+            onSelectFrontier={selectFrontier}
+            onClear={clearSelection}
+            frontierCount={frontierResults.length}
+            pickSource="scatter"
+          />
         </>
       )}
 
@@ -1045,7 +1053,63 @@ function FilterBar({
 }
 
 // ---------------------------------------------------------------------------
-// Scatter plot with marquee selection
+// TEMPORARY — live tuning for the scatter downsampler. Remove once the defaults
+// in scatterDownsample.ts feel right.
+// ---------------------------------------------------------------------------
+
+function ThinControls({
+  value,
+  onChange,
+  stats,
+}: {
+  value: ThinConfig;
+  onChange: (c: ThinConfig) => void;
+  stats: { kept: number; total: number };
+}) {
+  const num = (
+    label: string,
+    key: keyof ThinConfig,
+    step: number,
+    min: number,
+    max: number,
+  ) => (
+    <label className="flex items-center gap-1" title={label}>
+      <span className="text-text-faint">{label}</span>
+      <input
+        type="number"
+        className="w-[68px] px-1 py-[2px] border border-text-disabled rounded-xs text-xs tabular-nums"
+        value={value[key]}
+        step={step}
+        min={min}
+        max={max}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          if (Number.isFinite(v)) onChange({ ...value, [key]: v });
+        }}
+      />
+    </label>
+  );
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-text-secondary border border-dashed border-text-disabled rounded px-2.5 py-1.5 bg-surface-page">
+      <span className="font-semibold text-text-muted uppercase tracking-[0.1em]">
+        ⚙ thin (temp)
+      </span>
+      {num('budget', 'budget', 250, 100, 100000)}
+      {num('gamma', 'gamma', 0.25, 0, 8)}
+      {num('floor', 'floor', 0.01, 0, 1)}
+      {num('threshold', 'threshold', 500, 0, 100000)}
+      <span className="ml-auto tabular-nums text-text-faint">
+        drawing {stats.kept.toLocaleString()} / {stats.total.toLocaleString()}
+      </span>
+      <Btn size="sm" onClick={() => onChange(DEFAULT_THIN)}>
+        Reset
+      </Btn>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Scatter plot — drag to zoom, shift-drag to marquee-select
 // ---------------------------------------------------------------------------
 
 function ScatterPlot({
@@ -1058,6 +1122,8 @@ function ScatterPlot({
   xAxis,
   yAxis,
   colorBy,
+  thin,
+  onStats,
 }: {
   results: CandidateResult[];
   frontierIds: Set<string>;
@@ -1069,6 +1135,8 @@ function ScatterPlot({
   xAxis: Axis;
   yAxis: Axis;
   colorBy: ColorBy;
+  thin: ThinConfig;
+  onStats: (s: { kept: number; total: number }) => void;
 }) {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
 
@@ -1127,8 +1195,13 @@ function ScatterPlot({
     return { cMin, cMax, colorFor };
   }, [results, colorBy, frontierIds]);
 
-  // Stable selection event handler.
+  // Drag zooms (Highcharts' default); hold Shift (or Alt) to marquee-select
+  // instead. Returning undefined lets the zoom proceed; returning false cancels
+  // it and runs our selection.
   const selectionHandler = useCallback(function (this: unknown, e: any) {
+    const oe = e.originalEvent as MouseEvent | undefined;
+    const selecting = !!(oe && (oe.shiftKey || oe.altKey));
+    if (!selecting) return; // let Highcharts zoom
     e.preventDefault();
     const cb = onMarqueeRef.current;
     if (!cb || !e.xAxis || !e.yAxis) return false;
@@ -1183,6 +1256,7 @@ function ScatterPlot({
       (r) => r.metrics[yAxis],
       (r) => r.candidate.id,
       pinned,
+      thin,
     );
     const mapPoint = (r: CandidateResult, dim: boolean) => ({
       x: r.metrics[xAxis],
@@ -1204,7 +1278,20 @@ function ScatterPlot({
     ];
     // selectedIds intentionally omitted — not read here, and rebuilding ~50k
     // points on every selection click is needlessly expensive.
-  }, [results, xAxis, yAxis, colorFor, matchIds, frontierIds]);
+  }, [results, xAxis, yAxis, colorFor, matchIds, frontierIds, thin]);
+
+  // Report how many points actually rendered (seriesData length == kept count)
+  // vs. how many were plottable — drives the temporary thin-tuning readout.
+  const plottedTotal = useMemo(
+    () =>
+      results.filter(
+        (r) => Number.isFinite(r.metrics[xAxis]) && Number.isFinite(r.metrics[yAxis]),
+      ).length,
+    [results, xAxis, yAxis],
+  );
+  useEffect(() => {
+    onStats({ kept: seriesData.length, total: plottedTotal });
+  }, [seriesData, plottedTotal, onStats]);
 
   const options: Options = useMemo(() => ({
     chart: {
@@ -1273,7 +1360,7 @@ function ScatterPlot({
           <ColorBar colorBy={colorBy} cMin={cMin} cMax={cMax} />
         )}
         <span className="text-text-faint ml-auto italic">
-          drag = marquee select · click = toggle · click empty = clear
+          drag = zoom · shift-drag = select · click = toggle · click empty = clear
         </span>
       </div>
     </div>
