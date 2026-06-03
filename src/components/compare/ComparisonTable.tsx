@@ -47,6 +47,7 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
   const bestP95 = best((e) => e.metrics.p95Final);
   const bestAvgWd = best((e) => e.metrics.avgAnnualWithdrawal);
   const bestMin = best((e) => e.metrics.minBalance);
+  const bestMinSpend = best((e) => e.metrics.minSpend);
 
   const numCls = 'text-right tabular-nums';
   const leadCls = 'text-right tabular-nums font-semibold text-success';
@@ -88,6 +89,7 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
             <th className={`${thCls} text-right`}>P95 final</th>
             <th className={`${thCls} text-right`}>Avg withdrawal</th>
             <th className={`${thCls} text-right`}>Min balance</th>
+            <th className={`${thCls} text-right`}>Min spend</th>
             <th className={`${thCls} text-right`}>Worst start</th>
           </tr>
         </thead>
@@ -139,6 +141,9 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
                 </td>
                 <td className={`${tdCls} ${bestMin > 0 ? lead(m.minBalance, bestMin) : numCls}`}>
                   {fmtMoney(m.minBalance)}
+                </td>
+                <td className={`${tdCls} ${lead(m.minSpend, bestMinSpend)}`}>
+                  {fmtMoney(m.minSpend)}
                 </td>
                 <td className={`${tdCls} ${numCls}`}>{m.worstStartYear ?? '—'}</td>
               </tr>

@@ -5,7 +5,7 @@ import type {
 } from './strategies';
 import type { WithdrawalSource } from './withdrawalSource';
 import type { ScenarioResult, SimulationResult } from './types';
-import { minBalanceReached, weightedQuantile, type WeightedSample } from './stats';
+import { minBalanceReached, minSpendReached, weightedQuantile, type WeightedSample } from './stats';
 
 export type CandidateMetrics = {
   successRate: number;
@@ -36,6 +36,12 @@ export type CandidateMetrics = {
    * or otherwise. 0 if any sequence depletes. Higher is better.
    */
   minBalance: number;
+  /**
+   * Lowest single-year withdrawal across every sim, in real $ — how lean
+   * spending ever had to get in the worst historical sequence. Bottoms out at
+   * the spending floor for variable strategies. Higher is better.
+   */
+  minSpend: number;
   /** Worst completed start year (the earliest failure), if any. */
   worstStartYear?: number;
   completedCount: number;
@@ -179,6 +185,7 @@ export function metricsFromResult(
     avgAnnualWithdrawal,
     avgYearsNearDepletion,
     minBalance: minBalanceReached(result.sims),
+    minSpend: minSpendReached(result.sims),
     worstStartYear: result.worstStartYear,
     completedCount: result.completedCount,
   };

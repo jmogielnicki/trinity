@@ -15,7 +15,8 @@ type MetricKey =
   | 'successRate'
   | 'p50Final'
   | 'avgAnnualWithdrawal'
-  | 'minBalance';
+  | 'minBalance'
+  | 'minSpend';
 
 type MetricSpec = {
   key: MetricKey;
@@ -28,6 +29,7 @@ const METRICS: MetricSpec[] = [
   { key: 'p50Final', label: 'Median final balance', kind: 'money' },
   { key: 'avgAnnualWithdrawal', label: 'Avg annual withdrawal', kind: 'money' },
   { key: 'minBalance', label: 'Min balance reached', kind: 'money' },
+  { key: 'minSpend', label: 'Min annual spend', kind: 'money' },
 ];
 
 function fmtMoney(n: number): string {

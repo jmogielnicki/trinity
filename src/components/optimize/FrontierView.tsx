@@ -50,7 +50,8 @@ type Axis =
   | 'p95Final'
   | 'avgAnnualWithdrawal'
   | 'avgYearsNearDepletion'
-  | 'minBalance';
+  | 'minBalance'
+  | 'minSpend';
 
 const AXIS_LABELS: Record<Axis, string> = {
   successRate: 'Success rate',
@@ -60,6 +61,7 @@ const AXIS_LABELS: Record<Axis, string> = {
   avgAnnualWithdrawal: 'Avg annual withdrawal',
   avgYearsNearDepletion: 'Avg years near depletion',
   minBalance: 'Min balance reached',
+  minSpend: 'Min annual spend',
 };
 
 const AXIS_OPTIONS: Axis[] = [
@@ -70,6 +72,7 @@ const AXIS_OPTIONS: Axis[] = [
   'avgAnnualWithdrawal',
   'avgYearsNearDepletion',
   'minBalance',
+  'minSpend',
 ];
 
 type ColorBy =
@@ -156,6 +159,7 @@ const AXIS_HIGHER_BETTER: Record<Axis, boolean> = {
   avgAnnualWithdrawal: true,
   avgYearsNearDepletion: false, // fewer near-depletion years is better
   minBalance: true,
+  minSpend: true,
 };
 
 /** Withdrawal family of a candidate, for the "type" facet. */
@@ -1324,6 +1328,7 @@ function ScatterPlot({
           <b>${r.candidate.label}</b><br/>
           success ${(m.successRate * 100).toFixed(1)}% · avg wd ${fmtMoney(m.avgAnnualWithdrawal)}/y<br/>
           p50 ${fmtMoney(m.p50Final)} · p95 ${fmtMoney(m.p95Final)}<br/>
+          min bal ${fmtMoney(m.minBalance)} · min spend ${fmtMoney(m.minSpend)}/y<br/>
           near-depletion years: ${m.avgYearsNearDepletion.toFixed(1)}
         </span>`;
       },

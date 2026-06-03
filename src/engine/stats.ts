@@ -117,6 +117,26 @@ export function minBalanceReached(sims: SimulationResult[]): number {
 }
 
 /**
+ * Lowest single-year withdrawal across every year of every sim, in real $ —
+ * how lean spending ever had to get in the worst historical sequence. For a
+ * fixed strategy this is just the fixed amount; for variable strategies
+ * (percent-of-balance, CAPE, …) it bottoms out at the spending floor, which is
+ * exactly the "how much did the belt have to tighten" signal. Mirrors
+ * minBalanceReached: scans all sims including in-progress/bootstrapped ones,
+ * since a minimum (unlike an average) isn't skewed by truncated trajectories.
+ * NaN when there are no sims with trajectory data.
+ */
+export function minSpendReached(sims: SimulationResult[]): number {
+  let min = Infinity;
+  for (const s of sims) {
+    for (const rec of s.trajectory) {
+      if (rec.withdrawal < min) min = rec.withdrawal;
+    }
+  }
+  return Number.isFinite(min) ? min : NaN;
+}
+
+/**
  * Median of per-sim mean annual withdrawals, computed over completed observed
  * sims only. Bootstrap samples are excluded (each start year would otherwise
  * be counted samplesPerPrefix times). In-progress sims are excluded because

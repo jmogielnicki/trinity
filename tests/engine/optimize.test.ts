@@ -38,6 +38,7 @@ function mkResult(
       avgAnnualWithdrawal,
       avgYearsNearDepletion: 0,
       minBalance: p50Final * 0.4,
+      minSpend: avgAnnualWithdrawal * 0.8,
       completedCount: 100,
     },
     result: {
