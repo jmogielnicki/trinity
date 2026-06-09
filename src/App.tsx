@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
-import { IncomeInput } from './components/controls/IncomeInput';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
@@ -369,7 +368,7 @@ export function App() {
             </div>
           </div>
           {/* Context row — collapses to zero on desktop (pills migrate to title row); collapses to pills on mobile */}
-          <div className="shrinking-context-bar">
+          <div className="shrinking-context-bar overflow-x-auto scrollbar-none md:overflow-visible">
             <PortfolioInput />
           </div>
         </div>
@@ -437,8 +436,6 @@ export function App() {
                 />
                 <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Withdrawal source</h3>
                 <WithdrawalSourceInput hideLabel/>
-                <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Income &amp; one-time events</h3>
-                <IncomeInput />
               </section>
               {/* Desktop save button — sticky footer */}
               <div className="hidden md:block border-t border-border pt-4 mt-1">
