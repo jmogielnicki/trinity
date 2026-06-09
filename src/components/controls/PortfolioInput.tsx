@@ -1,204 +1,154 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import type { IncomeStream, OneTimeCashflow } from '../../engine/cashflows';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
-import { StepSlider } from '../ui/StepSlider';
-import { FIELD_FULL } from '../ui/fieldCls';
-import { IncomeInput } from './IncomeInput';
-import { NumericInput } from './NumericInput';
+import { SituationEditor } from './SituationEditor';
+import { flowsPillValue, fmtCompact } from './situationSummary';
 
-const fmtK = (v: number) =>
-  v >= 1000 ? `$${Math.round(v / 1000)}k` : `$${Math.round(v)}`;
-
-/** One-line summary of the external cash flows, e.g. "Social Security $24k/yr · 1 event". */
-function flowsSummary(
-  incomes: IncomeStream[],
-  cashflows: OneTimeCashflow[],
-): string {
-  const parts: string[] = [];
-  if (incomes.length === 1) {
-    const s = incomes[0];
-    parts.push(`${s.label?.trim() || 'Income'} ${fmtK(s.annual)}/yr`);
-  } else if (incomes.length > 1) {
-    parts.push(`${incomes.length} income streams`);
-  }
-  if (cashflows.length > 0) {
-    parts.push(`${cashflows.length} event${cashflows.length === 1 ? '' : 's'}`);
-  }
-  return parts.join(' · ');
-}
-
-/** Short pill value, e.g. "$24k/yr" / "2 events" / "—". */
-function flowsPillValue(
-  incomes: IncomeStream[],
-  cashflows: OneTimeCashflow[],
-): string {
-  if (incomes.length > 0) {
-    const total = incomes.reduce((sum, s) => sum + s.annual, 0);
-    return `${fmtK(total)}/yr`;
-  }
-  if (cashflows.length > 0) {
-    return `${cashflows.length} event${cashflows.length === 1 ? '' : 's'}`;
-  }
-  return '—';
+function Pill({
+  label,
+  value,
+  onClick,
+}: {
+  label: string;
+  value: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="portfolio-pill-inner"
+      onClick={onClick}
+      aria-haspopup="dialog"
+      title="Edit your situation"
+    >
+      <span className="portfolio-pill-label">{label}</span>
+      <span className="portfolio-pill-value">{value}</span>
+    </button>
+  );
 }
 
 /**
- * Modal editor for income & one-time events. Rendered through a portal:
- * the header's scroll-collapse machinery uses transforms, which would
- * otherwise re-anchor a fixed-position overlay.
+ * The "your situation" bar: an always-visible row of pills (balance, length,
+ * income) summarizing the circumstances every plan runs under. Tapping any
+ * pill opens the editor — an anchored popover on desktop (charts stay visible
+ * and live-update), a bottom sheet on mobile.
  */
-function IncomeEventsModal({ onClose }: { onClose: () => void }) {
+export function PortfolioInput() {
+  const { initialBalance, horizonYears, incomes, cashflows, retireAge } =
+    useScenarioStore();
+  const [open, setOpen] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Close the desktop popover on outside click; close either on Escape.
   useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (
+        !popoverRef.current?.contains(e.target as Node) &&
+        !barRef.current?.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  // Lock body scroll while the mobile sheet is up (the popover doesn't need
+  // it — scrolling with it open is harmless since it's anchored in the
+  // sticky header).
+  useEffect(() => {
+    if (!open || window.matchMedia('(min-width: 850px)').matches) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
     };
-  }, []);
+  }, [open]);
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-surface rounded-lg shadow-popover w-full max-w-[440px] max-h-[85vh] overflow-y-auto p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-bold text-text m-0">
-            Income &amp; one-time events
-          </h2>
-          <IconButton onClick={onClose} aria-label="Close">
-            ✕
-          </IconButton>
-        </div>
-        <p className="text-sm text-text-muted mt-1 mb-4">
-          Part of your circumstances, like balance and length — applies to
-          every plan you build, compare, or optimize.
-        </p>
-        <IncomeInput />
-        <div className="mt-5">
-          <Button variant="soft" fullWidth onClick={onClose}>
-            Done
-          </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+  // Full balance where there's room; compact ("$1M") on narrow phones so all
+  // three pills fit without scrolling.
+  const balanceFmt = (
+    <>
+      <span className="hidden sm:inline">{`$${Math.round(initialBalance).toLocaleString('en-US')}`}</span>
+      <span className="sm:hidden">{fmtCompact(initialBalance)}</span>
+    </>
   );
-}
-
-export function PortfolioInput() {
-  const {
-    initialBalance,
-    horizonYears,
-    incomes,
-    cashflows,
-    retireAge,
-    setBalance,
-    setHorizon,
-  } = useScenarioStore();
-  const [flowsOpen, setFlowsOpen] = useState(false);
-
-  const balanceFmt = `$${Math.round(initialBalance).toLocaleString('en-US')}`;
   const horizonFmt =
     retireAge != null
       ? `${retireAge} → ${retireAge + horizonYears}`
       : `${horizonYears} yr${horizonYears === 1 ? '' : 's'}`;
-  const flowsFull = flowsSummary(incomes, cashflows);
 
   return (
-    <div className="flex items-center gap-3">
-      {/* ── Balance field ── */}
-      <div className="portfolio-field-wrap" style={{ minWidth: '175px' }}>
-        <label className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium">
-          Initial balance ($, real)
-          <NumericInput
-            value={initialBalance}
-            onChange={setBalance}
-            min={0}
-            format={(v) => Math.round(v).toLocaleString('en-US')}
-            parse={(s) => {
-              if (s.trim() === '') return null;
-              const n = parseFloat(s.replace(/,/g, ''));
-              return isNaN(n) ? null : n;
-            }}
-          />
-        </label>
-        <div className="portfolio-pill">
-          <button
-            className="portfolio-pill-inner"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            tabIndex={-1}
-          >
-            <span className="portfolio-pill-label">Balance</span>
-            <span className="portfolio-pill-value">{balanceFmt}</span>
-          </button>
-        </div>
-      </div>
+    <div ref={barRef} className="relative flex items-center gap-2 sm:gap-2.5">
+      <Pill label="Balance" value={balanceFmt} onClick={() => setOpen(true)} />
+      <Pill
+        label={retireAge != null ? 'Ages' : 'Length'}
+        value={horizonFmt}
+        onClick={() => setOpen(true)}
+      />
+      <Pill
+        label="Income"
+        value={flowsPillValue(incomes, cashflows)}
+        onClick={() => setOpen(true)}
+      />
 
-      {/* Separator — fades in as pills appear */}
-      <div className="pill-sep" />
-
-      {/* ── Horizon field ── */}
-      <div className="portfolio-field-wrap" style={{ minWidth: '180px' }}>
-        <div className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium">
-          Retirement length (years)
-          <StepSlider
-            value={horizonYears}
-            onChange={(v) => setHorizon(v)}
-            min={20}
-            max={60}
-            step={5}
-            format={(v) => String(v)}
-            labelPosition="above-thumb"
-          />
+      {/* Desktop: popover anchored under the bar — no backdrop, so the charts
+          behind stay visible and re-run live as the inputs change. */}
+      {open && (
+        <div
+          ref={popoverRef}
+          className="hidden md:block absolute left-0 top-[calc(100%+10px)] z-50 w-[400px] max-w-[92vw] bg-surface border border-border rounded-lg shadow-popover p-4"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="font-display text-lg font-bold text-text m-0">
+              Your situation
+            </h2>
+            <IconButton onClick={() => setOpen(false)} aria-label="Close">
+              ✕
+            </IconButton>
+          </div>
+          <SituationEditor />
         </div>
-        <div className="portfolio-pill">
-          <button
-            className="portfolio-pill-inner"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            tabIndex={-1}
-            title={`${horizonYears} years`}
-          >
-            <span className="portfolio-pill-label">
-              {retireAge != null ? 'Ages' : 'Length'}
-            </span>
-            <span className="portfolio-pill-value">{horizonFmt}</span>
-          </button>
-        </div>
-      </div>
+      )}
 
-      <div className="pill-sep" />
-
-      {/* ── Income & events field — summary chip opening the modal editor ── */}
-      <div className="portfolio-field-wrap" style={{ minWidth: '170px' }}>
-        <div className="portfolio-field-expanded flex flex-col gap-1 text-sm text-text-secondary font-medium">
-          Income &amp; events
-          <button
-            className={`${FIELD_FULL} cursor-pointer text-left truncate ${
-              flowsFull ? 'text-text' : 'text-text-faint'
-            }`}
-            onClick={() => setFlowsOpen(true)}
-            title="Social Security, pensions, one-time expenses or windfalls"
-          >
-            {flowsFull || 'None — add…'}
-          </button>
-        </div>
-        <div className="portfolio-pill">
-          <button
-            className="portfolio-pill-inner"
-            onClick={() => setFlowsOpen(true)}
-            tabIndex={-1}
-          >
-            <span className="portfolio-pill-label">Income</span>
-            <span className="portfolio-pill-value">
-              {flowsPillValue(incomes, cashflows)}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {flowsOpen && <IncomeEventsModal onClose={() => setFlowsOpen(false)} />}
+      {/* Mobile: bottom sheet via portal (the header animates with
+          transforms, which would re-anchor a fixed overlay rendered here). */}
+      {open &&
+        createPortal(
+          <div className="md:hidden fixed inset-0 z-50">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setOpen(false)}
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-surface rounded-t-2xl shadow-popover max-h-[85vh] overflow-y-auto p-5 pb-7">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h2 className="font-display text-lg font-bold text-text m-0">
+                  Your situation
+                </h2>
+                <IconButton onClick={() => setOpen(false)} aria-label="Close">
+                  ✕
+                </IconButton>
+              </div>
+              <SituationEditor />
+              <div className="mt-5">
+                <Button variant="soft" fullWidth onClick={() => setOpen(false)}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

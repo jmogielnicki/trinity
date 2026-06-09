@@ -346,9 +346,6 @@ export function App() {
               </p>
               </div>
             </div>
-            <div className="hidden md:flex items-center title-portfolio flex-1 ml-4">
-              <PortfolioInput />
-            </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               {topMode === 'single' && (
                 <div className="hidden md:block">
@@ -367,7 +364,9 @@ export function App() {
               </button>
             </div>
           </div>
-          {/* Context row — collapses to zero on desktop (pills migrate to title row); collapses to pills on mobile */}
+          {/* Situation bar — always-visible pills (balance · length · income);
+              tapping any opens the editor. overflow-x scroll is a fallback for
+              very narrow phones; desktop must stay visible for the popover. */}
           <div className="shrinking-context-bar overflow-x-auto scrollbar-none md:overflow-visible">
             <PortfolioInput />
           </div>
