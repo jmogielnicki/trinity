@@ -69,6 +69,9 @@ export function SaveScenarioModal({
     axes: sweep.axes,
     tailMethod: scenario.tailMethod,
     withdrawalSource: scenario.withdrawalSource,
+    ...(scenario.incomes.length > 0 && { incomes: scenario.incomes }),
+    ...(scenario.cashflows.length > 0 && { cashflows: scenario.cashflows }),
+    ...(scenario.retireAge != null && { retireAge: scenario.retireAge }),
   };
 
   const [name, setName] = useState(

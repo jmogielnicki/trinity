@@ -1,4 +1,10 @@
 import {
+  cashflowAt,
+  incomeAt,
+  type IncomeStream,
+  type OneTimeCashflow,
+} from './cashflows';
+import {
   computeWeights,
   computeWithdrawal,
   type AllocationStrategy,
@@ -31,6 +37,10 @@ export type SimulateInput = {
   withdrawal: WithdrawalStrategy;
   /** How withdrawals are sourced. Default: proportional + annual rebalance. */
   withdrawalSource?: WithdrawalSource;
+  /** Recurring external income (Social Security, pensions) — offsets withdrawals. */
+  incomes?: IncomeStream[];
+  /** One-time external cash flows (inheritance, a roof, downsizing). */
+  cashflows?: OneTimeCashflow[];
   /**
    * Returns for years startYear..startYear+horizonYears-1. If shorter, sim is
    * truncated and marked inProgress.
@@ -49,6 +59,27 @@ function splitInitial(initial: number, w: Weights): Sleeves {
   };
 }
 
+/**
+ * Invest an external surplus (income or inflow beyond this year's spending)
+ * into the portfolio. Deposits follow the current sleeve mix so drift modes
+ * stay undisturbed; an empty portfolio seeds at the target weights instead.
+ */
+function deposit(s: Sleeves, amount: number, target: Weights): Sleeves {
+  const total = s.stock + s.bond + s.cash;
+  if (total > 0) {
+    return {
+      stock: s.stock + amount * (s.stock / total),
+      bond: s.bond + amount * (s.bond / total),
+      cash: s.cash + amount * (s.cash / total),
+    };
+  }
+  return {
+    stock: s.stock + amount * target.stock,
+    bond: s.bond + amount * target.bond,
+    cash: s.cash + amount * target.cash,
+  };
+}
+
 export function simulate(input: SimulateInput): SimulationResult {
   const {
     startYear,
@@ -57,6 +88,8 @@ export function simulate(input: SimulateInput): SimulationResult {
     allocation,
     withdrawal,
     withdrawalSource = DEFAULT_WITHDRAWAL_SOURCE,
+    incomes,
+    cashflows,
     returns,
     bootstrapped = false,
     prefixYears = horizonYears,
@@ -115,20 +148,35 @@ export function simulate(input: SimulateInput): SimulationResult {
       r.inflation,
     );
 
-    // Withdraw at start of year.
+    // External cash flows offset the portfolio draw: the strategy's wd is
+    // total spending, and the portfolio only funds what income and one-time
+    // inflows don't cover. A surplus is invested. Like withdrawals, all of
+    // this happens at the start of the year.
+    const income = incomeAt(incomes, t);
+    const oneTime = cashflowAt(cashflows, t);
+    const netDraw = wd - income - oneTime;
+
     const sleevesAtStart: Sleeves = { ...sleeves };
-    sleeves = applyWithdrawal(sleeves, wd, withdrawalSource);
+    if (netDraw > 0) {
+      sleeves = applyWithdrawal(sleeves, netDraw, withdrawalSource);
+    } else if (netDraw < 0) {
+      sleeves = deposit(sleeves, -netDraw, weights);
+    }
     const withdrawalBySleeve: Sleeves = {
       stock: sleevesAtStart.stock - sleeves.stock,
       bond: sleevesAtStart.bond - sleeves.bond,
       cash: sleevesAtStart.cash - sleeves.cash,
     };
-    if (totalSleeves(sleeves) <= 0) {
+    // Depletion means the portfolio couldn't fund required spending — a year
+    // fully covered by external income is fine even with a $0 portfolio.
+    if (netDraw > 0 && totalSleeves(sleeves) <= 0) {
       trajectory.push({
         t,
         calendarYear,
         balance: 0,
         withdrawal: wd,
+        ...(income > 0 && { income }),
+        ...(oneTime !== 0 && { oneTime }),
         weights: weights,
         sleeves: { stock: 0, bond: 0, cash: 0 },
         depleted: true,
@@ -186,7 +234,15 @@ export function simulate(input: SimulateInput): SimulationResult {
     let refillFlow: Sleeves = { stock: 0, bond: 0, cash: 0 };
     if (withdrawalSource.type === 'bucket') {
       const beforeRefill: Sleeves = { ...sleeves };
-      sleeves = applyRefill(sleeves, withdrawalSource.refill, initialSleeves, wd, r);
+      // Size "withdrawal years" floors by the net portfolio draw — buckets
+      // exist to cover what the portfolio funds, not spending paid by income.
+      sleeves = applyRefill(
+        sleeves,
+        withdrawalSource.refill,
+        initialSleeves,
+        Math.max(0, netDraw),
+        r,
+      );
       refillFlow = {
         stock: sleeves.stock - beforeRefill.stock,
         bond: sleeves.bond - beforeRefill.bond,
@@ -201,6 +257,8 @@ export function simulate(input: SimulateInput): SimulationResult {
       calendarYear,
       balance: totalSleeves(sleeves),
       withdrawal: wd,
+      ...(income > 0 && { income }),
+      ...(oneTime !== 0 && { oneTime }),
       weights: weights,
       sleeves: { ...sleeves },
       return: portRet,

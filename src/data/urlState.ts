@@ -1,3 +1,4 @@
+import type { IncomeStream, OneTimeCashflow } from '../engine/cashflows';
 import type { AllocationStrategy, WithdrawalStrategy } from '../engine/strategies';
 import type { TailMethod } from '../engine/sweep';
 import type { StudyConfig } from '../engine/study';
@@ -20,6 +21,12 @@ export type SerializedState = {
   axes: Record<Axis, AxisMode>;
   tailMethod?: TailMethod;
   withdrawalSource?: WithdrawalSource;
+  /** Recurring external income; omitted when empty. */
+  incomes?: IncomeStream[];
+  /** One-time external cash flows; omitted when empty. */
+  cashflows?: OneTimeCashflow[];
+  /** Age at retirement (presentation only); omitted when unset. */
+  retireAge?: number;
   view?: string;
   /** Active top-level tab. */
   tab?: TopTab;

@@ -173,6 +173,8 @@ export function FrontierView({ onApplied }: Props) {
       {
         initialBalance: scenario.initialBalance,
         horizonYears: scenario.horizonYears,
+        incomes: scenario.incomes,
+        cashflows: scenario.cashflows,
         tailMethod: scenario.tailMethod,
       },
       pool,

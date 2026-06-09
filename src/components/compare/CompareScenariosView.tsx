@@ -180,6 +180,8 @@ export function CompareScenariosView() {
 	const data = useResultsStore((s) => s.data);
 	const initialBalance = useScenarioStore((s) => s.initialBalance);
 	const horizonYears = useScenarioStore((s) => s.horizonYears);
+	const incomes = useScenarioStore((s) => s.incomes);
+	const cashflows = useScenarioStore((s) => s.cashflows);
 	const {
 		selectedIds,
 		entries,
@@ -243,11 +245,17 @@ export function CompareScenariosView() {
 	useEffect(() => {
 		if (!pool || !data) return;
 		const id = setTimeout(
-			() => void run(allItems, pool, { initialBalance, horizonYears }),
+			() =>
+				void run(allItems, pool, {
+					initialBalance,
+					horizonYears,
+					incomes,
+					cashflows,
+				}),
 			150,
 		);
 		return () => clearTimeout(id);
-	}, [pool, data, allItems, selectedIds, initialBalance, horizonYears, run]);
+	}, [pool, data, allItems, selectedIds, initialBalance, horizonYears, incomes, cashflows, run]);
 
 	const colorById = useMemo(() => {
 		const m = new Map<string, string>();

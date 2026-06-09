@@ -43,6 +43,7 @@ src/
   engine/            # pure simulation logic, no React/DOM
     simulate.ts      # core sim loop (sleeve-level)
     strategies.ts    # WithdrawalStrategy + AllocationStrategy unions + executors
+    cashflows.ts     # external income streams + one-time cash flows
     withdrawalSource.ts  # proportional / waterfall / bucket
     rules.ts         # rule evaluation
     bootstrap.ts     # stationary block bootstrap
@@ -67,12 +68,12 @@ src/
   store/             # zustand slices
   worker/            # Comlink-wrapped engine in a Web Worker pool
   data/              # data loading, URL state, presets, CSV export, scenarioRepo (local+cloud)
-tests/engine/        # vitest, 16 files, 99 tests
+tests/engine/        # vitest, 17 files, 115 tests
 ```
 
 ## 3. Mental model
 
-A **Scenario** is portfolio + withdrawal + source + tail policy. **Running** one produces a **ScenarioResult**: one **SimulationResult** per start year in the historical record. Each `SimulationResult` carries a year-by-year **trajectory** with **per-sleeve balances**.
+A **Scenario** is portfolio + withdrawal + source + external cash flows + tail policy. **Running** one produces a **ScenarioResult**: one **SimulationResult** per start year in the historical record. Each `SimulationResult` carries a year-by-year **trajectory** with **per-sleeve balances**.
 
 Returns are real (inflation-adjusted) throughout. Nominal is reconstructed only when exporting.
 
@@ -99,6 +100,10 @@ How withdrawals come out of the portfolio. Separate from rate.
 - `waterfall` — drain sleeves in a configured order until withdrawal is met. No auto-rebalance.
 - `bucket` — waterfall + a `RefillRule` that runs after returns: top up `targetSleeve` from `sourceSleeve` when target drops below `floor`, restoring to `ceiling`. Optionally gated by `sourceMinRatio` so the refill only fires when the source is at or above a multiple of its initial value.
 
+### External cash flows (`src/engine/cashflows.ts`)
+
+Money outside the portfolio, all in real $: `incomes` (recurring streams like Social Security — annual amount, start year, optional inclusive end year) and `cashflows` (one-time, signed: negative = expense). The withdrawal strategy still defines total spending; income offsets the portfolio draw, and a surplus is deposited at the current sleeve mix (target weights when the portfolio is empty). A year fully covered by income is never a depletion. Bucket "withdrawal years" refill floors are sized by the *net* draw. The trajectory records `income`/`oneTime` when nonzero. Page-level circumstances like balance/horizon: the Compare and Optimize tabs apply the Build tab's flows to every candidate.
+
 ### Tail handling (`src/engine/sweep.ts`)
 
 For start years where the horizon would run past the data:
@@ -111,7 +116,7 @@ App holds `selectedYears: Set<number>`. The spaghetti chart and outcome strip bo
 
 ## 4. Stores (`src/store/`)
 
-- `scenarioStore` — current editable scenario (balance, horizon, allocation, withdrawal, withdrawalSource, tailMethod)
+- `scenarioStore` — current editable scenario (balance, horizon, allocation, withdrawal, withdrawalSource, incomes, cashflows, retireAge, tailMethod). `retireAge` is presentation-only: income timing fields are entered/shown as ages when set.
 - `sweepStore` — per-axis pin/sweep config, capped at 2 sweeping axes
 - `resultsStore` — loaded data + worker pool + last `ScenarioResult` / `SweepGrid`. `recompute` is async, gated on pool readiness, with a monotonic id so older completions don't clobber a newer result.
 - `compareStore` — optional snapshot for inline A/B overlay on the spaghetti chart (single-scenario tab only)

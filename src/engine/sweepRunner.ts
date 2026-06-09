@@ -1,4 +1,5 @@
 import { runScenario, type Scenario, type TailMethod } from './sweep';
+import type { IncomeStream, OneTimeCashflow } from './cashflows';
 import type { AllocationStrategy, WithdrawalStrategy } from './strategies';
 import type { HistoricalSeries, ScenarioResult } from './types';
 import type { WithdrawalSource } from './withdrawalSource';
@@ -14,6 +15,8 @@ export type BaseScenario = {
   allocation: AllocationStrategy;
   withdrawal: WithdrawalStrategy;
   withdrawalSource?: WithdrawalSource;
+  incomes?: IncomeStream[];
+  cashflows?: OneTimeCashflow[];
   tailMethod?: TailMethod;
 };
 

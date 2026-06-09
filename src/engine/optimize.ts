@@ -1,4 +1,5 @@
 import type { Scenario, TailMethod } from './sweep';
+import type { IncomeStream, OneTimeCashflow } from './cashflows';
 import type {
   AllocationStrategy,
   WithdrawalStrategy,
@@ -86,6 +87,9 @@ export type CandidateResult = {
 export type OptimizeConfig = {
   initialBalance: number;
   horizonYears: number;
+  /** Page-level circumstances — applied to every candidate, like balance/horizon. */
+  incomes?: IncomeStream[];
+  cashflows?: OneTimeCashflow[];
   tailMethod?: TailMethod;
 };
 
@@ -99,6 +103,8 @@ export function candidateToScenario(
     allocation: c.allocation,
     withdrawal: c.withdrawal,
     withdrawalSource: c.withdrawalSource,
+    incomes: cfg.incomes,
+    cashflows: cfg.cashflows,
     tailMethod: cfg.tailMethod ?? { type: 'truncate' },
   };
 }

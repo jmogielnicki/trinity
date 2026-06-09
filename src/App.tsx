@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
+import { IncomeInput } from './components/controls/IncomeInput';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
@@ -150,6 +151,9 @@ export function App() {
     if (parsed.tailMethod) scenario.setTailMethod(parsed.tailMethod);
     if (parsed.withdrawalSource)
       scenario.setWithdrawalSource(parsed.withdrawalSource);
+    if (parsed.incomes) scenario.setIncomes(parsed.incomes);
+    if (parsed.cashflows) scenario.setCashflows(parsed.cashflows);
+    if (parsed.retireAge != null) scenario.setRetireAge(parsed.retireAge);
     (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
       sweep.setAxis(a, parsed.axes[a]),
     );
@@ -189,6 +193,9 @@ export function App() {
       axes: sweep.axes,
       tailMethod: scenario.tailMethod,
       withdrawalSource: scenario.withdrawalSource,
+      ...(scenario.incomes.length > 0 && { incomes: scenario.incomes }),
+      ...(scenario.cashflows.length > 0 && { cashflows: scenario.cashflows }),
+      ...(scenario.retireAge != null && { retireAge: scenario.retireAge }),
       tab: topMode,
       ...(compareSelectedIds.length > 0 && { compareSelectedIds }),
       ...(optimizeHasBase && {
@@ -207,6 +214,9 @@ export function App() {
     scenario.withdrawal,
     scenario.tailMethod,
     scenario.withdrawalSource,
+    scenario.incomes,
+    scenario.cashflows,
+    scenario.retireAge,
     sweep.axes,
     compareSelectedIds,
     optimizeStudy,
@@ -230,6 +240,8 @@ export function App() {
     scenario.allocation,
     scenario.withdrawal,
     scenario.withdrawalSource,
+    scenario.incomes,
+    scenario.cashflows,
     scenario.tailMethod,
     sweep.axes,
     recompute,
@@ -425,6 +437,8 @@ export function App() {
                 />
                 <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Withdrawal source</h3>
                 <WithdrawalSourceInput hideLabel/>
+                <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Income &amp; one-time events</h3>
+                <IncomeInput />
               </section>
               {/* Desktop save button — sticky footer */}
               <div className="hidden md:block border-t border-border pt-4 mt-1">

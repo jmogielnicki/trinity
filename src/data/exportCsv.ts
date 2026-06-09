@@ -1,7 +1,9 @@
 import type { ScenarioResult } from '../engine/types';
 
 export function simsToCsv(result: ScenarioResult): string {
-  const rows: string[] = ['start_year,t,balance,withdrawal,return,depleted'];
+  const rows: string[] = [
+    'start_year,t,balance,withdrawal,income,one_time,return,depleted',
+  ];
   for (const s of result.sims) {
     for (const r of s.trajectory) {
       rows.push(
@@ -10,6 +12,8 @@ export function simsToCsv(result: ScenarioResult): string {
           r.t,
           r.balance.toFixed(2),
           r.withdrawal.toFixed(2),
+          r.income?.toFixed(2) ?? '',
+          r.oneTime?.toFixed(2) ?? '',
           r.return?.toFixed(6) ?? '',
           r.depleted ? '1' : '',
         ].join(','),

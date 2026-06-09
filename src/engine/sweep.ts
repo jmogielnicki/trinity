@@ -1,4 +1,5 @@
 import { bootstrapTail, hashSeed, makeRng } from './bootstrap';
+import type { IncomeStream, OneTimeCashflow } from './cashflows';
 import { simulate } from './simulate';
 import { computePercentiles, successStats } from './stats';
 import type { AllocationStrategy, WithdrawalStrategy } from './strategies';
@@ -20,6 +21,10 @@ export type Scenario = {
   allocation: AllocationStrategy;
   withdrawal: WithdrawalStrategy;
   withdrawalSource?: WithdrawalSource;
+  /** Recurring external income (Social Security, pensions) — offsets withdrawals. */
+  incomes?: IncomeStream[];
+  /** One-time external cash flows (inheritance, a roof, downsizing). */
+  cashflows?: OneTimeCashflow[];
   tailMethod?: TailMethod;
   seed?: number;
   /**
@@ -72,6 +77,8 @@ export function runScenario(
           allocation: scenario.allocation,
           withdrawal: scenario.withdrawal,
           withdrawalSource: scenario.withdrawalSource,
+          incomes: scenario.incomes,
+          cashflows: scenario.cashflows,
           returns: observed,
         }),
       );
@@ -87,6 +94,8 @@ export function runScenario(
           allocation: scenario.allocation,
           withdrawal: scenario.withdrawal,
           withdrawalSource: scenario.withdrawalSource,
+          incomes: scenario.incomes,
+          cashflows: scenario.cashflows,
           returns: observed,
           prefixYears: observed.length,
         }),
@@ -114,6 +123,8 @@ export function runScenario(
             allocation: scenario.allocation,
             withdrawal: scenario.withdrawal,
             withdrawalSource: scenario.withdrawalSource,
+            incomes: scenario.incomes,
+            cashflows: scenario.cashflows,
             returns: full,
             bootstrapped: true,
             prefixYears: observed.length,
