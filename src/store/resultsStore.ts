@@ -53,6 +53,8 @@ export const useResultsStore = create<ResultsState>((set, get) => {
         allocation: scenario.allocation,
         withdrawal: scenario.withdrawal,
         withdrawalSource: scenario.withdrawalSource,
+        incomes: scenario.incomes,
+        cashflows: scenario.cashflows,
         tailMethod: scenario.tailMethod,
       };
       const plan = planSweep(base, sweep.axes);

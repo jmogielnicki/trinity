@@ -1,4 +1,5 @@
 import { bootstrapTail, hashSeed, makeRng } from './bootstrap';
+import type { IncomeStream, OneTimeCashflow } from './cashflows';
 import { simulate } from './simulate';
 import { computePercentiles, successStats } from './stats';
 import type { AllocationStrategy, WithdrawalStrategy } from './strategies';
@@ -20,6 +21,10 @@ export type Scenario = {
   allocation: AllocationStrategy;
   withdrawal: WithdrawalStrategy;
   withdrawalSource?: WithdrawalSource;
+  /** Recurring external income (Social Security, pensions) — offsets withdrawals. */
+  incomes?: IncomeStream[];
+  /** One-time external cash flows (inheritance, a roof, downsizing). */
+  cashflows?: OneTimeCashflow[];
   tailMethod?: TailMethod;
   seed?: number;
   /**
@@ -51,8 +56,15 @@ export function runScenario(
   data: HistoricalSeries,
 ): ScenarioResult {
   const tail = scenario.tailMethod ?? DEFAULT_TAIL;
+  // Empty flow arrays hash like absent fields, so scenarios that don't use
+  // external cash flows keep the seeds they had before the feature existed.
+  const seedSource: Scenario = {
+    ...scenario,
+    incomes: scenario.incomes?.length ? scenario.incomes : undefined,
+    cashflows: scenario.cashflows?.length ? scenario.cashflows : undefined,
+  };
   const seed =
-    scenario.seed ?? hashSeed(JSON.stringify(scenario, replacerSkipFn));
+    scenario.seed ?? hashSeed(JSON.stringify(seedSource, replacerSkipFn));
   const range = scenario.startYearRange ?? { from: data.start, to: data.end };
 
   const sims: SimulationResult[] = [];
@@ -72,6 +84,8 @@ export function runScenario(
           allocation: scenario.allocation,
           withdrawal: scenario.withdrawal,
           withdrawalSource: scenario.withdrawalSource,
+          incomes: scenario.incomes,
+          cashflows: scenario.cashflows,
           returns: observed,
         }),
       );
@@ -87,6 +101,8 @@ export function runScenario(
           allocation: scenario.allocation,
           withdrawal: scenario.withdrawal,
           withdrawalSource: scenario.withdrawalSource,
+          incomes: scenario.incomes,
+          cashflows: scenario.cashflows,
           returns: observed,
           prefixYears: observed.length,
         }),
@@ -114,6 +130,8 @@ export function runScenario(
             allocation: scenario.allocation,
             withdrawal: scenario.withdrawal,
             withdrawalSource: scenario.withdrawalSource,
+            incomes: scenario.incomes,
+            cashflows: scenario.cashflows,
             returns: full,
             bootstrapped: true,
             prefixYears: observed.length,

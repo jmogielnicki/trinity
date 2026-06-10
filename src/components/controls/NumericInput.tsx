@@ -11,6 +11,7 @@ interface Props {
   className?: string;
   placeholder?: string;
   disabled?: boolean;
+  title?: string;
 }
 
 function defaultFormat(v: number): string {
@@ -33,6 +34,7 @@ export function NumericInput({
   className = FIELD_FULL,
   placeholder,
   disabled,
+  title,
 }: Props) {
   const [text, setText] = useState(() => format(value));
   const focused = useRef(false);
@@ -58,6 +60,7 @@ export function NumericInput({
       placeholder={placeholder}
       className={className}
       disabled={disabled}
+      title={title}
       onFocus={() => {
         focused.current = true;
       }}

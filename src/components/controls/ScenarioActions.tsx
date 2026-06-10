@@ -25,6 +25,9 @@ export function ScenarioActions() {
       axes: sweep.axes,
       tailMethod: scenario.tailMethod,
       withdrawalSource: scenario.withdrawalSource,
+      ...(scenario.incomes.length > 0 && { incomes: scenario.incomes }),
+      ...(scenario.cashflows.length > 0 && { cashflows: scenario.cashflows }),
+      ...(scenario.retireAge != null && { retireAge: scenario.retireAge }),
     });
     const url = `${location.origin}${location.pathname}#${hash}`;
     history.replaceState(null, '', `#${hash}`);

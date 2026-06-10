@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { IncomeStream, OneTimeCashflow } from '../engine/cashflows';
 import { metricsFromResult, type CandidateMetrics } from '../engine/optimize';
 import type { Scenario } from '../engine/sweep';
 import type { ScenarioResult } from '../engine/types';
@@ -14,8 +15,17 @@ export type CompareEntry = {
   horizonYears: number;
 };
 
-/** Balance + horizon are global (the page inputs), applied to every scenario. */
-export type CompareOverride = { initialBalance: number; horizonYears: number };
+/**
+ * Personal circumstances are global (the page inputs), applied to every
+ * scenario: balance, horizon, and external cash flows. Compared plans differ
+ * by strategy, not by who is retiring.
+ */
+export type CompareOverride = {
+  initialBalance: number;
+  horizonYears: number;
+  incomes?: IncomeStream[];
+  cashflows?: OneTimeCashflow[];
+};
 
 export type CompareScenariosState = {
   /** ids of saved scenarios picked for comparison (also defines series order). */
@@ -39,6 +49,8 @@ function savedToScenario(s: SavedScenario, override: CompareOverride): Scenario 
     allocation: st.allocation,
     withdrawal: st.withdrawal,
     withdrawalSource: st.withdrawalSource,
+    incomes: override.incomes,
+    cashflows: override.cashflows,
     tailMethod: st.tailMethod ?? { type: 'truncate' },
   };
 }

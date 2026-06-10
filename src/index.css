@@ -213,6 +213,27 @@
   border-bottom: 1px solid var(--color-border);
   padding-block: calc(12px - 2px * var(--scroll-p));
 }
+/* Wide desktop (lg+): the pills rest in this secondary bar and migrate up
+   into the title row as the user scrolls — the bar collapses away while the
+   title-row copy fades in. Unlayered so these beat the unlayered flex above
+   and the layered overflow utilities on the element. */
+@media (min-width: 1024px) {
+  .shrinking-context-bar {
+    overflow: hidden;
+    /* 26px pill row + 2 × 12px padding (border-box) */
+    height: calc(50px * (1 - var(--scroll-p)));
+    padding-block: calc(12px * (1 - var(--scroll-p)));
+    border-bottom-width: calc(1px * (1 - var(--scroll-p)));
+    opacity: calc(1 - var(--scroll-p) * 2);
+  }
+  .title-situation {
+    opacity: calc((var(--scroll-p) - 0.35) * 3);
+    pointer-events: none;
+  }
+  .header-collapsed .title-situation {
+    pointer-events: auto;
+  }
+}
 /* ─── Desktop: context bar collapses to nothing; pills migrate to title row ── */
 /* Must be unlayered to override the unlayered display:flex / height rules above. */
 @media (min-width: 850px) {
@@ -229,68 +250,14 @@
     left: 0;
     white-space: nowrap;
   }
-  /* Collapse padding and border to zero in sync with scroll */
-  .shrinking-context-bar {
-    padding-block: calc(12px * (1 - var(--scroll-p)));
-    border-bottom-width: calc(1px * (1 - var(--scroll-p)));
-  }
-  /* Collapse field height fully to zero (base rule only goes to 28px) */
-  .shrinking-context-bar .portfolio-field-wrap {
-    height: calc(68px * (1 - var(--scroll-p)));
-  }
-  /* Pills and their separator don't appear here on desktop */
-  .shrinking-context-bar .portfolio-pill,
-  .shrinking-context-bar .pill-sep {
-    display: none;
-  }
 }
 
-/* ─── Title-row portfolio: pills only, scroll-animated, static flow ───────── */
-.title-portfolio .portfolio-field-expanded { display: none; }
-.title-portfolio .portfolio-field-wrap {
-  height: 28px; /* fixed at pill height; no collapse animation needed */
-}
-/* Pull pill out of absolute positioning so it flows in the flex row */
-.title-portfolio .portfolio-pill { position: static; }
-
-/* ─── Portfolio field collapse pills ────────────────────────────────────────── */
-
-.portfolio-field-wrap {
-  position: relative;
-  overflow: hidden;
-  /* 68px fits label (~18px) + gap (4px) + above-thumb slider (~35px) + slack; collapses to 28px */
-  height: calc(68px - 40px * var(--scroll-p));
-}
-
-.portfolio-field-expanded {
-  pointer-events: auto;
-  opacity: calc(1 - var(--scroll-p) * 2.2);
-  transform: translateY(calc(var(--scroll-p) * -4px));
-}
-.header-collapsed .portfolio-field-expanded { pointer-events: none; }
-
-.portfolio-pill {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  opacity: calc((var(--scroll-p) - 0.35) * 3);
-  transform: translateY(calc((1 - var(--scroll-p)) * 6px));
-}
-.header-collapsed .portfolio-pill { pointer-events: auto; }
-
-.pill-sep {
-  width: 1px;
-  height: 16px;
-  background-color: var(--color-border);
-  flex-shrink: 0;
-  opacity: calc(var(--scroll-p) * 2);
-}
+/* ─── Situation pills (balance · length · income) ─────────────────────────── */
 
 .portfolio-pill-inner {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0; /* pills never compress — the bar scrolls instead */
   background: var(--color-surface-muted);
   border-radius: 100px;
   height: 26px;
@@ -322,11 +289,12 @@
 .portfolio-pill-value {
   font-size: 11px;
   color: var(--color-text);
-  padding: 0 10px 0 8px;
+  padding: 0 9px 0 7px;
   height: 100%;
   display: flex;
   align-items: center;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 /* ─── StepSlider ─────────────────────────────────────────────────────────────── */

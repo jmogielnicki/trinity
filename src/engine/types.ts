@@ -29,7 +29,12 @@ export type YearStateRecord = {
   t: number;
   calendarYear: number;
   balance: number;
+  /** Total spending this year (the withdrawal strategy's output, real $). */
   withdrawal: number;
+  /** Recurring external income received this year (real $). Absent when 0. */
+  income?: number;
+  /** Net one-time cash flow this year (real $, any sign). Absent when 0. */
+  oneTime?: number;
   weights: Weights;
   /** Post-return per-sleeve balances (real $). */
   sleeves: Sleeves;

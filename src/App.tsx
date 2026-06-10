@@ -150,6 +150,9 @@ export function App() {
     if (parsed.tailMethod) scenario.setTailMethod(parsed.tailMethod);
     if (parsed.withdrawalSource)
       scenario.setWithdrawalSource(parsed.withdrawalSource);
+    if (parsed.incomes) scenario.setIncomes(parsed.incomes);
+    if (parsed.cashflows) scenario.setCashflows(parsed.cashflows);
+    if (parsed.retireAge != null) scenario.setRetireAge(parsed.retireAge);
     (Object.keys(parsed.axes) as Array<keyof typeof parsed.axes>).forEach((a) =>
       sweep.setAxis(a, parsed.axes[a]),
     );
@@ -189,6 +192,9 @@ export function App() {
       axes: sweep.axes,
       tailMethod: scenario.tailMethod,
       withdrawalSource: scenario.withdrawalSource,
+      ...(scenario.incomes.length > 0 && { incomes: scenario.incomes }),
+      ...(scenario.cashflows.length > 0 && { cashflows: scenario.cashflows }),
+      ...(scenario.retireAge != null && { retireAge: scenario.retireAge }),
       tab: topMode,
       ...(compareSelectedIds.length > 0 && { compareSelectedIds }),
       ...(optimizeHasBase && {
@@ -207,6 +213,9 @@ export function App() {
     scenario.withdrawal,
     scenario.tailMethod,
     scenario.withdrawalSource,
+    scenario.incomes,
+    scenario.cashflows,
+    scenario.retireAge,
     sweep.axes,
     compareSelectedIds,
     optimizeStudy,
@@ -230,6 +239,8 @@ export function App() {
     scenario.allocation,
     scenario.withdrawal,
     scenario.withdrawalSource,
+    scenario.incomes,
+    scenario.cashflows,
     scenario.tailMethod,
     sweep.axes,
     recompute,
@@ -335,7 +346,9 @@ export function App() {
               </p>
               </div>
             </div>
-            <div className="hidden md:flex items-center title-portfolio flex-1 ml-4">
+            {/* Wide desktop: situation pills migrate up here as the header
+                collapses on scroll; at rest they live in the bar below. */}
+            <div className="title-situation hidden lg:flex items-center flex-1 min-w-0 ml-5 overflow-x-auto scrollbar-none">
               <PortfolioInput />
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
@@ -356,8 +369,11 @@ export function App() {
               </button>
             </div>
           </div>
-          {/* Context row — collapses to zero on desktop (pills migrate to title row); collapses to pills on mobile */}
-          <div className="shrinking-context-bar">
+          {/* Situation bar — always-visible pills (balance · length · income);
+              tapping any opens the editor. At lg+ it collapses on scroll while
+              the title-row copy fades in (see index.css). overflow-x scroll is
+              a fallback for very narrow phones. */}
+          <div className="shrinking-context-bar overflow-x-auto scrollbar-none md:overflow-visible">
             <PortfolioInput />
           </div>
         </div>
