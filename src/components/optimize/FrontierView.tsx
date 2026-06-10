@@ -241,6 +241,9 @@ export function FrontierView({ onApplied }: Props) {
         withdrawal: saveTarget.candidate.withdrawal,
         withdrawalSource: saveTarget.candidate.withdrawalSource,
         tailMethod: scenario.tailMethod,
+        ...(scenario.incomes.length > 0 && { incomes: scenario.incomes }),
+        ...(scenario.cashflows.length > 0 && { cashflows: scenario.cashflows }),
+        ...(scenario.retireAge != null && { retireAge: scenario.retireAge }),
         // Optimize variants are concrete strategies, not Build-tab sweeps.
         axes: {
           withdrawalRate: { mode: 'pin' },

@@ -93,13 +93,19 @@ export function PortfolioInput() {
 
   // Lock body scroll while the mobile sheet is up (the popover doesn't need
   // it — scrolling with it open is harmless since it's anchored in the
-  // sticky header).
+  // sticky header). Tracks breakpoint changes so a rotation with the editor
+  // open doesn't strand the lock.
   useEffect(() => {
-    if (!open || window.matchMedia('(min-width: 850px)').matches) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    if (!open) return;
+    const mq = window.matchMedia('(min-width: 850px)');
+    const apply = () => {
+      document.body.style.overflow = mq.matches ? '' : 'hidden';
+    };
+    apply();
+    mq.addEventListener('change', apply);
     return () => {
-      document.body.style.overflow = prev;
+      mq.removeEventListener('change', apply);
+      document.body.style.overflow = '';
     };
   }, [open]);
 

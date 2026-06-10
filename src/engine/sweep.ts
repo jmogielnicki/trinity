@@ -56,8 +56,15 @@ export function runScenario(
   data: HistoricalSeries,
 ): ScenarioResult {
   const tail = scenario.tailMethod ?? DEFAULT_TAIL;
+  // Empty flow arrays hash like absent fields, so scenarios that don't use
+  // external cash flows keep the seeds they had before the feature existed.
+  const seedSource: Scenario = {
+    ...scenario,
+    incomes: scenario.incomes?.length ? scenario.incomes : undefined,
+    cashflows: scenario.cashflows?.length ? scenario.cashflows : undefined,
+  };
   const seed =
-    scenario.seed ?? hashSeed(JSON.stringify(scenario, replacerSkipFn));
+    scenario.seed ?? hashSeed(JSON.stringify(seedSource, replacerSkipFn));
   const range = scenario.startYearRange ?? { from: data.start, to: data.end };
 
   const sims: SimulationResult[] = [];

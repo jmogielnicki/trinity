@@ -5,15 +5,9 @@ import { IconButton } from '../ui/IconButton';
 import { Button } from '../ui/Button';
 import { FIELD_BASE, FIELD_FULL, FIELD_SM } from '../ui/fieldCls';
 import { NumericInput } from './NumericInput';
+import { fmtThousands, parseThousands } from './situationSummary';
 
 const FIELD_AMOUNT = `w-24 px-2 py-[7px] text-text ${FIELD_BASE}`;
-
-const fmtThousands = (v: number) => Math.round(v).toLocaleString('en-US');
-const parseThousands = (s: string) => {
-  if (s.trim() === '') return null;
-  const n = parseFloat(s.replace(/,/g, ''));
-  return isNaN(n) ? null : n;
-};
 
 /** Numeric input that allows blank — blank maps to null (e.g. "no end year"). */
 function OptionalNumber({
@@ -181,9 +175,16 @@ export function IncomeInput() {
             /yr from {unit}
             <NumericInput
               value={s.startsAtYear + offset}
-              onChange={(v) =>
-                updIncome(i, { startsAtYear: Math.max(0, Math.round(v - offset)) })
-              }
+              onChange={(v) => {
+                const startsAtYear = Math.max(0, Math.round(v - offset));
+                // Keep the (inclusive) end from sliding before the start —
+                // a start > end stream would silently pay nothing.
+                updIncome(i, {
+                  startsAtYear,
+                  ...(s.endsAtYear != null &&
+                    s.endsAtYear < startsAtYear && { endsAtYear: startsAtYear }),
+                });
+              }}
               min={offset}
               className={FIELD_SM}
             />
