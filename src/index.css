@@ -213,6 +213,12 @@
   border-bottom: 1px solid var(--color-border);
   padding-block: calc(12px - 2px * var(--scroll-p));
 }
+/* Wide desktop: the pills ride in the title row instead (App renders a second
+   instance there at lg+). Unlayered so it can beat the unlayered flex above —
+   a layered lg:hidden utility loses that fight. */
+@media (min-width: 1024px) {
+  .shrinking-context-bar { display: none; }
+}
 /* ─── Desktop: context bar collapses to nothing; pills migrate to title row ── */
 /* Must be unlayered to override the unlayered display:flex / height rules above. */
 @media (min-width: 850px) {

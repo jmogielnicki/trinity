@@ -346,6 +346,11 @@ export function App() {
               </p>
               </div>
             </div>
+            {/* Wide desktop: situation pills ride in the title row to save a
+                full header band; below lg they drop into their own bar. */}
+            <div className="hidden lg:flex items-center flex-1 min-w-0 ml-5 overflow-x-auto scrollbar-none">
+              <PortfolioInput />
+            </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               {topMode === 'single' && (
                 <div className="hidden md:block">
@@ -365,9 +370,10 @@ export function App() {
             </div>
           </div>
           {/* Situation bar — always-visible pills (balance · length · income);
-              tapping any opens the editor. overflow-x scroll is a fallback for
-              very narrow phones; desktop must stay visible for the popover. */}
-          <div className="shrinking-context-bar overflow-x-auto scrollbar-none md:overflow-visible">
+              tapping any opens the editor. Hidden at lg+ where the pills live
+              in the title row instead. overflow-x scroll is a fallback for
+              very narrow phones. */}
+          <div className="shrinking-context-bar lg:hidden overflow-x-auto scrollbar-none md:overflow-visible">
             <PortfolioInput />
           </div>
         </div>
