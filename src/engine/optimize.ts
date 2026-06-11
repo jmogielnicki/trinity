@@ -6,7 +6,12 @@ import type {
 } from './strategies';
 import type { WithdrawalSource } from './withdrawalSource';
 import type { ScenarioResult, SimulationResult } from './types';
-import { minBalanceReached, weightedQuantile, type WeightedSample } from './stats';
+import {
+  minBalanceReached,
+  spendingStats,
+  weightedQuantile,
+  type WeightedSample,
+} from './stats';
 
 export type CandidateMetrics = {
   successRate: number;
@@ -37,6 +42,14 @@ export type CandidateMetrics = {
    * or otherwise. 0 if any sequence depletes. Higher is better.
    */
   minBalance: number;
+  /**
+   * Lowest single-year spending across observed completed cohorts (real $).
+   * The honest companion to successRate for variable strategies, which can
+   * "succeed" by quietly gutting spending. Higher is better.
+   */
+  minAnnualSpend: number;
+  /** Largest year-over-year spending cut (fraction). Lower is better. */
+  worstCut: number;
   /** Worst completed start year (the earliest failure), if any. */
   worstStartYear?: number;
   completedCount: number;
@@ -167,6 +180,7 @@ export function metricsFromResult(
     weightSum > 0 ? withdrawalWeighted / weightSum : NaN;
   const avgYearsNearDepletion =
     weightSum > 0 ? yearsNearWeighted / weightSum : NaN;
+  const spending = spendingStats(result.sims);
 
   return {
     // Use the bootstrap-projected rate when present (already cohort-weighted);
@@ -179,6 +193,8 @@ export function metricsFromResult(
     p95Final: p95,
     avgAnnualWithdrawal,
     avgYearsNearDepletion,
+    minAnnualSpend: spending.minAnnualSpend,
+    worstCut: spending.worstCut,
     minBalance: minBalanceReached(result.sims),
     worstStartYear: result.worstStartYear,
     completedCount: result.completedCount,

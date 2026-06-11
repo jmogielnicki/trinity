@@ -1,10 +1,16 @@
 import { useLayoutEffect, useEffect, useRef, useState, useCallback } from 'react';
 import type { ScenarioResult, SimulationResult } from '../../engine/types';
-import { CHART, OUTCOME } from '../colors';
+import { CHART, FLOW, OUTCOME } from '../colors';
 
 type Props = {
   result: ScenarioResult;
   initialBalance: number;
+  /**
+   * Steady recurring income level (real $/yr, e.g. Social Security once it
+   * has started). Drawn as a floor line under the spend panel — spending at
+   * or below it is covered without touching the portfolio. Omit or 0 = none.
+   */
+  incomeFloor?: number;
   height?: number;
   selectedYears?: Set<number>;
   onToggle?: (year: number, e: React.MouseEvent) => void;
@@ -28,6 +34,7 @@ function avgSpendOf(s: SimulationResult): number {
 export function StartYearChart({
   result,
   initialBalance,
+  incomeFloor = 0,
   height: propHeight = 368,
   selectedYears,
   onToggle,
@@ -96,7 +103,7 @@ export function StartYearChart({
 
   // ── Avg annual spend scale ────────────────────────────────────────────────
   const spendVals = sims.map(avgSpendOf).filter((v) => v > 0);
-  const maxSpend = spendVals.length ? Math.max(...spendVals) : 1;
+  const maxSpend = Math.max(spendVals.length ? Math.max(...spendVals) : 1, incomeFloor);
   const spendYOf = (v: number) => spendY0 + spendH * (1 - v / maxSpend);
 
   const colorOf = (s: (typeof sims)[number]) => {
@@ -209,6 +216,20 @@ export function StartYearChart({
         >
           avg annual spend
         </text>
+        {/* Income floor — spending at or below this is covered by external
+            income (SS/pension) without drawing on the portfolio. */}
+        {incomeFloor > 0 && (
+          <>
+            <rect x={ml} width={innerW} y={spendYOf(incomeFloor)}
+              height={Math.max(0, spendY0 + spendH - spendYOf(incomeFloor))}
+              fill={FLOW.income} opacity={0.07} pointerEvents="none" />
+            <line x1={ml} x2={W - mr}
+              y1={spendYOf(incomeFloor)} y2={spendYOf(incomeFloor)}
+              stroke={FLOW.income} strokeWidth={1} strokeDasharray="4,3" opacity={0.7} />
+            <text x={W - mr - 4} y={spendYOf(incomeFloor) - 4} textAnchor="end"
+              fontSize={10} fill={FLOW.income} opacity={0.9}>covered by income</text>
+          </>
+        )}
         {/* Lines */}
         {completedSims.length > 1 && (
           <polyline points={pts(completedSims, (s) => spendYOf(avgSpendOf(s)))}

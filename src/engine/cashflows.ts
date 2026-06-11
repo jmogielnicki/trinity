@@ -46,6 +46,24 @@ export function incomeAt(
   return sum;
 }
 
+/**
+ * Highest concurrent recurring income over the horizon (real $/yr) — the
+ * level the income floor reaches once every stream is paying (e.g. after
+ * Social Security starts). 0 when there are no streams.
+ */
+export function peakIncome(
+  incomes: IncomeStream[] | undefined,
+  horizonYears: number,
+): number {
+  if (!incomes || incomes.length === 0) return 0;
+  let max = 0;
+  for (let t = 0; t < horizonYears; t++) {
+    const v = incomeAt(incomes, t);
+    if (v > max) max = v;
+  }
+  return max;
+}
+
 /** Net one-time cash flow in year t (any sign). */
 export function cashflowAt(
   flows: OneTimeCashflow[] | undefined,

@@ -1,4 +1,4 @@
-import { avgAnnualWithdrawal, minBalanceReached } from '../../engine/stats';
+import { avgAnnualWithdrawal, minBalanceReached, spendingStats } from '../../engine/stats';
 import type { ScenarioResult } from '../../engine/types';
 import { CHART } from '../colors';
 
@@ -17,8 +17,15 @@ export function StatPanel({ result }: Props) {
       : NaN;
   const minBalance = minBalanceReached(result.sims);
   const avgWithdrawal = avgAnnualWithdrawal(result.sims);
+  const spending = spendingStats(result.sims);
 
   const hasProjection = result.projectedSuccessRate != null;
+
+  // Concrete failure framing: with ~120 cohorts a percentage hides that
+  // "96% vs 97%" is one retirement. Counts + the worst year make it real.
+  const failures = Number.isFinite(result.successRate)
+    ? Math.round((1 - result.successRate) * result.completedCount)
+    : 0;
 
   return (
     <div className="flex flex-col min-[560px]:flex-row gap-5 items-center min-[560px]:items-stretch">
@@ -27,6 +34,20 @@ export function StatPanel({ result }: Props) {
           <SuccessDonut rate={result.successRate} />
         ) : (
           <span className="text-xl font-semibold">—</span>
+        )}
+        {result.completedCount > 0 && (
+          <span className="text-xs text-text-muted text-center leading-tight max-w-[190px]">
+            {failures === 0 ? (
+              <>money lasted in all {result.completedCount} historical retirements</>
+            ) : (
+              <>
+                ran out in{' '}
+                <span className="num font-semibold text-text">{failures}</span> of{' '}
+                {result.completedCount} historical retirements
+                {result.worstStartYear != null && <> · worst: started {result.worstStartYear}</>}
+              </>
+            )}
+          </span>
         )}
         {hasProjection && (
           <span className="text-xs text-text-muted text-center leading-tight">
@@ -37,7 +58,7 @@ export function StatPanel({ result }: Props) {
           </span>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3 flex-1 w-full auto-rows-fr">
+      <div className="grid grid-cols-2 min-[840px]:grid-cols-3 gap-3 flex-1 w-full auto-rows-fr">
         <Stat
           label="Median final balance"
           value={Number.isFinite(finalP50) ? fmt(finalP50) : '—'}
@@ -51,16 +72,42 @@ export function StatPanel({ result }: Props) {
           accent="var(--color-accent)"
         />
         <Stat
-          label="Avg annual withdrawal"
-          value={Number.isFinite(avgWithdrawal) ? fmt(avgWithdrawal) : '—'}
-          sub="per year"
-          accent="var(--color-cash)"
-        />
-        <Stat
           label="Min balance reached"
           value={Number.isFinite(minBalance) ? fmt(minBalance) : '—'}
           sub="across all years"
           accent="var(--color-negative)"
+        />
+        <Stat
+          label="Avg annual spending"
+          value={Number.isFinite(avgWithdrawal) ? fmt(avgWithdrawal) : '—'}
+          sub="median cohort"
+          accent="var(--color-cash)"
+        />
+        <Stat
+          label="Lowest year's spending"
+          value={Number.isFinite(spending.minAnnualSpend) ? fmt(spending.minAnnualSpend) : '—'}
+          sub={
+            spending.minSpendStartYear != null
+              ? `started ${spending.minSpendStartYear}, year ${spending.minSpendAtYear}`
+              : undefined
+          }
+          accent="var(--color-income)"
+        />
+        <Stat
+          label="Worst one-year cut"
+          value={
+            Number.isFinite(spending.worstCut)
+              ? spending.worstCut < 0.0005
+                ? 'none'
+                : `−${(spending.worstCut * 100).toFixed(0)}%`
+              : '—'
+          }
+          sub={
+            spending.worstCut >= 0.0005 && spending.worstCutStartYear != null
+              ? `started ${spending.worstCutStartYear} cohort`
+              : 'spending never dropped'
+          }
+          accent="var(--color-stale, var(--color-accent))"
         />
       </div>
     </div>

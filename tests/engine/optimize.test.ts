@@ -36,6 +36,8 @@ function mkResult(
       p75Final: p50Final * 1.25,
       p95Final,
       avgAnnualWithdrawal,
+      minAnnualSpend: avgAnnualWithdrawal,
+      worstCut: 0,
       avgYearsNearDepletion: 0,
       minBalance: p50Final * 0.4,
       completedCount: 100,

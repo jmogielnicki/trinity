@@ -17,6 +17,11 @@ export const ASSET = {
   get cashWash()  { return token('--color-cash-wash'); },
 };
 
+/** External cash flows — distinct from asset classes and outcomes. */
+export const FLOW = {
+  get income() { return token('--color-income'); },
+};
+
 export const OUTCOME = {
   get survived()   { return token('--color-survived'); },
   get depleted()   { return token('--color-depleted'); },

@@ -46,6 +46,13 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
   const bestP50 = best((e) => e.metrics.p50Final);
   const bestP95 = best((e) => e.metrics.p95Final);
   const bestAvgWd = best((e) => e.metrics.avgAnnualWithdrawal);
+  const bestMinSpend = best((e) => e.metrics.minAnnualSpend);
+  // Worst cut: lower is better, so the leader is the minimum.
+  let bestCut = Infinity;
+  for (const e of entries) {
+    const v = e.metrics.worstCut;
+    if (Number.isFinite(v) && v < bestCut) bestCut = v;
+  }
   const bestMin = best((e) => e.metrics.minBalance);
 
   const numCls = 'text-right tabular-nums';
@@ -67,7 +74,7 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
             >
               Final balance vs initial balance
             </th>
-            <th className="bg-surface-hover border-b border-border-light" colSpan={6} />
+            <th className="bg-surface-hover border-b border-border-light" colSpan={8} />
           </tr>
           <tr>
             <th className={thCls}></th>
@@ -87,6 +94,8 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
             <th className={`${thCls} text-right`}>Median final</th>
             <th className={`${thCls} text-right`}>P95 final</th>
             <th className={`${thCls} text-right`}>Avg withdrawal</th>
+            <th className={`${thCls} text-right`} title="Lowest single-year spending across historical cohorts">Min spend</th>
+            <th className={`${thCls} text-right`} title="Largest year-over-year spending cut">Worst cut</th>
             <th className={`${thCls} text-right`}>Min balance</th>
             <th className={`${thCls} text-right`}>Worst start</th>
           </tr>
@@ -136,6 +145,16 @@ export function ComparisonTable({ entries }: { entries: CompareEntry[] }) {
                 <td className={`${tdCls} ${lead(m.p95Final, bestP95)}`}>{fmtMoney(m.p95Final)}</td>
                 <td className={`${tdCls} ${lead(m.avgAnnualWithdrawal, bestAvgWd)}`}>
                   {fmtMoney(m.avgAnnualWithdrawal)}
+                </td>
+                <td className={`${tdCls} ${lead(m.minAnnualSpend, bestMinSpend)}`}>
+                  {fmtMoney(m.minAnnualSpend)}
+                </td>
+                <td className={`${tdCls} ${Number.isFinite(m.worstCut) && m.worstCut === bestCut ? leadCls : numCls}`}>
+                  {Number.isFinite(m.worstCut)
+                    ? m.worstCut < 0.0005
+                      ? 'none'
+                      : `−${(m.worstCut * 100).toFixed(0)}%`
+                    : '—'}
                 </td>
                 <td className={`${tdCls} ${bestMin > 0 ? lead(m.minBalance, bestMin) : numCls}`}>
                   {fmtMoney(m.minBalance)}
