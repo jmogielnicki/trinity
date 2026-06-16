@@ -5,6 +5,7 @@ import { FixedAllocationBar } from './FixedAllocationBar';
 import { AllocationRuleBuilder } from './AllocationRuleBuilder';
 import { CustomScriptEditor } from './CustomScriptEditor';
 import { GlidePath } from './GlidePath';
+import { FieldNote } from '../ui/FieldNote';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
 
@@ -15,6 +16,24 @@ type Props = {
   allocation: AllocationStrategy;
   onChange: (a: AllocationStrategy) => void;
 };
+
+/** Horizon at/above which a 100%-equity sleeve is worth flagging. */
+const LONG_HORIZON = 40;
+
+/** Peak stock / cash weights a strategy ever holds, for soft warnings. Returns
+ *  null for strategies we can't statically read (custom/rule-based scripts). */
+function weightExtremes(
+  a: AllocationStrategy,
+): { maxStock: number; maxCash: number } | null {
+  if (a.type === 'static')
+    return { maxStock: a.weights.stock, maxCash: a.weights.cash };
+  if (a.type === 'glidepath')
+    return {
+      maxStock: Math.max(a.start.stock, a.end.stock),
+      maxCash: Math.max(a.start.cash, a.end.cash),
+    };
+  return null;
+}
 
 function modeOf(a: AllocationStrategy): Mode {
   if (a.type === 'ruleBased') return 'rules';
@@ -36,6 +55,12 @@ return { stock: 0.6, bond: 0.4, cash: 0 };`;
 
 export function AllocationEditor({ horizonYears, allocation, onChange }: Props) {
   const mode = modeOf(allocation);
+  const extremes = weightExtremes(allocation);
+  const allEquityWarning =
+    extremes != null && extremes.maxStock >= 0.99 && horizonYears >= LONG_HORIZON;
+  // Cohorts start in 1871; cash data only begins 1934. So any cash sleeve runs
+  // many years with 0% real cash returns. See FOLLOWUPS.md.
+  const cashNote = extremes != null && extremes.maxCash > 0;
 
   const switchMode = (m: Mode) => {
     if (m === mode) return;
@@ -88,6 +113,19 @@ export function AllocationEditor({ horizonYears, allocation, onChange }: Props) 
           initial={allocation.type === 'customSrc' ? allocation.src : DEFAULT_SCRIPT}
           onChange={(src) => onChange({ type: 'customSrc', src })}
         />
+      )}
+      {allEquityWarning && (
+        <FieldNote>
+          100% stocks over a {horizonYears}-year horizon means deep drawdowns
+          along the way. Historically survivable, but expect a volatile ride —
+          a bond sleeve cushions bad early sequences.
+        </FieldNote>
+      )}
+      {cashNote && (
+        <FieldNote variant="info">
+          Cash earns 0% real before 1934 (no data) — early cohorts hold the cash
+          sleeve flat in real terms rather than earning a yield.
+        </FieldNote>
       )}
     </div>
   );

@@ -1,4 +1,8 @@
 import * as Comlink from 'comlink';
+import type {
+  BalanceSolveResult,
+  RateSolveResult,
+} from '../engine/solve';
 import type { Scenario } from '../engine/sweep';
 import type { HistoricalSeries, ScenarioResult } from '../engine/types';
 import type { SimWorkerApi } from './sim.worker';
@@ -7,6 +11,8 @@ export type SimPool = {
   setData: (d: HistoricalSeries) => Promise<void>;
   runScenario: (s: Scenario) => Promise<ScenarioResult>;
   runMany: (scenarios: Scenario[]) => Promise<ScenarioResult[]>;
+  solveSafeRate: (s: Scenario, target?: number) => Promise<RateSolveResult>;
+  solveNumber: (s: Scenario, target?: number) => Promise<BalanceSolveResult>;
   size: number;
   destroy: () => void;
 };
@@ -34,6 +40,16 @@ export function createPool(size?: number): SimPool {
 
     runScenario(s) {
       return apis[0].runScenario(s);
+    },
+
+    // Bisection solves are ~20–40 runScenario calls — cheap, and serial by
+    // nature — so they run on a single worker, keeping the main thread free.
+    solveSafeRate(s, target) {
+      return apis[0].solveSafeRate(s, target);
+    },
+
+    solveNumber(s, target) {
+      return apis[0].solveNumber(s, target);
     },
 
     async runMany(scenarios) {

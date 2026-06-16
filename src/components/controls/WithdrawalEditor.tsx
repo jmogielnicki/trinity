@@ -3,11 +3,24 @@ import { CustomScriptEditor } from './CustomScriptEditor';
 import { NumericInput } from './NumericInput';
 import { RuleBuilder } from './RuleBuilder';
 import { WithdrawalCurve } from './WithdrawalCurve';
+import { FieldNote } from '../ui/FieldNote';
 import { StepSlider } from '../ui/StepSlider';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
 
 type Mode = 'fixed' | 'curve' | 'floor-upside' | 'ratchet' | 'cape' | 'rules' | 'script';
+
+/** Above this fixed rate, the strategy fails in most historical sequences. */
+const HIGH_RATE = 0.08;
+
+/** Peak fixed withdrawal rate a strategy implies, or null if it isn't a flat-%
+ *  rule we can read a rate off of. */
+function peakRate(w: WithdrawalStrategy): number | null {
+  if (w.type === 'fixedPercent') return w.rate;
+  if (w.type === 'piecewiseLinear')
+    return w.points.reduce((m, p) => Math.max(m, p.rate), 0);
+  return null;
+}
 
 type Props = {
   horizonYears: number;
@@ -38,6 +51,8 @@ return 0.04 * initial;`;
 
 export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) {
   const mode = modeOf(withdrawal);
+  const rate = peakRate(withdrawal);
+  const rateWarning = rate != null && rate > HIGH_RATE;
 
   const switchMode = (m: Mode) => {
     if (m === mode) return;
@@ -154,6 +169,13 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
           }
           onChange={(src) => onChange({ type: 'customSrc', src })}
         />
+      )}
+      {rateWarning && (
+        <FieldNote>
+          A withdrawal rate of {(rate! * 100).toFixed(1)}% is very high — rates
+          above {HIGH_RATE * 100}% fail in most historical retirements. Try
+          “Find my safe rate” for the highest rate that survives.
+        </FieldNote>
       )}
     </div>
   );

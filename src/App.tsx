@@ -8,6 +8,7 @@ import { Legend } from './components/results/Legend';
 import { StartYearChart } from './components/results/StartYearChart';
 import { SpaghettiChart } from './components/results/SpaghettiChart';
 import { StatPanel } from './components/results/StatPanel';
+import { SolverPanel } from './components/results/SolverPanel';
 import { QuickSelectYears } from './components/results/QuickSelectYears';
 import { FrontierView } from './components/optimize/FrontierView';
 import { CompareScenariosView } from './components/compare/CompareScenariosView';
@@ -537,6 +538,10 @@ export function App() {
                 {/* Hero — headline success + key stats */}
                 <Card variant="elevated">
                   <StatPanel result={result} />
+                </Card>
+                {/* Inverse solvers — "what's my safe rate / number" */}
+                <Card variant="elevated">
+                  <SolverPanel />
                 </Card>
                 {/* Charts */}
                 <Card variant="elevated" className="flex flex-col gap-4">
