@@ -1250,10 +1250,15 @@ function ScatterPlot({
     const plotted = results.filter(
       (r) => Number.isFinite(r.metrics[xAxis]) && Number.isFinite(r.metrics[yAxis]),
     );
-    // Thin the bulk for rendering, but never drop a frontier node (or, when a
-    // filter is active, a match — those are the points the user is studying).
+    // What lights up: once you've overlaid/selected points, *those* are the
+    // focus, so light exactly them and dim the rest (the user's working set).
+    // With nothing selected, fall back to the filter match set; with neither,
+    // everything renders full strength.
+    const highlight = selectedIds.size > 0 ? selectedIds : matchIds;
+    // Thin the bulk for rendering, but never drop a frontier node or a
+    // highlighted point — those are what the user is actually studying.
     const pinned = (r: CandidateResult) =>
-      frontierIds.has(r.candidate.id) || (matchIds?.has(r.candidate.id) ?? false);
+      frontierIds.has(r.candidate.id) || (highlight?.has(r.candidate.id) ?? false);
     const kept = downsampleForRender(
       plotted,
       (r) => r.metrics[xAxis],
@@ -1265,24 +1270,22 @@ function ScatterPlot({
     const mapPoint = (r: CandidateResult, dim: boolean) => ({
       x: r.metrics[xAxis],
       y: r.metrics[yAxis],
-      // Non-matches fade to a faint wash so the field stays as context; matches
-      // keep their full computed colour and sit larger, drawn on top. The "33"
-      // alpha suffix makes dimmed points translucent.
+      // Non-highlighted points fade to a faint wash so the field stays as
+      // context; highlighted ones keep their full computed colour and sit
+      // larger, drawn on top. The "55" alpha suffix makes dimmed points translucent.
       color: dim ? `${CHART.grid}55` : colorFor(r),
-      marker: dim ? { radius: 3 } : matchIds ? { radius: 6 } : undefined,
+      marker: dim ? { radius: 3 } : highlight ? { radius: 6 } : undefined,
       custom: { id: r.candidate.id, result: r },
     });
-    if (!matchIds) return kept.map((r) => mapPoint(r, false));
+    if (!highlight) return kept.map((r) => mapPoint(r, false));
     // Dimmed first, highlighted last → highlighted render on top.
-    const dimmed = kept.filter((r) => !matchIds.has(r.candidate.id));
-    const lit = kept.filter((r) => matchIds.has(r.candidate.id));
+    const dimmed = kept.filter((r) => !highlight.has(r.candidate.id));
+    const lit = kept.filter((r) => highlight.has(r.candidate.id));
     return [
       ...dimmed.map((r) => mapPoint(r, true)),
       ...lit.map((r) => mapPoint(r, false)),
     ];
-    // selectedIds intentionally omitted — not read here, and rebuilding ~50k
-    // points on every selection click is needlessly expensive.
-  }, [results, xAxis, yAxis, colorFor, matchIds, frontierIds, thin]);
+  }, [results, xAxis, yAxis, colorFor, matchIds, selectedIds, frontierIds, thin]);
 
   // Report how many points actually rendered (seriesData length == kept count)
   // vs. how many were plottable — drives the temporary thin-tuning readout.
