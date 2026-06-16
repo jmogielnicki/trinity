@@ -26,6 +26,21 @@ function flatStatic(stock: number, bond: number, cash: number) {
   return { type: 'static' as const, weights: { stock, bond, cash } };
 }
 
+/**
+ * Blanchett's "retirement smile": real spending dips through mid-retirement
+ * then rises late with healthcare. Authored as exactly 5 points at the handle
+ * positions WithdrawalCurve uses (t = (i/4)·(horizon−1)) so it round-trips
+ * without re-interpolation on load.
+ */
+function smileWithdrawal(horizon: number) {
+  const rates = [0.048, 0.043, 0.039, 0.041, 0.046];
+  const lastT = Math.max(1, horizon - 1);
+  return {
+    type: 'piecewiseLinear' as const,
+    points: rates.map((rate, i) => ({ t: (i / 4) * lastT, rate })),
+  };
+}
+
 export const PRESETS: Preset[] = [
 	{
 		id: "trinity-75-25",
@@ -37,6 +52,23 @@ export const PRESETS: Preset[] = [
 			horizonYears: HORIZON,
 			allocation: flatStatic(0.75, 0.25, 0),
 			withdrawal: { type: "fixedPercent", rate: 0.04 },
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "retirement-smile",
+		name: "Retirement smile — 60/40",
+		description:
+			"Blanchett's \"retirement smile\": spending starts higher, declines ~1%/yr " +
+			"through mid-retirement as you slow down, then rises late with healthcare. " +
+			"A more realistic shape than a flat 4% — drag the curve handles to reshape it.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: HORIZON,
+			allocation: flatStatic(0.6, 0.4, 0),
+			withdrawal: smileWithdrawal(HORIZON),
 			withdrawalSource: { type: "proportional", rebalance: true },
 			tailMethod: { type: "truncate" },
 			axes: PINNED_AXES,

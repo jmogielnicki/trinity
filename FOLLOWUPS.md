@@ -4,7 +4,7 @@ Things deliberately deferred. Each one has a phase or trigger that should bring 
 
 ## Data
 
-- **Cash returns are `null` pre-1934.** From 1934 on we use FRED `TB3MS` (3-month T-bill, monthly factors compounded). For 1872–1933 we'd need NBER macrohistory call-money or commercial-paper rates — different beasts (overnight broker funding / corp credit) so they need their own series, not a drop-in proxy. Until added, simulations starting before 1934 with a cash sleeve drop it via `adjustWeightsForData` at year 0.
+- **Cash returns are `null` pre-1934.** From 1934 on we use FRED `TB3MS` (3-month T-bill, monthly factors compounded). For 1872–1933 we'd need NBER macrohistory call-money or commercial-paper rates — different beasts (overnight broker funding / corp credit) so they need their own series, not a drop-in proxy. Until added, the cash sleeve is **not** dropped or reweighted before 1934: `applyReturns` (`src/engine/withdrawalSource.ts`) treats a null `cash_return_real` as **0% real**, so a pre-1934 cash sleeve simply holds purchasing power and earns nothing (a deliberately conservative assumption). The allocation editor surfaces an info note when a cash sleeve is set.
 
 ## Engine
 
