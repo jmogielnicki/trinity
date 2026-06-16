@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import type { Weights } from '../../engine/types';
 import { ASSET, CHART } from '../colors';
+import { useElementWidth } from './useElementWidth';
 
 type Props = {
   /** One entry = single fixed bar. Two entries = glide-path (left + right columns). */
@@ -8,6 +9,7 @@ type Props = {
   /** X-axis labels drawn inside the SVG, one per column. */
   columnLabels?: string[];
   onChange: (weights: Weights[]) => void;
+  /** Optional fixed width; omit to fill (and track) the container. */
   width?: number;
   height?: number;
 };
@@ -32,10 +34,12 @@ export function StackedBar({
   weights,
   columnLabels,
   onChange,
-  width = 280,
+  width: widthProp,
   height = 200,
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [wrapRef, measuredW] = useElementWidth(280);
+  const width = widthProp ?? measuredW;
   const [local, setLocal] = useState<Weights[]>(weights);
 
   // Track active drag: which column + which boundary
@@ -207,11 +211,13 @@ export function StackedBar({
   ));
 
   return (
-    <svg ref={svgRef} width={width} height={height} className="block touch-none select-none">
-      {renderBands()}
-      {renderLabels()}
-      {renderHandles()}
-      {renderColumnLabels()}
-    </svg>
+    <div ref={wrapRef} className="w-full">
+      <svg ref={svgRef} width={width} height={height} className="block touch-none select-none">
+        {renderBands()}
+        {renderLabels()}
+        {renderHandles()}
+        {renderColumnLabels()}
+      </svg>
+    </div>
   );
 }

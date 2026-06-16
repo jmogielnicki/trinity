@@ -20,6 +20,7 @@ import { Card } from './components/ui/Card';
 import { IconButton } from './components/ui/IconButton';
 import { NavTab } from './components/ui/NavTab';
 import { authConfigured } from './auth';
+import { peakIncome } from './engine/cashflows';
 import { loadHistorical } from './data/load';
 import { gateCustomSrc, serialize, tryDeserialize } from './data/urlState';
 import { useAuthStore } from './store/authStore';
@@ -30,6 +31,13 @@ import { useScenarioStore } from './store/scenarioStore';
 import { useSweepStore } from './store/sweepStore';
 import { createPool } from './worker/pool';
 type TopMode = 'single' | 'optimize' | 'compare';
+
+// Captured before React runs. The hydrate effect must not re-read
+// location.hash: the URL-sync effect rewrites it from (initially default)
+// store state in the same commit, so under StrictMode's dev double-effects
+// the second hydration pass would re-read the clobbered hash and reset
+// every unconditionally-applied field back to its default.
+const INITIAL_HASH = typeof window !== 'undefined' ? window.location.hash : '';
 
 export function App() {
   const scenario = useScenarioStore();
@@ -134,7 +142,7 @@ export function App() {
 
   // Hydrate from URL hash on first load.
   useEffect(() => {
-    const parsedRaw = tryDeserialize(location.hash);
+    const parsedRaw = tryDeserialize(INITIAL_HASH);
     if (!parsedRaw) return;
     const parsed = gateCustomSrc(parsedRaw, (src, where) => {
       const preview = src.length > 200 ? src.slice(0, 200) + '…' : src;
@@ -550,6 +558,7 @@ export function App() {
                       <StartYearChart
                         result={result}
                         initialBalance={scenario.initialBalance}
+                        incomeFloor={peakIncome(scenario.incomes, scenario.horizonYears)}
                         height={320}
                         selectedYears={selectedYears}
                         onToggle={toggleYear}

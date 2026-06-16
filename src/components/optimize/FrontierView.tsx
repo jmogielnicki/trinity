@@ -46,6 +46,7 @@ type Axis =
   | 'p50Final'
   | 'p95Final'
   | 'avgAnnualWithdrawal'
+  | 'minAnnualSpend'
   | 'avgYearsNearDepletion'
   | 'minBalance';
 
@@ -55,6 +56,7 @@ const AXIS_LABELS: Record<Axis, string> = {
   p50Final: 'Median final balance',
   p95Final: '95th-pct final balance',
   avgAnnualWithdrawal: 'Avg annual withdrawal',
+  minAnnualSpend: 'Lowest annual spending',
   avgYearsNearDepletion: 'Avg years near depletion',
   minBalance: 'Min balance reached',
 };
@@ -65,6 +67,7 @@ const AXIS_OPTIONS: Axis[] = [
   'p50Final',
   'p95Final',
   'avgAnnualWithdrawal',
+  'minAnnualSpend',
   'avgYearsNearDepletion',
   'minBalance',
 ];

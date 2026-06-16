@@ -3,7 +3,7 @@ import HighchartsReact from 'highcharts-react-official';
 import type { Options } from 'highcharts';
 import { Highcharts } from '../../lib/highchartsInit';
 import type { SimulationResult, Sleeves, YearStateRecord } from '../../engine/types';
-import { ASSET, CHART, OUTCOME } from '../colors';
+import { ASSET, CHART, FLOW, OUTCOME } from '../colors';
 
 type Props = {
   sim: SimulationResult;
@@ -86,6 +86,11 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
     [trajectory],
   );
 
+  const hasIncome = useMemo(
+    () => trajectory.some((r) => (r.income ?? 0) > 0 || (r.oneTime ?? 0) !== 0),
+    [trajectory],
+  );
+
   // Build Highcharts options: single chart, two y-axes.
   // yAxis[0] = sleeve balances (stacked area, top 75%)
   // yAxis[1] = withdrawals (stacked column, bottom 25%)
@@ -95,10 +100,18 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
     const bondData = trajectory.map((r) => [r.t, r.sleeves.bond] as [number, number]);
     const cashData = trajectory.map((r) => [r.t, r.sleeves.cash] as [number, number]);
 
-    // Withdrawal series data by sleeve
+    // Withdrawal series data by sleeve, plus the slice of spending paid by
+    // external income — stacked together they total annual spending.
     const wdStockData = trajectory.map((r) => [r.t, (r.withdrawalBySleeve ?? zeroSleeves()).stock] as [number, number]);
     const wdBondData = trajectory.map((r) => [r.t, (r.withdrawalBySleeve ?? zeroSleeves()).bond] as [number, number]);
     const wdCashData = trajectory.map((r) => [r.t, (r.withdrawalBySleeve ?? zeroSleeves()).cash] as [number, number]);
+    const anyIncome = trajectory.some((r) => (r.income ?? 0) > 0);
+    // The income slice that funded spending: never more than the year's
+    // spending (surplus is invested, not spent).
+    const wdIncomeData = anyIncome
+      ? trajectory.map((r) =>
+          [r.t, Math.min(r.income ?? 0, r.withdrawal)] as [number, number])
+      : null;
 
     // Calendar year labels: show every ~8 ticks
     const calStep = Math.ceil(trajectory.length / 8);
@@ -207,7 +220,9 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
             `<b>Year ${r.t} · ${r.calendarYear}</b>`,
             `Balance: ${fmt$(r.balance)}`,
             `Holdings: ${fmt$(r.sleeves.stock)} stk · ${fmt$(r.sleeves.bond)} bnd · ${fmt$(r.sleeves.cash)} csh`,
-            `Withdrawal: ${fmt$(r.withdrawal)} (${fmtPct(r.withdrawal / initialBalance)} of initial)`,
+            `Spending: ${fmt$(r.withdrawal)} (${fmtPct(r.withdrawal / initialBalance)} of initial)`,
+            (r.income ?? 0) > 0 ? `Income: ${fmt$(r.income!)}` : null,
+            (r.oneTime ?? 0) !== 0 ? `One-time: ${fmtFlow(r.oneTime!)}` : null,
             `  drawn: ${fmt$(wb.stock)} stk · ${fmt$(wb.bond)} bnd · ${fmt$(wb.cash)} csh`,
             r.return != null ? `Return: ${fmtPct(r.return)} ${r.return >= 0 ? '▲' : '▼'}` : null,
             r.calendarYear < CASH_DATA_START_YEAR
@@ -298,6 +313,19 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
           zIndex: 1,
           opacity: 0.85,
         } as Highcharts.SeriesColumnOptions,
+        ...(wdIncomeData
+          ? [
+              {
+                type: 'column',
+                name: 'income',
+                data: wdIncomeData,
+                color: FLOW.income,
+                yAxis: 1,
+                zIndex: 1,
+                opacity: 0.85,
+              } as Highcharts.SeriesColumnOptions,
+            ]
+          : []),
       ],
     };
   }, [trajectory, startYear, depletedAt, initialBalance, chartWidth]);
@@ -346,7 +374,10 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.stock }} /> stocks</li>
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.bond }} /> bonds</li>
         <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: ASSET.cash }} /> cash</li>
-        <li className="text-text-faint">filled area = holdings · bars = withdrawals by source</li>
+        {hasIncome && (
+          <li className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: FLOW.income }} /> income</li>
+        )}
+        <li className="text-text-faint">filled area = holdings · bars = spending by source</li>
       </ul>
 
       {showsAssumedCash && (
@@ -378,6 +409,7 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
               <th rowSpan={2} className="text-right tabular-nums">Balance</th>
               <th rowSpan={2} className="text-right tabular-nums">W/D $</th>
               <th rowSpan={2} className="text-right tabular-nums">W/D %</th>
+              {hasIncome && <th rowSpan={2} className="text-right tabular-nums" title="External income and one-time events received that year">Income</th>}
               <th rowSpan={2} className="text-right tabular-nums">Return</th>
               {/* Detail groups */}
               {detailMode && <th colSpan={3} className="text-center bg-surface-panel border-l border-border-light text-2xs px-1.5 py-[3px] tracking-[0.03em]">Start balance</th>}
@@ -412,6 +444,11 @@ export function SimDetailPanel({ sim, initialBalance, onClose }: Props) {
                   <td className="text-right tabular-nums">{fmt$(r.balance)}</td>
                   <td className="text-right tabular-nums">{fmt$(r.withdrawal)}</td>
                   <td className="text-right tabular-nums">{fmtPct(r.withdrawal / initialBalance)}</td>
+                  {hasIncome && (
+                    <td className="text-right tabular-nums">
+                      {fmtFlow((r.income ?? 0) + (r.oneTime ?? 0))}
+                    </td>
+                  )}
                   <td className={`text-right tabular-nums ${r.return != null ? (r.return < 0 ? 'text-error' : 'text-success') : ''}`}>
                     {r.return != null ? fmtPct(r.return) : '—'}
                   </td>

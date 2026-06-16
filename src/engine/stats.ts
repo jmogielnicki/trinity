@@ -135,6 +135,69 @@ export function avgAnnualWithdrawal(sims: SimulationResult[]): number {
   return quantile(means, 0.5);
 }
 
+export type SpendingStats = {
+  /** Lowest single-year spending across observed completed cohorts (real $). */
+  minAnnualSpend: number;
+  /** Cohort and year-into-retirement where that low occurred. */
+  minSpendStartYear?: number;
+  minSpendAtYear?: number;
+  /** Largest year-over-year spending cut (fraction of the prior year). 0 = spending never dropped. */
+  worstCut: number;
+  worstCutStartYear?: number;
+  /** Median across cohorts of total lifetime spending (real $). */
+  p50LifetimeSpend: number;
+};
+
+/**
+ * Spending-quality stats — the honest companion to the success rate for
+ * variable-withdrawal strategies, which can "succeed" by quietly gutting
+ * spending. Computed over observed completed cohorts only (same exclusions
+ * as avgAnnualWithdrawal): bootstrap samples would multiply-count recent
+ * cohorts and truncated sims would understate lifetime totals. Spending in
+ * a depleted cohort is measured up to depletion — the failure itself is the
+ * success rate's job to report.
+ */
+export function spendingStats(sims: SimulationResult[]): SpendingStats {
+  let minSpend = Infinity;
+  let minSpendStartYear: number | undefined;
+  let minSpendAtYear: number | undefined;
+  let worstCut = 0;
+  let worstCutStartYear: number | undefined;
+  const totals: number[] = [];
+  for (const s of sims) {
+    if (s.bootstrapped || s.inProgress) continue;
+    if (s.trajectory.length === 0) continue;
+    let total = 0;
+    let prev: number | null = null;
+    for (const rec of s.trajectory) {
+      total += rec.withdrawal;
+      if (rec.withdrawal < minSpend) {
+        minSpend = rec.withdrawal;
+        minSpendStartYear = s.startYear;
+        minSpendAtYear = rec.t;
+      }
+      if (prev != null && prev > 0) {
+        const cut = (prev - rec.withdrawal) / prev;
+        if (cut > worstCut) {
+          worstCut = cut;
+          worstCutStartYear = s.startYear;
+        }
+      }
+      prev = rec.withdrawal;
+    }
+    totals.push(total);
+  }
+  totals.sort((a, b) => a - b);
+  return {
+    minAnnualSpend: Number.isFinite(minSpend) ? minSpend : NaN,
+    minSpendStartYear,
+    minSpendAtYear,
+    worstCut,
+    worstCutStartYear,
+    p50LifetimeSpend: totals.length > 0 ? quantile(totals, 0.5) : NaN,
+  };
+}
+
 export type SuccessStats = {
   /** Rate over fully-observed completed cohorts. NaN if there are none. */
   observedRate: number;

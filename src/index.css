@@ -25,6 +25,10 @@
   --color-cash:  #6C91C2;
   --color-cash-wash:  #C3C7D8;
 
+  /* External cash flows (income streams) — teal, distinct from both the
+     warm asset palette and the green/red outcome palette. */
+  --color-income: #2E7D71;
+
   /* Simulation outcome colors — consumed by components/colors.ts.
      survived = forest brand green so the spaghetti / start-year charts read
      on-theme; no longer collides with stock (now wine). */

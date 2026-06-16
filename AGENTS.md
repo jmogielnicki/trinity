@@ -68,7 +68,7 @@ src/
   store/             # zustand slices
   worker/            # Comlink-wrapped engine in a Web Worker pool
   data/              # data loading, URL state, presets, CSV export, scenarioRepo (local+cloud)
-tests/engine/        # vitest, 17 files, 115 tests
+tests/engine/        # vitest, 18 files, 121 tests
 ```
 
 ## 3. Mental model
