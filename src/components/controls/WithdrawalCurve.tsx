@@ -4,6 +4,7 @@ import { scaleLinear } from 'd3-scale';
 import { select } from 'd3-selection';
 import type { WithdrawalStrategy } from '../../engine/strategies';
 import { CHART } from '../colors';
+import { useElementWidth } from './useElementWidth';
 
 type Props = {
   horizonYears: number;
@@ -11,6 +12,7 @@ type Props = {
    * otherwise a flat polyline at the implied constant rate. */
   withdrawal: WithdrawalStrategy;
   onChange: (w: WithdrawalStrategy) => void;
+  /** Optional fixed width; omit to fill (and track) the container. */
   width?: number;
   height?: number;
 };
@@ -93,13 +95,15 @@ export function WithdrawalCurve({
   horizonYears,
   withdrawal,
   onChange,
-  width = 280,
+  width: widthProp,
   height = 160,
 }: Props) {
   const [handles, setHandles] = useState<Handle[]>(() =>
     strategyToHandles(withdrawal, horizonYears),
   );
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [wrapRef, measuredW] = useElementWidth(280);
+  const width = widthProp ?? measuredW;
 
   // Re-sync if external changes arrive (e.g. horizon change or external strategy load).
   // Include a stable serialization of piecewiseLinear points so preset switches with
@@ -113,7 +117,8 @@ export function WithdrawalCurve({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [withdrawal.type, pointsKey, horizonYears]);
 
-  const margin = { top: 12, right: 12, bottom: 24, left: 36 };
+  // right margin clears the rightmost handle's centered "%" label
+  const margin = { top: 12, right: 20, bottom: 24, left: 36 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
   const x = scaleLinear().domain([0, 1]).range([0, innerW]);
@@ -154,6 +159,7 @@ export function WithdrawalCurve({
       <div className="text-sm text-text-secondary">
         Withdrawal curve — drag handles. Snaps at 3, 3.5, 4, 4.5, 5%.
       </div>
+      <div ref={wrapRef} className="w-full">
       <svg
         ref={svgRef}
         width={width}
@@ -240,6 +246,7 @@ export function WithdrawalCurve({
           year 0
         </text>
       </svg>
+      </div>
     </div>
   );
 }

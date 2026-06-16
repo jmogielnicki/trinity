@@ -8,7 +8,6 @@ type Props = {
   horizonYears: number;
   allocation: AllocationStrategy;
   onChange: (a: AllocationStrategy) => void;
-  width?: number;
   height?: number;
 };
 
@@ -27,7 +26,7 @@ function endpointsToAllocation(ep: Endpoints, horizonYears: number): AllocationS
   return { type: 'glidepath', start: ep.start, end: ep.end, transitionYears: horizonYears };
 }
 
-export function GlidePath({ horizonYears, allocation, onChange, width = 280, height = 200 }: Props) {
+export function GlidePath({ horizonYears, allocation, onChange, height = 200 }: Props) {
   const [ep, setEp] = useState<Endpoints>(() => allocToEndpoints(allocation));
 
   useEffect(() => { setEp(allocToEndpoints(allocation)); }, [allocation]);
@@ -47,7 +46,6 @@ export function GlidePath({ horizonYears, allocation, onChange, width = 280, hei
         weights={[ep.start, ep.end]}
         columnLabels={['year 0', `year ${horizonYears}`]}
         onChange={handleChange}
-        width={width}
         height={height}
       />
       <div className="flex gap-3 text-xs text-text-secondary">
