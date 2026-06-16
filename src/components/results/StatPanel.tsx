@@ -58,7 +58,12 @@ export function StatPanel({ result }: Props) {
           </span>
         )}
       </div>
-      <div className="grid grid-cols-2 min-[840px]:grid-cols-3 gap-3 flex-1 w-full auto-rows-fr">
+      {/* Cards switch 2↔3 columns on the grid's OWN width (container query),
+          not the viewport — so the 850–980px band, where the sidebar is still
+          present and squeezes this column, drops to 2 cols instead of
+          overflowing a forced 3. */}
+      <div className="@container flex-1 w-full min-w-0">
+        <div className="grid grid-cols-2 @[480px]:grid-cols-3 gap-3 w-full auto-rows-fr">
         <Stat
           label="Median final balance"
           value={Number.isFinite(finalP50) ? fmt(finalP50) : '—'}
@@ -109,6 +114,7 @@ export function StatPanel({ result }: Props) {
           }
           accent="var(--color-stale, var(--color-accent))"
         />
+        </div>
       </div>
     </div>
   );
