@@ -17,6 +17,8 @@ export function PresetPicker() {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   const apply = (state: SerializedState) => {
+    scenario.setBalance(state.initialBalance);
+    scenario.setHorizon(state.horizonYears);
     scenario.setAllocation(state.allocation);
     scenario.setWithdrawal(state.withdrawal);
     if (state.tailMethod) scenario.setTailMethod(state.tailMethod);
@@ -77,6 +79,9 @@ export function PresetPicker() {
   const presetId = picked.startsWith('preset:') ? picked.slice('preset:'.length) : null;
   const description = presetId ? PRESETS.find((p) => p.id === presetId)?.description : undefined;
 
+  const personas = PRESETS.filter((p) => p.persona);
+  const strategies = PRESETS.filter((p) => !p.persona);
+
   return (
     <div className="flex flex-col gap-2">
       <div className="text-sm text-text-secondary">Start from</div>
@@ -96,8 +101,15 @@ export function PresetPicker() {
                 ))}
               </optgroup>
             )}
-            <optgroup label="Presets">
-              {PRESETS.map((p) => (
+            <optgroup label="Personas">
+              {personas.map((p) => (
+                <option key={p.id} value={`preset:${p.id}`}>
+                  {p.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Strategies">
+              {strategies.map((p) => (
                 <option key={p.id} value={`preset:${p.id}`}>
                   {p.name}
                 </option>

@@ -7,6 +7,7 @@ import { CustomScriptEditor } from './CustomScriptEditor';
 import { GlidePath } from './GlidePath';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
+import { useUIStore } from '../../store/uiStore';
 
 type Mode = 'fixed' | 'glide' | 'rules' | 'script';
 
@@ -108,13 +109,21 @@ function FixedAllocationEditor({ weights, onChange }: { weights: Weights; onChan
   );
 }
 
+// Modes flagged `simple` are always offered; Rules / Script appear only in
+// Advanced mode (or when already active, so an advanced preset loaded in
+// Simple mode still shows its selected tab).
+const ALLOCATION_MODES: Array<{ k: Mode; label: string; simple?: boolean }> = [
+  { k: 'fixed', label: 'Fixed', simple: true },
+  { k: 'glide', label: 'Glide', simple: true },
+  { k: 'rules', label: 'Rules' },
+  { k: 'script', label: 'Script' },
+];
+
 function ModeToggle({ current, onChange }: { current: Mode; onChange: (m: Mode) => void }) {
-  const modes: Array<{ k: Mode; label: string }> = [
-    { k: 'fixed', label: 'Fixed' },
-    { k: 'glide', label: 'Glide' },
-    { k: 'rules', label: 'Rules' },
-    { k: 'script', label: 'Script' },
-  ];
+  const editorMode = useUIStore((s) => s.editorMode);
+  const modes = ALLOCATION_MODES.filter(
+    (m) => editorMode === 'advanced' || m.simple || m.k === current,
+  );
   return (
     <TabBar>
       {modes.map((m) => (

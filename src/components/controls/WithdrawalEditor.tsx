@@ -6,6 +6,7 @@ import { WithdrawalCurve } from './WithdrawalCurve';
 import { StepSlider } from '../ui/StepSlider';
 import { TabBar } from '../ui/TabBar';
 import { ToggleButton } from '../ui/ToggleButton';
+import { useUIStore } from '../../store/uiStore';
 
 type Mode = 'fixed' | 'curve' | 'floor-upside' | 'ratchet' | 'cape' | 'rules' | 'script';
 
@@ -159,6 +160,19 @@ export function WithdrawalEditor({ horizonYears, withdrawal, onChange }: Props) 
   );
 }
 
+// Modes flagged `simple` are always offered; the rest are revealed only in
+// Advanced mode (or when already active, so loading an advanced preset in
+// Simple mode still shows its selected tab).
+const WITHDRAWAL_MODES: Array<{ k: Mode; label: string; simple?: boolean }> = [
+  { k: 'fixed', label: 'Fixed', simple: true },
+  { k: 'curve', label: 'Curve', simple: true },
+  { k: 'ratchet', label: 'Ratchet' },
+  { k: 'floor-upside', label: 'Floor + upside' },
+  { k: 'cape', label: 'CAPE' },
+  { k: 'rules', label: 'Rules' },
+  { k: 'script', label: 'Script' },
+];
+
 function ModeToggle({
   current,
   onChange,
@@ -166,15 +180,10 @@ function ModeToggle({
   current: Mode;
   onChange: (m: Mode) => void;
 }) {
-  const modes: Array<{ k: Mode; label: string }> = [
-    { k: 'fixed', label: 'Fixed' },
-    { k: 'curve', label: 'Curve' },
-    { k: 'ratchet', label: 'Ratchet' },
-    { k: 'floor-upside', label: 'Floor + upside' },
-    { k: 'cape', label: 'CAPE' },
-    { k: 'rules', label: 'Rules' },
-    { k: 'script', label: 'Script' },
-  ];
+  const editorMode = useUIStore((s) => s.editorMode);
+  const modes = WITHDRAWAL_MODES.filter(
+    (m) => editorMode === 'advanced' || m.simple || m.k === current,
+  );
   return (
     <TabBar>
       {modes.map((m) => (

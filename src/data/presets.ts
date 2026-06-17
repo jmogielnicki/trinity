@@ -11,6 +11,13 @@ export type Preset = {
   name: string;
   description: string;
   state: SerializedState;
+  /**
+   * Persona presets are audience-facing starting points ("I'm a traditional
+   * retiree", "I'm pursuing FIRE") rather than named academic strategies. They
+   * set the whole scenario — balance, horizon, allocation, withdrawal — and are
+   * surfaced first in the picker.
+   */
+  persona?: boolean;
 };
 
 const PINNED_AXES: SerializedState['axes'] = {
@@ -27,6 +34,42 @@ function flatStatic(stock: number, bond: number, cash: number) {
 }
 
 export const PRESETS: Preset[] = [
+	{
+		id: "persona-traditional",
+		name: "Traditional retiree",
+		persona: true,
+		description:
+			"Retiring around 65 with a 30-year horizon. A balanced 60/40 stock/bond " +
+			"portfolio and the classic 4% inflation-adjusted withdrawal — the canonical " +
+			"starting point most retirement guidance is built around.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: 30,
+			allocation: flatStatic(0.6, 0.4, 0),
+			withdrawal: { type: "fixedPercent", rate: 0.04 },
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
+	{
+		id: "persona-fire",
+		name: "FIRE (early retirement)",
+		persona: true,
+		description:
+			"Retiring early with a long 50-year horizon to fund. A stock-heavy 90/10 " +
+			"portfolio for growth, paired with a more conservative 3.5% withdrawal to " +
+			"survive the longer runway and deeper sequence-of-returns risk.",
+		state: {
+			initialBalance: STARTING,
+			horizonYears: 50,
+			allocation: flatStatic(0.9, 0.1, 0),
+			withdrawal: { type: "fixedPercent", rate: 0.035 },
+			withdrawalSource: { type: "proportional", rebalance: true },
+			tailMethod: { type: "truncate" },
+			axes: PINNED_AXES,
+		},
+	},
 	{
 		id: "trinity-75-25",
 		name: "Trinity 75/25 — 4%",

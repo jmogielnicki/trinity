@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';import { AllocationEditor } from './components/controls/AllocationEditor';
+import { EditorModeToggle } from './components/controls/EditorModeToggle';
 import { PortfolioInput } from './components/controls/PortfolioInput';
 import { PresetPicker } from './components/controls/PresetPicker';
 import { WithdrawalEditor } from './components/controls/WithdrawalEditor';
@@ -435,6 +436,7 @@ export function App() {
                   <h2 className="font-display m-0 text-xl font-bold text-text">Build your plan</h2>
                 </div>
                 <PresetPicker />
+                <EditorModeToggle />
                 <h3 className="font-display mt-1 text-lg font-bold text-text border-b border-border pb-1.5">Allocation</h3>
                 <AllocationEditor
                   horizonYears={scenario.horizonYears}

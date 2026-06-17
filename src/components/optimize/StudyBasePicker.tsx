@@ -82,8 +82,15 @@ export function StudyBasePicker({ onEditInBuild }: { onEditInBuild?: () => void 
               ))}
             </optgroup>
           )}
-          <optgroup label="Presets">
-            {PRESETS.map((p) => (
+          <optgroup label="Personas">
+            {PRESETS.filter((p) => p.persona).map((p) => (
+              <option key={p.id} value={`preset:${p.id}`}>
+                {p.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Strategies">
+            {PRESETS.filter((p) => !p.persona).map((p) => (
               <option key={p.id} value={`preset:${p.id}`}>
                 {p.name}
               </option>
